@@ -102,3 +102,4 @@ coverage/
 
 # Vue CLI / Vite specific
 *.local
+config.yaml

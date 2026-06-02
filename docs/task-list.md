@@ -8,11 +8,13 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **1.1 Local Project Bootstrap**
 
-* [ ] Initialize the project repository with a clean Go module structure (go mod init).  
-* [ ] Create a local environment configuration file (.env or .env.local) to define development parameters:  
+* [x] Initialize the project repository with a clean Go module structure (go mod init).  
+* [x] ~~Create a local environment configuration file (.env or .env.local) to define development parameters~~:  
   * DB_DSN (pointing to your existing running PostgreSQL instance).  
   * S3_BUCKET (configured for local folder-spool testing or a dedicated development AWS bucket).  
-* [ ] Implement a system configuration parser in Go (e.g., using cleanenv or standard library os.LookupEnv) to validate these database connections on application startup.  
+* [x] ~~Implement a system configuration parser in Go (e.g., using cleanenv or standard library os.LookupEnv) to validate these database connections on application startup~~.  
+* [x] Use viper lib to take path to _config.yaml_ file with defaults while accepting environment overrides with prefix `EM_`.
+
 * **Verification Checkpoint**: Run a simple main.go ping script that parses your .env file and successfully establishes a database connection pool (sql.DB) to your existing PostgreSQL instance.
 
 ### **1.2 DB Engine & SQLC Generation**
