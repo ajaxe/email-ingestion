@@ -1,0 +1,418 @@
+Delivered-To: ajay.sharma1984@gmail.com
+Received: by 2002:a05:6400:686d:b0:2d3:6af2:67af with SMTP id q45csp624193ecq; Fri, 29 May 2026 15:00:24 -0700 (PDT)
+X-Received: by 2002:ad4:5ae6:0:b0:8ca:16a6:3d52 with SMTP id 6a1803df08f44-8ccefb40230mr29623526d6.13.1780092023244; Fri, 29 May 2026 15:00:23 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1780092023; cv=none; d=google.com; s=arc-20240605; b=BubjIEy3Dg3uToL8jesy4r2iZuo03eWmdOB0kF+mM9d5SlVfStf35cPs62qRrzPpQP 6SRrU8XsGJ1ATxgr3MPpcT1mAlZ+PhcMiAsRom0lQvt1S/FZJ0lFaCMqj0WhZdqfp7z5 49a5li426J3Ny/6cbViP1PoHBkJYWyBId/ifJ1qtTwoaxJV4EwCnKZYUKDbP5/VSnnNp es9mks7GeWQVuOOlKozc11awiQ0j6t8PABMq2zFAWDQt7Sae7Yz7C1kknZmDUIsFn87q i4ZSfhpOdBJoB9OT+ozQ0Uz6D7R2HzrzqmP5C9aRimULC+Zjixpj8G1Ku1WcpmSRW5pI 3uDg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605; h=list-unsubscribe-post:list-unsubscribe:mime-version:subject:to :reply-to:from:date:message-id:dkim-signature:dkim-signature; bh=QlnUUxCTrvOkbTcnb9Xkz2lSjS9TvHdbaev8fhZEb4I=; fh=GFKHTFI5DFpD32OdLBt06zg1nHXZiE4h/d4jJfMwqgk=; b=BS7TLLP5oHQLhq4KD0nneS53Q2XVENjIHxsUUBrxXAlIgNAhzQvtE3AkeqCa5wDOCm eFyYiAHoIQN9lQgfaHlGvDCl5Ysd7QcqlhqaIpHI3eqx5i/CjA9VYSnYtlKEabEqIyXq x8zIAA0E+Jlw3Xi56sGoO/8w7qknXrX1RYIYR5Jd3cYvOXUFfO1hvSno+exDJy9bek6x Pn77A3xFugERATaGlRLdBNKtSGYqdbnDTAw1RnRB724H3e1+CyxvwgWDqGPxR4sLqGN5 2gCLW4jl5Y20HklKjkM3syW43B04JjCeUpYfmx755RS/xnjZ1lCIlPwtgFJrB/68chWu XXRA==; dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com; dkim=pass header.i=@uncwellnesscenters.ccsend.com header.s=ctct1 header.b="H+/hnCB2"; dkim=pass header.i=@auth.ccsend.com header.s=1000073432 header.b=BHZ0unqd; spf=pass (google.com: domain of ayiqty4retogfsenvrwabuw==_1120668810450_utjoopmeeei6g9suupk7ua==@in.constantcontact.com designates 208.75.123.135 as permitted sender) smtp.mailfrom="AyiqTY4reTOGfSENVrWaBUw==_1120668810450_UTJOoPMeEei6g9SuUpK7UA==@in.constantcontact.com"; dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=ccsend.com
+Return-Path: <AyiqTY4reTOGfSENVrWaBUw==_1120668810450_UTJOoPMeEei6g9SuUpK7UA==@in.constantcontact.com>
+Received: from ccm135.constantcontact.com (ccm135.constantcontact.com. [208.75.123.135]) by mx.google.com with ESMTPS id 6a1803df08f44-8ccea28ce5bsi35646186d6.603.2026.05.29.15.00.22 for <ajay.sharma1984@gmail.com> (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256); Fri, 29 May 2026 15:00:23 -0700 (PDT)
+Received-SPF: pass (google.com: domain of ayiqty4retogfsenvrwabuw==_1120668810450_utjoopmeeei6g9suupk7ua==@in.constantcontact.com designates 208.75.123.135 as permitted sender) client-ip=208.75.123.135;
+Authentication-Results: mx.google.com; dkim=pass header.i=@uncwellnesscenters.ccsend.com header.s=ctct1 header.b="H+/hnCB2"; dkim=pass header.i=@auth.ccsend.com header.s=1000073432 header.b=BHZ0unqd; spf=pass (google.com: domain of ayiqty4retogfsenvrwabuw==_1120668810450_utjoopmeeei6g9suupk7ua==@in.constantcontact.com designates 208.75.123.135 as permitted sender) smtp.mailfrom="AyiqTY4reTOGfSENVrWaBUw==_1120668810450_UTJOoPMeEei6g9SuUpK7UA==@in.constantcontact.com"; dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=ccsend.com
+DKIM-Signature: v=1; q=dns/txt; a=rsa-sha256; c=relaxed/relaxed; s=ctct1; d=uncwellnesscenters.ccsend.com; h=date:mime-version:subject:X-Feedback-ID:X-250ok-CID:message-id:from:reply-to:list-unsubscribe:list-unsubscribe-post:to; bh=QlnUUxCTrvOkbTcnb9Xkz2lSjS9TvHdbaev8fhZEb4I=; b=H+/hnCB2xLfo1hGack0spAeeZUN9Ij9z62aUh2HPnCimH3smfnxEOYvBhIXs+3nD+xo3ZTridHsZ8inofTfjwdHfXIYhd17NUpH9N3T4O+d1UJA/vDS9oFz1sGcdTD6J6n1Lihms13SoI4DWwUMt8/B7//Qk1ajV1FjSRk0QsCK6MZLtzp5PlPMZfe10FTW6dRsHu/6uj2LzgUyKry2VvGhQl2EIp9ENf4cjqlEZ8GIvcIjRo7fPFy4ZcR2IJXt/SMC5rkmbzE8Rt628pCyYQZrrcLYY1orFw2rLJuaJ3K77x68ocWVXl+Zj8oQgAcKD2VVXLjU6aAhMVwIUS0GPrQ==
+DKIM-Signature: v=1; q=dns/txt; a=rsa-sha256; c=relaxed/relaxed; s=1000073432; d=auth.ccsend.com; h=date:mime-version:subject:X-Feedback-ID:X-250ok-CID:message-id:from:reply-to:list-unsubscribe:list-unsubscribe-post:to; bh=QlnUUxCTrvOkbTcnb9Xkz2lSjS9TvHdbaev8fhZEb4I=; b=BHZ0unqd7ewGruUdLtTzUUqTtWvhAPxaHW85WS4IHtj8zVSRw1VnHujy9lzTLzUYNtFnLdAZy9+EGuL18vVdw1evDTQ10M14zwU3stihrHSLIdMPie/Lp8zlMCfGB0Xn2EYROJ+KuGXxD86R4z4gyIBpq0noJ/RETp4Z/lfKZxM=
+Message-ID: <1142322342541.1120668810450.1783468052.0.191800JL.2002@synd.ccsend.com>
+Date: Fri, 29 May 2026 18:00:22 -0400 (EDT)
+From: UNC Wellness Centers <wellness@uncwellnesscenters.ccsend.com>
+Reply-To: wellness@unch.unc.edu
+To: ajay.sharma1984@gmail.com
+Subject: Swim Lessons Update
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="----=_Part_307289420_1698025730.1780092022904"
+List-Unsubscribe: <https://visitor.constantcontact.com/do?p=un&m=001TzGz9dnTFxF0LrXZvZ8kjA%3D%3D&se=001Oqg-tcOC5uUzMLtwzPeOLA%3D%3D&t=001EkZLEx15CcE%3D&llr=sg4brwtab>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+X-Campaign-Activity-ID: ca2a9363-8ade-4ce1-9f48-4355ad668153
+X-250ok-CID: ca2a9363-8ade-4ce1-9f48-4355ad668153
+X-Channel-ID: 51324ea0-f31e-11e8-ba83-d4ae5292bb50
+X-Return-Path-Hint: AyiqTY4reTOGfSENVrWaBUw==_1120668810450_UTJOoPMeEei6g9SuUpK7UA==@in.constantcontact.com
+X-Roving-Campaignid: 1142322342541
+X-Roving-Id: 1120668810450.1783468052
+X-Feedback-ID: 51324ea0-f31e-11e8-ba83-d4ae5292bb50:ca2a9363-8ade-4ce1-9f48-4355ad668153:1120668810450:CTCT
+X-CTCT-ID: 511529b0-f31e-11e8-ba83-d4ae5292bb50
+
+------=_Part_307289420_1698025730.1780092022904
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Email from UNC Wellness Centers =E2=80=8A =E2=80=8A Dear Valued Member, We =
+would like to inform you of an upcoming pricing adjustment for our swim les=
+son program, effective July 1, 2026.=E2=80=AF To support our continued comm=
+itment to high-quality swim lessons, experienced instructors, and the ongoi=
+ng growth of our program, swim lesson rates will increase beginning July 1s=
+t.  The cost per 4-week session will be: Twice per week: 30-minute lessons,=
+ 8 sessions =E2=80=94 $169 Once per week: 30-minute lessons, 4 sessions =E2=
+=80=94 $85 We=E2=80=AFremain=E2=80=AFdedicated to providing a safe, engagin=
+g, and rewarding experience for all participants, and we appreciate your un=
+derstanding and continued support.=E2=80=AF Thank you for the important rol=
+e you play in our swim program and wellness center community. Sincerely, =
+=EF=BB=BF UNC Wellness Centers UNC Wellness Centers | 100 Sprunt St. | Chap=
+el Hill, NC 27517 US Unsubscribe | Update Profile | Constant Contact Data N=
+otice
+------=_Part_307289420_1698025730.1780092022904
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE HTML>
+<html lang=3D"en-US"> <head> <title>Email from UNC Wellness Centers</title>=
+ <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8"> =
+<meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D1,=
+ maximum-scale=3D1">   <style type=3D"text/css" data-premailer=3D"ignore">=
+=20
+/* The following 2 styles are for handling signup landing pages  /* Set the=
+ default value for the targeted layout to display: none */ .layout--email_s=
+ignup_fineprint { display: none; }  /* Display the targeted layout only if =
+the doc contains email_address input */ body:has(label[for=3D"email_address=
+"]) .layout--email_signup_fineprint { display: block; }
+@media only screen and (max-width:480px) { .footer-main-width { width: 100%=
+ !important; }  .footer-mobile-hidden { display: none !important; }  .foote=
+r-mobile-hidden { display: none !important; }  .footer-column { display: bl=
+ock !important; }  .footer-mobile-stack { display: block !important; }  .fo=
+oter-mobile-stack-padding { padding-top: 3px; } }=20
+/* IE: correctly scale images with w/h attbs */ img { -ms-interpolation-mod=
+e: bicubic; }=20
+.layout { min-width: 100%; }=20
+table { table-layout: fixed; } .shell_outer-row, .shell_panel-row { table-l=
+ayout: auto; }=20
+/* Gmail/Web viewport fix */ u + .body .shell_outer-row { width: 620px; }=
+=20
+/* LIST AND p STYLE OVERRIDES */ .text .text_content-cell p { margin: 0; pa=
+dding: 0; margin-bottom: 0; } .text .text_content-cell ul, .text .text_cont=
+ent-cell ol { padding: 0; margin: 0 0 0 40px; } .text .text_content-cell li=
+ { padding: 0; margin: 0; /* line-height: 1.2; Remove after testing */ } /*=
+ Text Link Style Reset */ a { text-decoration: underline; } /* iOS: Autolin=
+k styles inherited */ a[x-apple-data-detectors] { text-decoration: underlin=
+e !important; font-size: inherit !important; font-family: inherit !importan=
+t; font-weight: inherit !important; line-height: inherit !important; color:=
+ inherit !important; } /* FF/Chrome: Smooth font rendering */ .text .text_c=
+ontent-cell { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing:=
+ grayscale; }
+</style> <!--[if gte mso 9]> <style id=3D"ol-styles">=20
+/* OUTLOOK-SPECIFIC STYLES */ li { text-indent: -1em; padding: 0; margin: 0=
+; /* line-height: 1.2; Remove after testing */ } ul, ol { padding: 0 0 0 40=
+px; } p { margin: 0; padding: 0; margin-bottom: 0; }=20
+</style> <![endif]-->  <style>@media only screen and (max-width:480px) {
+.button_content-cell {
+padding-top: 10px !important; padding-right: 20px !important; padding-botto=
+m: 10px !important; padding-left: 20px !important;
+}
+.button_border-row .button_content-cell {
+padding-top: 10px !important; padding-right: 20px !important; padding-botto=
+m: 10px !important; padding-left: 20px !important;
+}
+.column .content-padding-horizontal {
+padding-left: 20px !important; padding-right: 20px !important;
+}
+.layout .column .content-padding-horizontal .content-padding-horizontal {
+padding-left: 0px !important; padding-right: 0px !important;
+}
+.layout .column .content-padding-horizontal .block-wrapper_border-row .cont=
+ent-padding-horizontal {
+padding-left: 20px !important; padding-right: 20px !important;
+}
+.dataTable {
+overflow: auto !important;
+}
+.dataTable .dataTable_content {
+width: auto !important;
+}
+.icons_container {
+text-align: center !important;
+}
+.image--mobile-center img {
+float: none !important;
+}
+.image--mobile-full-width img.image_content {
+width: 100% !important; max-width: 100% !important;
+}
+.image--mobile-full-width .image_container-caption {
+width: 100% !important; max-width: 100% !important;
+}
+.image.image--float-left {
+float: none !important;
+}
+.image--float-left.image--mobile-center .image_container-caption {
+display: inline-block !important;
+}
+.image--float-left.image--mobile-center .image_container {
+text-align: center !important;
+}
+.image.image--float-right {
+float: none !important;
+}
+.image--float-right.image--mobile-center .image_container-caption {
+display: inline-block !important;
+}
+.image--float-right.image--mobile-center .image_container {
+text-align: center !important;
+}
+.layout-margin .layout-margin_cell {
+padding: 0px 20px !important;
+}
+.layout-margin--uniform .layout-margin_cell {
+padding: 20px 20px !important;
+}
+.scale {
+width: 100% !important;
+}
+.stack {
+display: block !important; box-sizing: border-box;
+}
+.hide {
+display: none !important;
+}
+u + .body .shell_outer-row {
+width: 100% !important;
+}
+.socialFollow_container {
+text-align: center !important;
+}
+.text .text_content-cell {
+font-size: 16px !important;
+}
+.text .text_content-cell h1 {
+font-size: 24px !important;
+}
+.text .text_content-cell h2 {
+font-size: 20px !important;
+}
+.text .text_content-cell h3 {
+font-size: 20px !important;
+}
+.text--sectionHeading .text_content-cell {
+font-size: 24px !important;
+}
+.text--heading .text_content-cell {
+font-size: 26px !important;
+}
+.text--feature .text_content-cell h2 {
+font-size: 20px !important;
+}
+.text--articleHeading .text_content-cell {
+font-size: 20px !important;
+}
+.text--article .text_content-cell h3 {
+font-size: 20px !important;
+}
+.text--featureHeading .text_content-cell {
+font-size: 20px !important;
+}
+.text--feature .text_content-cell h3 {
+font-size: 20px !important;
+}
+.text--dataTable .text_content-cell .dataTable .dataTable_content-cell {
+font-size: 12px !important;
+}
+.text--dataTable .text_content-cell .dataTable th.dataTable_content-cell {
+font-size: px !important;
+}
+}
+</style>
+</head> <body class=3D"body template template--en-US" data-template-version=
+=3D"1.58.5" data-canonical-name=3D"CPE10001" lang=3D"en-US" align=3D"center=
+" style=3D"-ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; min-=
+width: 100%; width: 100%; margin: 0px; padding: 0px;"> <div id=3D"preheader=
+" style=3D"color: transparent; display: none; font-size: 1px; line-height: =
+1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;"><span =
+data-entity-ref=3D"preheader"></span></div> <div id=3D"tracking-image" styl=
+e=3D"color: transparent; display: none; font-size: 1px; line-height: 1px; m=
+ax-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;"><img src=3D"=
+https://sg4brwtab.cc.rs6.net/on.jsp?ca=3Dca2a9363-8ade-4ce1-9f48-4355ad6681=
+53&a=3D1120668810450&c=3D511529b0-f31e-11e8-ba83-d4ae5292bb50&ch=3D51324ea0=
+-f31e-11e8-ba83-d4ae5292bb50" / alt=3D""></div> <div class=3D"shell" lang=
+=3D"en-US" dir=3D"ltr" style=3D"background-color: #BFBFBF;">  <table class=
+=3D"shell_panel-row" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0" style=3D"background-color: #BFBFBF;" bgcolor=3D"#BFBFBF"> <tr cla=
+ss=3D""> <td class=3D"shell_panel-cell" style=3D"" align=3D"center" valign=
+=3D"top"> <table class=3D"shell_width-row scale" style=3D"width: 620px;" al=
+ign=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td c=
+lass=3D"shell_width-cell" style=3D"padding: 15px 10px;" align=3D"center" va=
+lign=3D"top"> <table class=3D"shell_content-row" width=3D"100%" align=3D"ce=
+nter" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"s=
+hell_content-cell" style=3D"border-radius: 0px; background-color: #ffffff; =
+padding: 0; border: 0px solid #7DAFD2;" align=3D"center" valign=3D"top" bgc=
+olor=3D"#ffffff"> <table class=3D"layout layout--1-column" style=3D"table-l=
+ayout: fixed;" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0"> <tr> <td class=3D"column column--1 scale stack" style=3D"width: 100%;"=
+ align=3D"center" valign=3D"top">
+<table class=3D"divider" width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"=
+ border=3D"0"> <tr> <td class=3D"divider_container" style=3D"padding-top: 0=
+px; padding-bottom: 0px;" width=3D"100%" align=3D"center" valign=3D"top"> <=
+table class=3D"divider_content-row" style=3D"width: 100%; height: 1px;" cel=
+lpadding=3D"0" cellspacing=3D"0" border=3D"0"> <tr> <td class=3D"divider_co=
+ntent-cell" style=3D"padding-bottom: 10px; background-color: #579FD2; heigh=
+t: 1px; line-height: 1px; border-bottom-width: 0px;" height=3D"1" align=3D"=
+center" bgcolor=3D"#579FD2"> <img alt=3D"" width=3D"5" height=3D"1" border=
+=3D"0" hspace=3D"0" vspace=3D"0" src=3D"https://imgssl.constantcontact.com/=
+letters/images/1101116784221/S.gif" style=3D"display: block; height: 1px; w=
+idth: 5px;"> </td> </tr> </table> </td> </tr> </table> </td> </tr> </table>=
+ <table class=3D"layout layout--1-column" style=3D"background-color: #FFFFF=
+F; table-layout: fixed;" width=3D"100%" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" bgcolor=3D"#FFFFFF"> <tr> <td class=3D"column column--1 scale=
+ stack" style=3D"width: 100%;" align=3D"center" valign=3D"top">
+<div class=3D"spacer" style=3D"line-height: 20px; height: 20px;">&#x200a;</=
+div> <table class=3D"image image--padding-vertical" width=3D"100%" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"image_contain=
+er" style=3D"padding-top: 10px; padding-bottom: 10px;" align=3D"center" val=
+ign=3D"top"> <table class=3D"image_container-caption text" border=3D"0" cel=
+lpadding=3D"0" cellspacing=3D"0" style=3D"table-layout: fixed;"> <tr> <td c=
+lass=3D"text_content-cell" style=3D"text-align: -webkit-center; font-family=
+: Arial,Verdana,Helvetica,sans-serif; color: #2e2f2f; font-size: 12px; line=
+-height: 1.2; display: block; word-wrap: break-word; padding: 0px;" align=
+=3D"center"> <img data-image-content class=3D"image_content" style=3D"displ=
+ay: block; height: auto; max-width: 100%;" width=3D"178" src=3D"https://fil=
+es.constantcontact.com/2dcf01de401/0d630e7e-840c-44cd-a425-7da84cb2b30a.png=
+?rdr=3Dtrue" alt=3D"" align=3D"center">  </td> </tr> </table> </td> </tr> <=
+/table>  <div class=3D"spacer" style=3D"line-height: 20px; height: 20px;">&=
+#x200a;</div>
+</td> </tr> </table> <table class=3D"layout layout--1-column" style=3D"tabl=
+e-layout: fixed;" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0"> <tr> <td class=3D"column column--1 scale stack" style=3D"width: 100=
+%;" align=3D"center" valign=3D"top">
+<table class=3D"divider" width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"=
+ border=3D"0"> <tr> <td class=3D"divider_container" style=3D"padding-top: 0=
+px; padding-bottom: 0px;" width=3D"100%" align=3D"center" valign=3D"top"> <=
+table class=3D"divider_content-row" style=3D"height: 1px; width: 100%;" cel=
+lpadding=3D"0" cellspacing=3D"0" border=3D"0"> <tr> <td class=3D"divider_co=
+ntent-cell" style=3D"padding-bottom: 10px; background-color: #579FD2; heigh=
+t: 1px; line-height: 1px; border-bottom-width: 0px;" height=3D"1" align=3D"=
+center" bgcolor=3D"#579FD2"> <img alt=3D"" width=3D"5" height=3D"1" border=
+=3D"0" hspace=3D"0" vspace=3D"0" src=3D"https://imgssl.constantcontact.com/=
+letters/images/1101116784221/S.gif" style=3D"display: block; height: 1px; w=
+idth: 5px;"> </td> </tr> </table> </td> </tr> </table> </td> </tr> </table>=
+ <table class=3D"layout layout--1-column" style=3D"table-layout: fixed;" wi=
+dth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td cla=
+ss=3D"column column--1 scale stack" style=3D"width: 100%;" align=3D"center"=
+ valign=3D"top"> <table class=3D"text text--padding-vertical" width=3D"100%=
+" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"table-layout: f=
+ixed;"> <tr> <td class=3D"text_content-cell content-padding-horizontal" sty=
+le=3D"text-align: left; font-family: Arial,Verdana,Helvetica,sans-serif; co=
+lor: #2e2f2f; font-size: 12px; line-height: 1.2; display: block; word-wrap:=
+ break-word; padding: 10px 20px;" align=3D"left" valign=3D"top">
+<p style=3D"margin: 0;"><span style=3D"font-weight: bold; color: rgb(0, 0, =
+0); font-family: Arial, Verdana, Helvetica, sans-serif;">Dear Valued Member=
+,</span></p>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0); font-family: Ar=
+ial, Verdana, Helvetica, sans-serif;">We would like to inform you of an upc=
+oming pricing adjustment for our swim lesson program, effective </span><spa=
+n style=3D"color: rgb(0, 0, 0); font-family: Arial, Verdana, Helvetica, san=
+s-serif; font-weight: bold;">July 1, 2026.&#x202f;</span></p>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0);">To support our=
+ continued commitment to high-quality swim lessons, experienced instructors=
+, and the ongoing growth of our program, swim lesson rates will increase be=
+ginning </span><span style=3D"color: rgb(0, 0, 0); font-weight: normal;">Ju=
+ly 1st.</span><span style=3D"color: rgb(0, 0, 0); font-weight: bold;">&#xa0=
+;</span></p>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"font-weight: bold; color: rgb(0, 0, =
+0);">The cost per 4-week session will be:</span></p>
+<ul style=3D"margin-top: 0; margin-bottom: 0;">
+<li style=3D"color: rgb(0, 0, 0);"><span style=3D"color: rgb(0, 0, 0);">Twi=
+ce per week: 30-minute lessons, 8 sessions &#x2014; $169</span></li>
+<li style=3D"color: rgb(0, 0, 0);"><span style=3D"color: rgb(0, 0, 0);">Onc=
+e per week: 30-minute lessons, 4 sessions &#x2014; $85</span></li>
+</ul>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0); font-family: Ar=
+ial, Verdana, Helvetica, sans-serif;">We&#x202f;remain&#x202f;dedicated to =
+providing a safe, engaging, and rewarding experience for all participants, =
+and we appreciate your understanding and continued support</span><span styl=
+e=3D"color: rgb(0, 0, 0); font-family: Georgia, Times New Roman, Times, ser=
+if; font-size: 16px;">.&#x202f;</span></p>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0);">Thank you for =
+the important role you play in our swim program and wellness center communi=
+ty.</span></p>
+<p style=3D"margin: 0;"><br></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0);">Sincerely,</sp=
+an></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0);">&#xfeff;</span=
+></p>
+<p style=3D"margin: 0;"><span style=3D"color: rgb(0, 0, 0); font-family: Ar=
+ial, Verdana, Helvetica, sans-serif;">UNC Wellness Centers</span></p>
+</td> </tr> </table>  </td> </tr> </table> <table class=3D"layout layout--1=
+-column" style=3D"background-color: #579FD2; table-layout: fixed;" width=3D=
+"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" bgcolor=3D"#579FD2"=
+> <tr> <td class=3D"column column--1 scale stack" style=3D"width: 100%;" al=
+ign=3D"center" valign=3D"top">
+<table class=3D"divider" width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"=
+ border=3D"0"> <tr> <td class=3D"divider_container" style=3D"padding-top: 0=
+px; padding-bottom: 0px;" width=3D"100%" align=3D"center" valign=3D"top"> <=
+table class=3D"divider_content-row" style=3D"width: 100%; height: 1px;" cel=
+lpadding=3D"0" cellspacing=3D"0" border=3D"0"> <tr> <td class=3D"divider_co=
+ntent-cell" style=3D"padding-bottom: 10px; background-color: #579FD2; heigh=
+t: 1px; line-height: 1px; border-bottom-width: 0px;" height=3D"1" align=3D"=
+center" bgcolor=3D"#579FD2"> <img alt=3D"" width=3D"5" height=3D"1" border=
+=3D"0" hspace=3D"0" vspace=3D"0" src=3D"https://imgssl.constantcontact.com/=
+letters/images/1101116784221/S.gif" style=3D"display: block; height: 1px; w=
+idth: 5px;"> </td> </tr> </table> </td> </tr> </table> </td> </tr> </table>=
+  </td> </tr> </table> </td> </tr> </table> </td> </tr> <tr class=3D""> <td=
+ class=3D"shell_panel-cell shell_panel-cell--footer" style=3D"background-co=
+lor: #FFFFFF;" align=3D"center" valign=3D"top" bgcolor=3D"#FFFFFF"> <table =
+class=3D"shell_width-row scale" style=3D"width: 620px;" align=3D"center" bo=
+rder=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"shell_wid=
+th-cell" style=3D"padding: 0px 10px;" align=3D"center" valign=3D"top"> <tab=
+le class=3D"shell_content-row" width=3D"100%" align=3D"center" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"shell_content-cell"=
+ style=3D"background-color: transparent; padding: 0; border: 0 solid #7DAFD=
+2;" align=3D"center" valign=3D"top" bgcolor=3D"transparent"> <table class=
+=3D"layout layout--1-column" style=3D"table-layout: fixed;" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"column =
+column--1 scale stack" style=3D"width: 100%;" align=3D"center" valign=3D"to=
+p"> <table class=3D"complianceAddress complianceAddress--padding-vertical" =
+width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td c=
+lass=3D"complianceAddress_content-cell content-padding-horizontal" align=3D=
+"center" style=3D"color: #595959; font-family: Verdana,Geneva,sans-serif; f=
+ont-size: 12px; line-height: 1.2; padding: 10px 20px;"> <p style=3D"margin:=
+ 0;"><span>UNC Wellness Centers | </span><span>100 Sprunt St.</span><span> =
+  | </span><span>Chapel Hill, NC 27517 US</span></p> </td> </tr> </table>  =
+ <table class=3D"complianceLinks complianceLinks--padding-vertical" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=
+=3D"complianceLinks_content-cell content-padding-horizontal" align=3D"cente=
+r" style=3D"color: #595959; font-family: Verdana,Geneva,sans-serif; font-si=
+ze: 12px; line-height: 1.2; padding: 10px 20px;"> <p style=3D"margin: 0;"> =
+<a href=3D"https://audience.constantcontact.com/preferences/unsubscribe?m=
+=3D001TzGz9dnTFxF0LrXZvZ8kjA=3D=3D&c=3D511529b0-f31e-11e8-ba83-d4ae5292bb50=
+&ca=3Dca2a9363-8ade-4ce1-9f48-4355ad668153" data-track=3D"false" style=3D"c=
+olor: inherit;">Unsubscribe<span></span></a><span> | </span><span></span><s=
+pan><a href=3D"https://audience.constantcontact.com/preferences/update/init=
+?ch=3D51324ea0-f31e-11e8-ba83-d4ae5292bb50&c=3D511529b0-f31e-11e8-ba83-d4ae=
+5292bb50&t=3D001_y_e_hV3K1qKTb7rmJ6nJw=3D=3D&m=3D001TzGz9dnTFxF0LrXZvZ8kjA=
+=3D=3D&ca=3Dca2a9363-8ade-4ce1-9f48-4355ad668153" data-track=3D"false" styl=
+e=3D"color: inherit;">Update Profile</a></span><span> | </span><span><span>=
+</span><a href=3D"https://www.constantcontact.com/legal/customer-contact-da=
+ta-notice" data-track=3D"false" style=3D"color: inherit;">Constant Contact =
+Data Notice</a></span> </p> </td> </tr> </table>  </td> </tr> </table>  </t=
+d> </tr> </table> </td> </tr> </table> </td> </tr> <tr class=3D""> <td clas=
+s=3D"shell_panel-cell shell_panel-cell--footer" style=3D"background-color: =
+#FFFFFF;" align=3D"center" valign=3D"top" bgcolor=3D"#FFFFFF"> <table class=
+=3D"shell_width-row scale" style=3D"width: 620px;" align=3D"center" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"shell_width-c=
+ell" style=3D"padding: 0px 10px;" align=3D"center" valign=3D"top"> <table c=
+lass=3D"shell_content-row" width=3D"100%" align=3D"center" border=3D"0" cel=
+lpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"shell_content-cell" sty=
+le=3D"background-color: transparent; padding: 0; border: 0 solid #7DAFD2;" =
+align=3D"center" valign=3D"top" bgcolor=3D"transparent"> <table class=3D"la=
+yout layout--1-column" style=3D"table-layout: fixed;" width=3D"100%" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0"> <tr> <td class=3D"column column=
+--1 scale stack" style=3D"width: 100%;" align=3D"center" valign=3D"top"> <t=
+able class=3D"image" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0"> <tr> <td class=3D"image_container" style=3D"" align=3D"center" v=
+align=3D"top"> <table class=3D"image_container-caption text" border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" style=3D"table-layout: fixed;"> <tr> <td=
+ class=3D"text_content-cell" style=3D"text-align: -webkit-center; font-fami=
+ly: Arial,Verdana,Helvetica,sans-serif; color: #2e2f2f; font-size: 12px; li=
+ne-height: 1.2; display: block; word-wrap: break-word; padding: 0px;" align=
+=3D"center"> <a href=3D"https://www.constantcontact.com/landing1/vr/home?cc=
+=3Dnge&utm_campaign=3Dnge&rmc=3DVF21_CPE&utm_medium=3DVF21_CPE&utm_source=
+=3Dviral&nav=3Dca2a9363-8ade-4ce1-9f48-4355ad668153" data-trackable=3D"fals=
+e" style=3D"color: #7DAFD2; font-weight: bold; text-decoration: underline; =
+font-style: normal;"><img data-image-content class=3D"image_content" style=
+=3D"display: block; height: auto; max-width: 100%;" width=3D"220" src=3D"ht=
+tps://imgssl.constantcontact.com/letters/images/CPE/referralLogos/H-Stacked=
+-FC-WhiteBG-Email-Footer.png" alt=3D"Constant Contact" align=3D"center"></a=
+>  </td> </tr> </table> </td> </tr> </table>  </td> </tr> </table>  </td> <=
+/tr> </table> </td> </tr> </table> </td> </tr>  </table> </div>  </body>  <=
+/html>
+
+------=_Part_307289420_1698025730.1780092022904--
