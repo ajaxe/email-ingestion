@@ -145,6 +145,7 @@ When an Application is registered on the Gateway:
 
 1. A dedicated AWS IAM Role is mapped/provisioned for the tenant: arn:aws:iam::{account-id}:role/EmailIngestion-App-{application_id}.  
 2. The role possesses an inline IAM policy restricting its data planes strictly to its prefix:  
+```json
    {  
      "Version": "2012-10-17",  
      "Statement": [  
@@ -158,6 +159,7 @@ When an Application is registered on the Gateway:
        }  
      ]  
    }
+```
 
 3. The trust policy of this application-specific IAM role strictly permits the primary Go Ingestion Gateway Host Role (EC2 Instance Profile or ECS Task Role) to assume it via sts:AssumeRole.  
 4. The generated role ARN is stored in the Gateway's database (applications.aws_iam_role_arn).
@@ -183,12 +185,14 @@ Used by external backend systems to ingest emails programmatically.
 
 1. **Acquiring the Bearer Token**:  
    * The SaaS backend requests an Access Token directly from your Custom IdP using its client credentials:  
+   ```plaintext
      POST /oauth/token  
      Content-Type: application/x-www-form-urlencoded
 
      grant_type=client_credentials&  
      client_id={m2m_client_id}&  
      client_secret={m2m_client_secret}
+    ```
 
    * The Custom IdP validates the credentials and returns a standard JWT Access Token (no service-specific application_id claims required).  
 2. **Accessing Ingested Attachments**:  
@@ -416,7 +420,7 @@ When registering or updating a callback endpoint, a validation handshake prevent
 
 ```mermaid
 sequenceDiagram  
-    autonumber  
+    autonumber
     actor Dev as Developer / Admin  
     participant GW as Go Ingestion Gateway  
     participant DNS as DNS Resolver (with SSRF Guard)  
@@ -468,10 +472,11 @@ Every webhook delivery includes a signature header to verify integrity and origi
    * Header: X-Gateway-Signature  
    * Format: t=1782806400000,v1=f6c8d7e63b...  
    * Signature String calculated over: timestamp_string + "." + json_body
-
+```go
 mac := hmac.New(sha256.New, []byte(webhookSecret))  
 mac.Write([]byte(timestampStr + "." + string(jsonBody)))  
 signature := hex.EncodeToString(mac.Sum(nil))
+```
 
 ### **5.3 Reliability & Retry Engine**
 
@@ -511,11 +516,14 @@ Authorization: Bearer <JWT_Token>
 * **Endpoint**: POST /api/v1/addresses  
 * **Description**: Generates a new unique 10-character email local-part mapped to the tenant application.  
 * **Payload**:  
+```json
   {  
     "description": "Customer Sandbox Account #4"  
   }
+```
 
 * **Response (201 Created)**:  
+```json
   {  
     "id": "e3a891ba-77d1-412e-8395-64bc410d0fba",  
     "localPart": "a8f3g9j2k1",  
@@ -524,11 +532,13 @@ Authorization: Bearer <JWT_Token>
     "isActive": true,  
     "createdAt": "2026-05-31T16:01:00Z"  
   }
+```
 
 #### **2. Get Application Info & Active Addresses**
 
 * **Endpoint**: GET /api/v1/application  
 * **Response (200 OK)**:  
+```json
   {  
     "id": "8aa121fe-cc2d-45db-9c3f-c5643ef09d12",  
     "name": "Acme SaaS CRM",  
@@ -543,12 +553,14 @@ Authorization: Bearer <JWT_Token>
       }  
     ]  
   }
+```
 
 #### **3. List Ingested Email Logs**
 
 * **Endpoint**: GET /api/v1/emails  
 * **Parameters**: page (default 1), limit (default 20), localPart (optional filter)  
 * **Response (200 OK)**:  
+```json
   {  
     "emails": [  
       {  
@@ -566,12 +578,14 @@ Authorization: Bearer <JWT_Token>
       "totalCount": 142  
     }  
   }
+```
 
 #### **4. Fetch Secure S3 Download Link for Attachment**
 
 * **Endpoint**: GET /api/v1/emails/{emailId}/attachments/{attachmentId}  
 * **Description**: Returns a short-lived, cryptographically signed AWS S3 download link for the binary attachment.  
 * **Response (200 OK)**:  
+```json
   {  
     "attachmentId": "9a2f1b40-9fe5-4c07-ba77-626a5704d9c1",  
     "filename": "invoice.pdf",  
@@ -579,6 +593,7 @@ Authorization: Bearer <JWT_Token>
     "expiresAt": "2026-05-31T16:21:00Z",  
     "downloadUrl": "[https://ingest-bucket.s3.amazonaws.com/apps/8aa121fe/emails/a8f3g9j2k1/.../invoice.pdf?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1782807600&Signature=vjbyPxybdZaNmGa%2ByT272YEAiv4%3D](https://ingest-bucket.s3.amazonaws.com/apps/8aa121fe/emails/a8f3g9j2k1/.../invoice.pdf?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1782807600&Signature=vjbyPxybdZaNmGa%2ByT272YEAiv4%3D)"  
   }
+```
 
 ## **7. Frontend Interface Specifications (Vue.js)**
 
@@ -612,6 +627,7 @@ The frontend is implemented as a functional developer portal in Vue.js.
 
 ### **8.1 Docker Compose Configuration (docker-compose.yml)**
 
+```yaml
 version: '3.8'
 
 services:  
@@ -662,7 +678,7 @@ services:
 
 volumes:  
   postgres_data:  
-
+```
 
 [image1]: <data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAaCAYAAADFTB7LAAADj0lEQVR4AeyWW0jTcRTHt79uzm1J3kHH3AbdLCsa9FAUlPUQCEp7jIIIKil7EOyhh54qgqioEEqonrpAUfTgSwQ9hEXlIjMQq903a82WVkuxXfr8RsrmNpxOVoHjfHeuv985v/M//98myf7xz0KBuT6g/6ODdXV1W4FNr9e7s8S2XDuT7XrRQTnBO+Vyea8kSZvdbncd0KM/BDps+4UOjMi7sUVjsdgoa/JCktForCJpVUFBQZuTD1ljdLEUvga4w+FwP1xQJBQKWRGeRKPRj/C8kBSJRBrI9Mxms32Gx4li9QjLQK/X6/XD41RcXKxA+KrVavPXQRKW8ui64VNEh1ahLOJRvoSHQZw4jITt7eDg4I+4IQ9fErN1x263v5uWawu6KKwHPkU+n+8L8V0YYiAvJF6SpEQJ8+ejk44k519QUgqkBhOoB0nzh54z1dbW6rjOzgqe7WYpBfJGL2exmllLmj9sOZNSqSxnk/WFhYWL4ILkFHyosrJSK5R0mF6gnMLEJZwyf+kWz9bmcDj6XC7XJjAg1oorjnziFhFqWiQVyPwtpoPiDU6ZP4PBoOK0HaCLuNPg6KSMby248AcwQwu+cwhXQKvZbFbAJ9ff0+l0Daw3MeO3yGfh+rpE/L50FSYVSEDG+eMOH+fk54kpY9N+3uYzyBrkF/heIzvBzbGxsQBdOYDsxX4QuX54eHgP8rhKpbqMXcm1pmS9HV8H6GFNG3tfxZdCkslkWkr1r0CQZL1EqIEFfQQMcFIz+iSFibkLmhn0Mow1oKm6ulpDInHYPr/fHyLZDoq4wdom/GX4KuCyYDCIGBPjI9SsIIk7kA3XgTIgT4AWeQUnFT9vU5uR4TkwMegt8GughuFvJGBAdEk8Tg7WyeM7zsX+FP8bfDMSj30JQYUgicSpkwwzKRTtJKn4fRZ/HB7Rzfd0ay/r4oMfCARWI28EJ8TFjr8EaCh6F7aMxIEbeZtV0wNmXSAbUF/sPryfYj+hPKCAb8gebDISfcDmQm7nxWiFK4GFmHK1Wn0EvgEcw2dQKBQe5BKNRnOYmBEOl/ITOpcCZR6Pp7uioqKdTWOMwOOJiQlRSHy2GJlRbM0kPon/OoV3gJU8/ovwU6AKWNCd4g8K8vaioqJO9NvEp9CcCmSXiNVq/QUXFBkaGvophESQcASMJ9oyyBH+fHzP4JPNtcBM+827faHAXFs6Tx3MtYzM638DAAD//2sa0HIAAAAGSURBVAMAbCK6RJPAcuAAAAAASUVORK5CYII=>
 
