@@ -30,9 +30,9 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **2.1 SMTP Daemon Integration**
 
-* [ ] Import github.com/emersion/go-smtp and instantiate a basic SMTP server listening on local port 2525.  
-* [ ] Set up the TLS handshake configurations and map standard debug logging formats.  
-* [ ] Implement Go SMTP Backend and Session interfaces to intercept standard hooks (Mail, Rcpt, Data).  
+* [x] Import github.com/emersion/go-smtp and instantiate a basic SMTP server listening on local port 2525.  
+* [x] Set up the TLS handshake configurations and map standard debug logging formats.  
+* [x] Implement Go SMTP Backend and Session interfaces to intercept standard hooks (Mail, Rcpt, Data).  
 * **Verification Checkpoint**: Use telnet localhost 2525 or netcat to verify the server negotiates a connection and responds to standard EHLO greetings.
 
 ### **2.2 Inbound Address Validation Layer (RAM Cache + DB Index)**

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"os"
 
+	"github.com/ajaxe/email-ingestion/internal/smtp"
+	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/pkg/config"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -19,22 +19,12 @@ func main() {
 
 	slog.Info("starting application initialization")
 
-	dbURL := cfg.Database.DSN
-	if dbURL == "" {
-		slog.Error("database connection string is empty in configuration")
-		os.Exit(1)
-	}
-	ctxDB := context.Background()
-	dbPool, err := pgxpool.New(ctxDB, dbURL)
-	if err != nil {
-		slog.Error("failed to connect to database", "error", err)
-		os.Exit(1)
-	}
+	dbPool := startup.NewDbPool(cfg)
 	defer dbPool.Close()
 
-	if err := dbPool.Ping(ctxDB); err != nil {
-		slog.Error("failed to ping database", "error", err)
+	s := smtp.NewSmtpServer(cfg)
+	if err := s.ListenAndServe(); err != nil {
+		slog.Error("Server structural failure", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("connected to database successfully")
 }

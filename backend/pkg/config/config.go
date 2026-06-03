@@ -17,10 +17,21 @@ type AppConfig struct {
 		DSN   string `mapstructure:"dsn"`
 		Redis string `mapstructure:"redis"`
 	} `mapstructure:"database"`
+	Smtp SmtpConfig `mapstructure:"smtp"`
 }
 
-func (c *AppConfig) String() string {
-	return fmt.Sprintf("Server Port: %d, Database DSN: %s, Redis: %s", c.Server.Port, c.Database.DSN, c.Database.Redis)
+type SmtpConfig struct {
+	ListenAddress   string `mapstructure:"listen_address"`
+	Domain          string `mapstructure:"domain"`
+	ReadTimeoutSec  int    `mapstructure:"read_timeout_seconds"`
+	WriteTimeoutSec int    `mapstructure:"write_timeout_seconds"`
+	EmailSizeMaxMB  int    `mapstructure:"email_size_max_mb"`
+	MaxLineLength   int    `mapstructure:"max_line_length"`
+	EmailDomain     string `mapstructure:"email_domain"`
+}
+
+func (s *SmtpConfig) EmailMaxSizeBytes() int64 {
+	return int64(s.EmailSizeMaxMB) * 1024 * 1024
 }
 
 // LoadConfig loads the application configuration from the specified path.

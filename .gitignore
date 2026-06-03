@@ -103,3 +103,5 @@ coverage/
 # Vue CLI / Vite specific
 *.local
 config.yaml
+# prevent accidental exposure of private test data.
+test_email.eml
