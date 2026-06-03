@@ -37,13 +37,13 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **2.2 Inbound Address Validation Layer (RAM Cache + DB Index)**
 
-* [ ] Implement a lightweight in-memory cache layer (using go-cache, ristretto, or simple thread-safe Redis clients).  
-* [ ] Inside the Rcpt() connection hook:  
+* [x] Implement a lightweight in-memory cache layer (using go-cache, ristretto, or simple thread-safe Redis clients).  
+* [x] Inside the Rcpt() connection hook:  
   1. Strip sub-address parameters (e.g., extracting a8f3g9j2k1 from a8f3g9j2k1+token123@domain.com).  
   2. Query the fast in-memory cache first.  
   3. Fall back to a targeted PostgreSQL query using the SQLC generated index search.  
   4. Cache the result aside and return 550 User Unknown to the client if the email local-part is unassigned.  
-* [ ] Implement envelope-level SPF check inside the Mail() connection hook utilizing github.com/emersion/go-msgauth/spf based on the sender's connecting TCP IP.  
+* [x] Implement envelope-level SPF check inside the Mail() connection hook utilizing ~~github.com/emersion/go-msgauth/spf~~ github.com/mileusna/spf based on the sender's connecting TCP IP.  
 * **Verification Checkpoint**: Send test handshakes with both registered and fake email addresses. Validate that fake addresses are immediately dropped with a 550 SMTP error code during the socket connection.
 
 ## **Phase 3: Zero-Memory Disk Spooling Queue**
@@ -55,6 +55,7 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 * [ ] Implement the Data() SMTP hook. Inside, generate a secure UUID for the transaction.  
 * [ ] Set up a target file descriptor pointing to the local spool directory (e.g., /tmp/spool/{uuid}.eml).  
 * [ ] Use io.Copy combined with a constrained chunk buffer (e.g., 32KB) to stream raw MIME data from the socket reader directly to the local disk.  
+* [ ] Get library github.com/emersion/go-msgauth to implement DKIM
 * [ ] Simultaneously pipe the stream into a single-pass DKIM signature checker using a Go io.MultiWriter wrapper.  
 * **Verification Checkpoint**: Send a large mock email containing attachments. Verify the Go process memory (RAM) consumption remains flat while the .eml file grows directly on your host file system.
 

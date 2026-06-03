@@ -5,16 +5,24 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
+	"github.com/ajaxe/email-ingestion/pkg/database/public"
+	"github.com/dgraph-io/ristretto"
 	"github.com/emersion/go-smtp"
 	"github.com/google/uuid"
 )
 
 type SmtpServerBackend struct {
-	cfg *config.AppConfig
+	cfg     *config.AppConfig
+	queries *public.Queries
+	cache   *ristretto.Cache
 }
 
-func NewSmtpServer(cfg *config.AppConfig) *smtp.Server {
-	be := &SmtpServerBackend{cfg: cfg}
+func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, cache *ristretto.Cache) *smtp.Server {
+	be := &SmtpServerBackend{
+		cfg:     cfg,
+		queries: queries,
+		cache:   cache,
+	}
 
 	s := smtp.NewServer(be)
 
@@ -48,9 +56,12 @@ func NewSmtpServer(cfg *config.AppConfig) *smtp.Server {
 func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	slog.Info("New connection from", "remote_addr", c.Conn().RemoteAddr().String())
 	return &IngestSession{
-		cfg:         b.cfg,
-		RemoteAddr:  c.Conn().RemoteAddr().String(),
-		SessionID:   uuid.New().String(),
-		ConnectedAt: time.Now(),
+		cfg:             b.cfg,
+		queries:         b.queries,
+		cache:           b.cache,
+		RemoteAddr:      c.Conn().RemoteAddr().String(),
+		SessionID:       uuid.New().String(),
+		ConnectedAt:     time.Now(),
+		ReferenceTokens: make(map[string]string),
 	}, nil
 }

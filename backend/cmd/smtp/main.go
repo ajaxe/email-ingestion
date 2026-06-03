@@ -7,6 +7,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/smtp"
 	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/pkg/config"
+	"github.com/ajaxe/email-ingestion/pkg/database/public"
 )
 
 func main() {
@@ -22,7 +23,10 @@ func main() {
 	dbPool := startup.NewDbPool(cfg)
 	defer dbPool.Close()
 
-	s := smtp.NewSmtpServer(cfg)
+	queries := public.New(dbPool)
+	cache := startup.NewCache()
+
+	s := smtp.NewSmtpServer(cfg, queries, cache)
 	if err := s.ListenAndServe(); err != nil {
 		slog.Error("Server structural failure", "error", err)
 		os.Exit(1)

@@ -1,27 +1,56 @@
 package smtp
 
 import (
+	"context"
 	"io"
 	"log/slog"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
+	"github.com/ajaxe/email-ingestion/pkg/database/public"
+	"github.com/dgraph-io/ristretto"
 	"github.com/emersion/go-smtp"
 	"github.com/jhillyerd/enmime"
+	"github.com/mileusna/spf"
 )
 
 type IngestSession struct {
-	From        string
-	To          []string
-	RemoteAddr  string
-	SessionID   string
-	ConnectedAt time.Time
-	cfg         *config.AppConfig
+	From string
+	To   []string
+	// ReferenceTokens maps the full recipient email to the sub-address token (if any). For example, "
+	// "user+tag@example.com" -> "tag"
+	ReferenceTokens map[string]string
+	RemoteAddr      string
+	SessionID       string
+	ConnectedAt     time.Time
+	cfg             *config.AppConfig
+	queries         *public.Queries
+	cache           *ristretto.Cache
 }
 
 func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
 	slog.Info("Mail from", "from_email", from)
+
+	host, _, err := net.SplitHostPort(s.RemoteAddr)
+	if err != nil {
+		host = s.RemoteAddr // Fallback
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		result := spf.CheckHost(ip, s.cfg.Smtp.Domain, from, "")
+		if result == spf.Fail {
+			slog.Info("SPF Validation failed", "from", from, "ip", host, "result", result)
+			return &smtp.SMTPError{
+				Code:         550,
+				EnhancedCode: smtp.EnhancedCode{5, 7, 1},
+				Message:      "SPF Validation Failed",
+			}
+		}
+	}
+
 	s.From = from
 	return nil
 }
@@ -30,8 +59,7 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 	slog.Info("Rcpt to", "to_email", to)
 
 	// SECURITY: Only accept emails destined for your managed domain.
-	// Prevents your server from being used as an open relay for spamming others.
-	if !strings.HasSuffix(to, s.cfg.Smtp.EmailDomain) {
+	if !strings.HasSuffix(to, "@"+s.cfg.Smtp.EmailDomain) {
 		slog.Info("Cannot accept email", "to_email", to)
 		return &smtp.SMTPError{
 			Code:         550,
@@ -40,7 +68,55 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 		}
 	}
 
+	parts := strings.Split(to, "@")
+	if len(parts) != 2 {
+		return &smtp.SMTPError{
+			Code:         550,
+			EnhancedCode: smtp.EnhancedCode{5, 1, 1},
+			Message:      "Invalid email address.",
+		}
+	}
+	localPart := parts[0]
+
+	baseLocalPart := localPart
+	subAddress := ""
+	if plusIdx := strings.Index(localPart, "+"); plusIdx != -1 {
+		baseLocalPart = localPart[:plusIdx]
+		subAddress = localPart[plusIdx+1:]
+	}
+
+	// Check cache
+	var isValid bool
+	if val, found := s.cache.Get(baseLocalPart); found {
+		isValid = val.(bool)
+	} else {
+		// Cache miss, check db
+		ctx := context.Background()
+		_, err := s.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart)
+		if err != nil {
+			// Not found or db error
+			isValid = false
+			s.cache.SetWithTTL(baseLocalPart, false, 1, 5*time.Minute)
+		} else {
+			isValid = true
+			s.cache.SetWithTTL(baseLocalPart, true, 1, 1*time.Hour)
+		}
+	}
+
+	if !isValid {
+		slog.Info("User unknown", "local_part", baseLocalPart)
+		return &smtp.SMTPError{
+			Code:         550,
+			EnhancedCode: smtp.EnhancedCode{5, 1, 1},
+			Message:      "User Unknown",
+		}
+	}
+
 	s.To = append(s.To, to)
+	if subAddress != "" {
+		s.ReferenceTokens[to] = subAddress
+	}
+
 	return nil
 }
 
