@@ -19,9 +19,9 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **1.2 DB Engine & SQLC Generation**
 
-* [ ] Write the PostgreSQL schema in schema.sql outlining all relational tables, indexes, and custom enum types (spool_status, webhook_status).  
-* [ ] Draft SQL query patterns in query.sql for all state modifications (such as transactional outbox locks, polling queries, address allocations).  
-* [ ] Setup and run sqlc generate to generate safe, strongly-typed Go query files.  
+* [x] Write the PostgreSQL schema in schema.sql outlining all relational tables, indexes, and custom enum types (spool_status, webhook_status).  
+* [x] Draft SQL query patterns in query.sql for all state modifications (such as transactional outbox locks, polling queries, address allocations).  
+* [x] Setup and run sqlc generate to generate safe, strongly-typed Go query files.  
 * **Verification Checkpoint**: Apply the schemas to your running PostgreSQL instance and verify that the SQLC compiled Go files match database columns and types flawlessly.
 
 ## **Phase 2: In-Memory Address Caching & Perimeter SMTP Handshake**

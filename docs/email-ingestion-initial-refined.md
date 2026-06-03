@@ -117,7 +117,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram  
-    autonumber  
+    autonumber
     actor SaaS as External SaaS Backend  
     participant IdP as Custom IdP  
     participant GW as Go Gateway API  

@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "pkg/database/public/query.public.sql"
+    schema: "pkg/database/migrations/public.sql"
+    gen:
+      go:
+        package: "public"
+        out: "pkg/database/public"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        json_tags_case_style: "camel"
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "bigint"
+            go_type: "int64"
