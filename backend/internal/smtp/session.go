@@ -42,7 +42,7 @@ func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
 	if ip != nil {
 		result := spf.CheckHost(ip, s.cfg.Smtp.Domain, from, "")
 		if result == spf.Fail {
-			slog.Info("SPF Validation failed", "from", from, "ip", host, "result", result)
+			slog.Info("SPF Validation failed", "ip", ip, "domain", s.cfg.Smtp.Domain, "from", from, "result", result)
 			return &smtp.SMTPError{
 				Code:         550,
 				EnhancedCode: smtp.EnhancedCode{5, 7, 1},
@@ -70,11 +70,13 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 
 	parts := strings.Split(to, "@")
 	if len(parts) != 2 {
-		return &smtp.SMTPError{
+		err := &smtp.SMTPError{
 			Code:         550,
 			EnhancedCode: smtp.EnhancedCode{5, 1, 1},
 			Message:      "Invalid email address.",
 		}
+		slog.Error("Invalid email", "error", err)
+		return err
 	}
 	localPart := parts[0]
 
@@ -137,7 +139,7 @@ func (s *IngestSession) Data(r io.Reader) error {
 	} */
 	envelope, err := enmime.ReadEnvelope(lr)
 	if err != nil {
-		slog.Info("Parser Error", "error", err)
+		slog.Info("email parser error", "error", err)
 		// Returning a 554 tells the sending server the transaction failed due to malformed data
 		return &smtp.SMTPError{
 			Code:         554,

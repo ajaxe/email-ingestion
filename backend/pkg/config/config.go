@@ -20,14 +20,24 @@ type AppConfig struct {
 	Smtp SmtpConfig `mapstructure:"smtp"`
 }
 
+// SmtpConfig holds configuration settings for the SMTP server.
 type SmtpConfig struct {
-	ListenAddress   string `mapstructure:"listen_address"`
-	Domain          string `mapstructure:"domain"`
-	ReadTimeoutSec  int    `mapstructure:"read_timeout_seconds"`
-	WriteTimeoutSec int    `mapstructure:"write_timeout_seconds"`
-	EmailSizeMaxMB  int    `mapstructure:"email_size_max_mb"`
-	MaxLineLength   int    `mapstructure:"max_line_length"`
-	EmailDomain     string `mapstructure:"email_domain"`
+	// ListenAddress is the address and port the SMTP server listens on (e.g., "0.0.0.0:2525")
+	ListenAddress string `mapstructure:"listen_address"`
+	// Domain is the domain name used for SMTP helo/ehlo greeting
+	Domain string `mapstructure:"domain"`
+	// ReadTimeoutSec is the maximum duration for reading SMTP commands (in seconds)
+	ReadTimeoutSec int `mapstructure:"read_timeout_seconds"`
+	// WriteTimeoutSec is the maximum duration for writing SMTP responses (in seconds)
+	WriteTimeoutSec int `mapstructure:"write_timeout_seconds"`
+	// EmailSizeMaxMB is the maximum allowed email size in megabytes
+	EmailSizeMaxMB int `mapstructure:"email_size_max_mb"`
+	// MaxLineLength is the maximum allowed length for a single SMTP line
+	MaxLineLength int `mapstructure:"max_line_length"`
+	// EmailDomain is the domain used for email addresses (e.g., for bounce handling)
+	EmailDomain string `mapstructure:"email_domain"`
+	// SppoolDirectory is the directory path for storing spooled email files
+	SppoolDirectory string `mapstructure:"spool_directory"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {
