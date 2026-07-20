@@ -372,17 +372,27 @@ flowchart TD
     class AcceptSMTP accept;
 ```
 
-### **4.3 Detailed Parsing and Storage Pipeline**
+### **4.3 Detailed Ingestion and Storage Pipeline (S3 Spooling)**
+
+To achieve high throughput and completely stateless Gateway nodes while maintaining extreme data durability, the system streams the raw inbound SMTP traffic directly to S3 before parsing.
 
 Upon accepting the message body, the SMTP daemon executes the pipeline:
 
-1. **MIME Stream Parsing**: Stream the body into enmime.ReadEnvelope().  
-2. **Metadata Extraction**:  
+1. **Direct S3 Streaming**: Using the AWS SDK `s3manager.Uploader`, the inbound `io.Reader` stream is chunked (e.g., 5MB parts) and uploaded to S3 as a raw `.eml` payload concurrently.
+   * *Performance Note*: This uses an **AWS S3 VPC Gateway Endpoint** to route traffic over the fast, free internal AWS backbone, ensuring the S3 multipart upload finishes within the SMTP `DATA` timeout window.
+   * *Cost & Hygiene Note*: An **S3 Bucket Lifecycle Rule** must be configured to "Abort Incomplete Multipart Uploads" after 1 day to clean up abandoned parts from interrupted connections.
+2. **Database Spool Record**: Insert the S3 object key (e.g., `s3://bucket/spool/{uuid}.eml`) into the `inbound_spool_queue` database table with a `PENDING` status.
+3. **SMTP Acknowledgment**: Return the `250 OK` SMTP success message to the sender only after the S3 stream completes and the database hook fires.
+4. **MIME Worker Poller**: A background worker pool queries `GetNextSpoolJob` utilizing PostgreSQL's native `FOR UPDATE SKIP LOCKED`.
+5. **Worker Parsing**: 
+   * The worker downloads the raw `.eml` from S3.
+   * Streams the body into `enmime.ReadEnvelope()`.
+6. **Metadata Extraction**:  
    * Extract Subject, From, To, Message-ID.  
    * Parse the envelope recipient to extract the sub-address reference token:  
-     * Format: [10-char local_part]+[up-to-53-char ref_token]@domain.com  
+     * Format: `[10-char local_part]+[up-to-53-char ref_token]@domain.com`  
      * Validated using regular expressions to prevent injection attacks.  
-3. **Structured Payload Assembly (contents.json)**:  
+7. **Structured Payload Assembly (contents.json)**:  
    Create a single JSON payload detailing the email contents:  
     ```json
    {  
@@ -401,14 +411,16 @@ Upon accepting the message body, the SMTP daemon executes the pipeline:
        }  
      ]  
    }
-   ```
+    ```
 
-4. **S3 Storage Engine Write**:  
-   * Store contents.json in the targeted application folder.  
-   * Store attachment bytes as separate object payloads at the companion key structure attachments/{attachmentId}.bin.  
-5. **Database Sync & Outbox Trigger**:  
-   * Insert metadata into ingested_emails.  
-   * **Transactionally** write to webhook_delivery_jobs (Transactional Outbox Pattern) in the same DB transaction to guarantee atomicity.
+8. **Final S3 Storage Engine Write**:  
+   * Store `contents.json` in the targeted application folder.  
+   * Store attachment bytes as separate object payloads at the companion key structure `attachments/{attachmentId}.bin`.  
+   * Delete the original raw spool `.eml` from S3.
+9. **Database Sync & Outbox Trigger**:  
+   * Insert metadata into `ingested_emails`.  
+   * **Transactionally** write to `webhook_delivery_jobs` (Transactional Outbox Pattern) in the same DB transaction to guarantee atomicity.
+   * Delete the spool job from `inbound_spool_queue`.
 
 ## **5. Webhook System & Security Engine (UC:1 & UC:4)**
 

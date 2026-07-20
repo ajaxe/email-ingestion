@@ -36,8 +36,10 @@ type SmtpConfig struct {
 	MaxLineLength int `mapstructure:"max_line_length"`
 	// EmailDomain is the domain used for email addresses (e.g., for bounce handling)
 	EmailDomain string `mapstructure:"email_domain"`
-	// SppoolDirectory is the directory path for storing spooled email files
-	SppoolDirectory string `mapstructure:"spool_directory"`
+	// S3Bucket is the AWS S3 bucket name for spooling and storage
+	S3Bucket string `mapstructure:"s3_bucket"`
+	// AwsRegion is the AWS region for the S3 bucket
+	AwsRegion string `mapstructure:"aws_region"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {

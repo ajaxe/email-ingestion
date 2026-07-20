@@ -46,23 +46,37 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 * [x] Implement envelope-level SPF check inside the Mail() connection hook utilizing ~~github.com/emersion/go-msgauth/spf~~ github.com/mileusna/spf based on the sender's connecting TCP IP.  
 * **Verification Checkpoint**: Send test handshakes with both registered and fake email addresses. Validate that fake addresses are immediately dropped with a 550 SMTP error code during the socket connection.
 
-## **Phase 3: Zero-Memory Disk Spooling Queue**
+## **Phase 3: Stateless S3 Spooling Architecture**
 
-*Once an email is accepted at the socket level, get it out of memory as quickly as possible to protect against server crashes and memory leaks.*
+*Once an email is accepted at the socket level, stream it directly to S3 via multipart uploads to guarantee data durability and preserve stateless Gateway nodes.*
 
-### **3.1 Raw Stream Archiving (Zero-Memory Copy)**
+### **3.1 Spool Queue Database Schema**
+
+* [ ] Define the `spool_status` ENUM (e.g., `'PENDING'`, `'PROCESSING'`, `'FAILED'`) in your PostgreSQL schema (`public.sql`).
+* [ ] Create the `inbound_spool_queue` table with the following columns:
+  * `id` (UUID, Primary Key)
+  * `s3_object_key` (VARCHAR, the path to the raw `.eml` in S3)
+  * `status` (spool_status ENUM, default `'PENDING'`)
+  * `attempts` (INTEGER, default 0, to track parsing retry attempts)
+  * `last_error` (TEXT, to store worker MIME parsing errors)
+  * `created_at` (TIMESTAMPTZ, default NOW())
+  * `updated_at` (TIMESTAMPTZ, default NOW())
+* [ ] Generate the corresponding Go models using `sqlc generate`.
+
+### **3.2 Direct S3 Stream Archiving**
 
 * [ ] Implement the Data() SMTP hook. Inside, generate a secure UUID for the transaction.  
-* [ ] Set up a target file descriptor pointing to the local spool directory (e.g., /tmp/spool/{uuid}.eml).  
-* [ ] Use io.Copy combined with a constrained chunk buffer (e.g., 32KB) to stream raw MIME data from the socket reader directly to the local disk.  
+* [ ] Setup an `s3manager.Uploader` connected to the SMTP `io.Reader` stream.  
+* [ ] Stream the raw MIME payload directly to an S3 spool object key (e.g., `s3://bucket/spool/{uuid}.eml`) using concurrent chunked uploads (e.g., 5MB parts) over a VPC Gateway Endpoint.  
 * [ ] Get library github.com/emersion/go-msgauth to implement DKIM
-* [ ] Simultaneously pipe the stream into a single-pass DKIM signature checker using a Go io.MultiWriter wrapper.  
-* **Verification Checkpoint**: Send a large mock email containing attachments. Verify the Go process memory (RAM) consumption remains flat while the .eml file grows directly on your host file system.
+* [ ] Simultaneously pipe the stream into a single-pass DKIM signature checker using a Go io.TeeReader or MultiWriter wrapper.  
+* [ ] Configure an S3 Bucket Lifecycle Rule to abort incomplete multipart uploads after 1 day.
+* **Verification Checkpoint**: Send a large mock email containing attachments. Verify the Go process memory (RAM) consumption remains flat while the `.eml` file is successfully assembled in the S3 bucket.
 
-### **3.2 Atomic Outbox Enqueueing**
+### **3.3 Atomic Outbox Enqueueing**
 
-* [ ] Write a transactional DB hook to insert the raw spool pointer path (/tmp/spool/{uuid}.eml) into the inbound_spool_queue database table with a PENDING status.  
-* [ ] Only after a successful PostgreSQL commit, return 250 OK to the sender.  
+* [ ] Write a transactional DB hook to insert the S3 object key (`s3://bucket/spool/{uuid}.eml`) into the inbound_spool_queue database table with a PENDING status.  
+* [ ] Only after a successful S3 upload and PostgreSQL commit, return 250 OK to the sender.  
 * **Verification Checkpoint**: Send an email. Verify that an inbound_spool_queue row appears in the database and the connection gracefully terminates.
 
 ## **Phase 4: Spool Queue Worker & MIME Parsing Engine**
@@ -79,14 +93,14 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 ### **4.2 MIME Engine & S3 Storage Ingestion**
 
 * [ ] Inside the worker thread:  
-  1. Open the physical .eml file from disk.  
-  2. Pass the file descriptor to the enmime parser (enmime.ReadEnvelope).  
+  1. Download the raw `.eml` spool file from S3 into memory or a streaming reader.  
+  2. Pass the data stream to the enmime parser (`enmime.ReadEnvelope`).  
   3. Extract standard text bodies, metadata headers, and attachments.  
-  4. Store the parsed email body structure as a contents.json file in S3 inside the application folder path (apps/{application_id}/...).  
-  5. Upload raw attachment binaries as separate files (attachments/{id}.bin).  
-  6. Insert meta rows into the ingested_emails database table.  
-  7. Delete the raw spool file from disk and execute DeleteSpoolJob in PostgreSQL.  
-* **Verification Checkpoint**: Send a test email containing multiple files (e.g., a PDF and an image). Verify the spool database row is cleared, the file is deleted from your local directory, and S3 contains the mapped directory structure with all binary files matching their original byte sizes.
+  4. Store the parsed email body structure as a `contents.json` file in S3 inside the application folder path (`apps/{application_id}/...`).  
+  5. Upload raw attachment binaries as separate files (`attachments/{id}.bin`).  
+  6. Insert meta rows into the `ingested_emails` database table.  
+  7. Delete the raw spool `.eml` object from S3 and execute `DeleteSpoolJob` in PostgreSQL.  
+* **Verification Checkpoint**: Send a test email containing multiple files (e.g., a PDF and an image). Verify the spool database row is cleared, the raw `.eml` is deleted from S3, and S3 contains the mapped directory structure with all binary files matching their original byte sizes.
 
 ## **Phase 5: Secure Webhook & Callback Dispatch Engine**
 
@@ -156,8 +170,7 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 ### **8.1 Docker Configurations & Build Stage**
 
 * [ ] Write a multi-stage Dockerfile optimizing the Go application binary size and execution security (using a scratch or alpine base).  
-* [ ] Implement the docker-compose.yml for production deployments, omitting Postgres container orchestration (since you utilize an external PostgreSQL instance), but including services for LocalStack/S3 and Traefik.  
-* [ ] Mount the persistent host directory /tmp/spool inside the app container volume map (spool_data) to prevent container layers from bloating with transient spooled email files.
+* [ ] Implement the docker-compose.yml for production deployments, omitting Postgres container orchestration (since you utilize an external PostgreSQL instance), but including services for LocalStack/S3 and Traefik.
 
 ### **8.2 Traefik Routing & Production DNS**
 
