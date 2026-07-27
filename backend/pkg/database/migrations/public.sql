@@ -95,8 +95,8 @@ create table if not exists public.webhook_logs (
   id                      uuid                        primary key default uuid_generate_v4(),
   webhook_delivery_job_id uuid                        not null,
   attempt_number          int                         not null,
-  http_status_code        int,
-  response_body           text,
+  http_status_code        int                         not null default 0,
+  response_body           text                        not null default '',
   is_retry                boolean                     not null,
   duration_ms             int                         not null,
   executed_at             timestamp with time zone    not null default current_timestamp,
@@ -104,3 +104,13 @@ create table if not exists public.webhook_logs (
   -- foreign keys & constraints
   foreign key (webhook_delivery_job_id) references public.webhook_delivery_jobs(id) on delete cascade
 );
+
+create table if not exists public.inbound_spool_queue (
+  id                  uuid                        primary key default uuid_generate_v4(),
+  s3_object_key       varchar(1024)               not null,
+  status              public.spool_status         not null default 'PENDING',
+  attempt_count       int                         not null default 0,
+  last_error_message  varchar(1024)               not null default '',
+  created_at          timestamp with time zone    not null default current_timestamp,
+  updated_at          timestamp with time zone    not null default current_timestamp
+)

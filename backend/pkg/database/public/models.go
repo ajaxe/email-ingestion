@@ -78,6 +78,16 @@ type AssignedEmail struct {
 	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
 }
 
+type InboundSpoolQueue struct {
+	ID               uuid.UUID          `json:"id"`
+	S3ObjectKey      string             `json:"s3ObjectKey"`
+	Status           interface{}        `json:"status"`
+	AttemptCount     int32              `json:"attemptCount"`
+	LastErrorMessage string             `json:"lastErrorMessage"`
+	CreatedAt        pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt        pgtype.Timestamptz `json:"updatedAt"`
+}
+
 type IngestedEmail struct {
 	ID              uuid.UUID          `json:"id"`
 	ApplicationID   uuid.UUID          `json:"applicationId"`
@@ -104,8 +114,8 @@ type WebhookLog struct {
 	ID                   uuid.UUID          `json:"id"`
 	WebhookDeliveryJobID uuid.UUID          `json:"webhookDeliveryJobId"`
 	AttemptNumber        int32              `json:"attemptNumber"`
-	HttpStatusCode       pgtype.Int4        `json:"httpStatusCode"`
-	ResponseBody         pgtype.Text        `json:"responseBody"`
+	HttpStatusCode       int32              `json:"httpStatusCode"`
+	ResponseBody         string             `json:"responseBody"`
 	IsRetry              bool               `json:"isRetry"`
 	DurationMs           int32              `json:"durationMs"`
 	ExecutedAt           pgtype.Timestamptz `json:"executedAt"`

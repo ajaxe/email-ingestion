@@ -243,12 +243,12 @@ VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type LogWebhookAttemptParams struct {
-	WebhookDeliveryJobID uuid.UUID   `json:"webhookDeliveryJobId"`
-	AttemptNumber        int32       `json:"attemptNumber"`
-	HttpStatusCode       pgtype.Int4 `json:"httpStatusCode"`
-	ResponseBody         pgtype.Text `json:"responseBody"`
-	IsRetry              bool        `json:"isRetry"`
-	DurationMs           int32       `json:"durationMs"`
+	WebhookDeliveryJobID uuid.UUID `json:"webhookDeliveryJobId"`
+	AttemptNumber        int32     `json:"attemptNumber"`
+	HttpStatusCode       int32     `json:"httpStatusCode"`
+	ResponseBody         string    `json:"responseBody"`
+	IsRetry              bool      `json:"isRetry"`
+	DurationMs           int32     `json:"durationMs"`
 }
 
 func (q *Queries) LogWebhookAttempt(ctx context.Context, arg LogWebhookAttemptParams) error {
