@@ -9,11 +9,12 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "program": "${workspaceFolder}/backend/cmd/smtp/",
+      "program": "${workspaceFolder}/backend/",
       "windows": {
         "cwd": "${workspaceFolder}/backend"
       },
       "envFile": ["${workspaceFolder}/backend/.env.dev"],
+      "args": ["smtp"]
     }
   ]
 }

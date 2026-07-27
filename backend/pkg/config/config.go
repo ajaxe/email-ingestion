@@ -65,8 +65,16 @@ func (s *SmtpConfig) EmailMaxSizeBytes() int64 {
 	return int64(s.EmailSizeMaxMB) * 1024 * 1024
 }
 
+var allConfig *AppConfig
+
 // LoadConfig loads the application configuration from the specified path.
 func LoadConfig(path string) (*AppConfig, error) {
+	if allConfig != nil {
+		return allConfig, nil
+	}
+
+	fmt.Printf("Loading config from path:%s\n", path)
+
 	viper.AddConfigPath(path)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -90,6 +98,6 @@ func LoadConfig(path string) (*AppConfig, error) {
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
-
-	return &cfg, nil
+	allConfig = &cfg
+	return allConfig, nil
 }
