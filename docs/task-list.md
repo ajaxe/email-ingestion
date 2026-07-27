@@ -57,8 +57,8 @@ This document outlines a high-level, production-grade implementation roadmap. Th
   * `id` (UUID, Primary Key)
   * `s3_object_key` (VARCHAR, the path to the raw `.eml` in S3)
   * `status` (spool_status ENUM, default `'PENDING'`)
-  * `attempts` (INTEGER, default 0, to track parsing retry attempts)
-  * `last_error` (TEXT, to store worker MIME parsing errors)
+  * `attempt_count` (INTEGER, default 0, to track parsing retry attempts)
+  * `last_error_message` (TEXT, to store worker MIME parsing errors)
   * `created_at` (TIMESTAMPTZ, default NOW())
   * `updated_at` (TIMESTAMPTZ, default NOW())
 * [ ] Generate the corresponding Go models using `sqlc generate`.
