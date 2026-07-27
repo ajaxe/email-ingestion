@@ -7,6 +7,7 @@ package public
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -58,65 +59,65 @@ func (ns NullWebhookStatus) Value() (driver.Value, error) {
 }
 
 type Application struct {
-	ID            uuid.UUID          `json:"id"`
-	Name          string             `json:"name"`
-	ApiKeyHash    string             `json:"apiKeyHash"`
-	WebhookUrl    string             `json:"webhookUrl"`
-	WebhookSecret string             `json:"webhookSecret"`
-	AwsIamRoleArn string             `json:"awsIamRoleArn"`
-	MaxRetries    int32              `json:"maxRetries"`
-	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
-	UpdatedAt     pgtype.Timestamptz `json:"updatedAt"`
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	ApiKeyHash    string    `json:"apiKeyHash"`
+	WebhookUrl    string    `json:"webhookUrl"`
+	WebhookSecret string    `json:"webhookSecret"`
+	AwsIamRoleArn string    `json:"awsIamRoleArn"`
+	MaxRetries    int32     `json:"maxRetries"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type AssignedEmail struct {
-	ID            uuid.UUID          `json:"id"`
-	ApplicationID uuid.UUID          `json:"applicationId"`
-	LocalPart     string             `json:"localPart"`
-	Description   pgtype.Text        `json:"description"`
-	IsActive      bool               `json:"isActive"`
-	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
+	ID            uuid.UUID   `json:"id"`
+	ApplicationID uuid.UUID   `json:"applicationId"`
+	LocalPart     string      `json:"localPart"`
+	Description   pgtype.Text `json:"description"`
+	IsActive      bool        `json:"isActive"`
+	CreatedAt     time.Time   `json:"createdAt"`
 }
 
 type InboundSpoolQueue struct {
-	ID               uuid.UUID          `json:"id"`
-	S3ObjectKey      string             `json:"s3ObjectKey"`
-	Status           interface{}        `json:"status"`
-	AttemptCount     int32              `json:"attemptCount"`
-	LastErrorMessage string             `json:"lastErrorMessage"`
-	CreatedAt        pgtype.Timestamptz `json:"createdAt"`
-	UpdatedAt        pgtype.Timestamptz `json:"updatedAt"`
+	ID               uuid.UUID   `json:"id"`
+	S3ObjectKey      string      `json:"s3ObjectKey"`
+	Status           interface{} `json:"status"`
+	AttemptCount     int32       `json:"attemptCount"`
+	LastErrorMessage string      `json:"lastErrorMessage"`
+	CreatedAt        time.Time   `json:"createdAt"`
+	UpdatedAt        time.Time   `json:"updatedAt"`
 }
 
 type IngestedEmail struct {
-	ID              uuid.UUID          `json:"id"`
-	ApplicationID   uuid.UUID          `json:"applicationId"`
-	AssignedEmailID uuid.UUID          `json:"assignedEmailId"`
-	ReferenceToken  string             `json:"referenceToken"`
-	FromAddress     string             `json:"fromAddress"`
-	Subject         string             `json:"subject"`
-	MessageID       string             `json:"messageId"`
-	S3KeyPrefix     string             `json:"s3KeyPrefix"`
-	ReceivedAt      pgtype.Timestamptz `json:"receivedAt"`
+	ID              uuid.UUID `json:"id"`
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
+	ReferenceToken  string    `json:"referenceToken"`
+	FromAddress     string    `json:"fromAddress"`
+	Subject         string    `json:"subject"`
+	MessageID       string    `json:"messageId"`
+	S3KeyPrefix     string    `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time `json:"receivedAt"`
 }
 
 type WebhookDeliveryJob struct {
-	ID              uuid.UUID          `json:"id"`
-	ApplicationID   uuid.UUID          `json:"applicationId"`
-	IngestedEmailID uuid.UUID          `json:"ingestedEmailId"`
-	Status          WebhookStatus      `json:"status"`
-	RetryCount      int32              `json:"retryCount"`
-	NextDeliveryAt  pgtype.Timestamptz `json:"nextDeliveryAt"`
-	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
+	ID              uuid.UUID     `json:"id"`
+	ApplicationID   uuid.UUID     `json:"applicationId"`
+	IngestedEmailID uuid.UUID     `json:"ingestedEmailId"`
+	Status          WebhookStatus `json:"status"`
+	RetryCount      int32         `json:"retryCount"`
+	NextDeliveryAt  time.Time     `json:"nextDeliveryAt"`
+	CreatedAt       time.Time     `json:"createdAt"`
 }
 
 type WebhookLog struct {
-	ID                   uuid.UUID          `json:"id"`
-	WebhookDeliveryJobID uuid.UUID          `json:"webhookDeliveryJobId"`
-	AttemptNumber        int32              `json:"attemptNumber"`
-	HttpStatusCode       int32              `json:"httpStatusCode"`
-	ResponseBody         string             `json:"responseBody"`
-	IsRetry              bool               `json:"isRetry"`
-	DurationMs           int32              `json:"durationMs"`
-	ExecutedAt           pgtype.Timestamptz `json:"executedAt"`
+	ID                   uuid.UUID `json:"id"`
+	WebhookDeliveryJobID uuid.UUID `json:"webhookDeliveryJobId"`
+	AttemptNumber        int32     `json:"attemptNumber"`
+	HttpStatusCode       int32     `json:"httpStatusCode"`
+	ResponseBody         string    `json:"responseBody"`
+	IsRetry              bool      `json:"isRetry"`
+	DurationMs           int32     `json:"durationMs"`
+	ExecutedAt           time.Time `json:"executedAt"`
 }

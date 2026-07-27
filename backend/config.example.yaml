@@ -17,6 +17,8 @@ smtp:
 
 storage:
   aws_region: "us-east-1" # AWS region where the S3 bucket is located
+  s3_base_endpoint: "objstore.some-domain.com" # Base endpoint for S3-compatible storage (e.g., MinIO), set empty for AWS S3.
+  use_path_style: true # Use path-style addressing for S3 (true for MinIO, false for AWS S3), not used if s3_base_endpoint is empty.
   s3_bucket: "email-ingestion-storage" # S3 bucket for storing processed emails.
   ingestion_prefix: "tmp/" # S3 prefix for storing raw email files before they are processed
   storage_prefix: "storage/" # S3 prefix for storing processed email files after, converting the raw EML to a json file exclding the attachments.

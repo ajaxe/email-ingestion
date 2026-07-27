@@ -1,9 +1,11 @@
 package smtp
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
+	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/dgraph-io/ristretto"
@@ -12,16 +14,18 @@ import (
 )
 
 type SmtpServerBackend struct {
-	cfg     *config.AppConfig
-	queries *public.Queries
-	cache   *ristretto.Cache
+	cfg            *config.AppConfig
+	queries        *public.Queries
+	cache          *ristretto.Cache
+	storageService *storage.S3StorageService
 }
 
-func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, cache *ristretto.Cache) *smtp.Server {
+func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, cache *ristretto.Cache, storageService *storage.S3StorageService) *smtp.Server {
 	be := &SmtpServerBackend{
-		cfg:     cfg,
-		queries: queries,
-		cache:   cache,
+		cfg:            cfg,
+		queries:        queries,
+		cache:          cache,
+		storageService: storageService,
 	}
 
 	s := smtp.NewServer(be)
@@ -55,6 +59,7 @@ func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, cache *ristre
 
 func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	slog.Info("New connection from", "remote_addr", c.Conn().RemoteAddr().String())
+	ctx, cancel := context.WithCancel(context.Background())
 	return &IngestSession{
 		cfg:             b.cfg,
 		queries:         b.queries,
@@ -63,5 +68,8 @@ func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 		SessionID:       uuid.New().String(),
 		ConnectedAt:     time.Now(),
 		ReferenceTokens: make(map[string]string),
+		storageService:  b.storageService,
+		ctx:             ctx,
+		cancel:          cancel,
 	}, nil
 }

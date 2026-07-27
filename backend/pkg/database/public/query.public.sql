@@ -38,3 +38,8 @@ WHERE id = $1;
 -- name: LogWebhookAttempt :exec  
 INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms)  
 VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: CreateInboundSpooledEmail :one  
+INSERT INTO inbound_spool_queue (id, s3_object_key, status, attempt_count, last_error_message, created_at, updated_at)  
+VALUES ($1, $2, $3, $4, $5, $6, $7)  
+RETURNING *;

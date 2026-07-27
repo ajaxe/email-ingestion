@@ -2,13 +2,31 @@
 create extension if not exists "uuid-ossp";
 
 -- webhook delivery transaction outbox enum
-create type public.webhook_status as enum (
-  'PENDING',
-  'PROCESSING',
-  'SUCCESS',
-  'FAILED',
-  'DEAD'
-);
+do $$
+begin
+  create type public.spool_status as enum (
+      'PENDING',
+      'PROCESSING',
+      'SUCCESS',
+      'FAILED',
+      'DEAD'
+    );
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type public.webhook_status as enum (
+    'PENDING',
+    'PROCESSING',
+    'SUCCESS',
+    'FAILED',
+    'DEAD'
+  );
+exception
+  when duplicate_object then null;
+end $$;
 
 -- ==========================================
 -- applications (tenants)
@@ -41,7 +59,7 @@ create table if not exists public.assigned_emails (
   constraint chk_local_part_len check (char_length(local_part) = 10)
 );
 
-create index idx_assigned_emails_lookup 
+create index if not exists idx_assigned_emails_lookup 
   on public.assigned_emails(local_part)
   where is_active = true;
 
@@ -64,7 +82,7 @@ create table if not exists public.ingested_emails (
   foreign key (assigned_email_id) references public.assigned_emails(id) on delete restrict    
 );
 
-create index idx_ingested_emails_app_search 
+create index if not exists idx_ingested_emails_app_search 
   on public.ingested_emails(application_id, received_at desc);
 
 -- ==========================================
@@ -84,7 +102,7 @@ create table if not exists public.webhook_delivery_jobs (
   foreign key (ingested_email_id) references public.ingested_emails(id) on delete cascade
 );
 
-create index idx_webhook_jobs_scheduled 
+create index if not exists idx_webhook_jobs_scheduled 
   on public.webhook_delivery_jobs(status, next_delivery_at)
   where status in ('PENDING', 'PROCESSING');
 

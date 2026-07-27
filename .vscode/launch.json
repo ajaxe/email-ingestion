@@ -13,6 +13,7 @@
       "windows": {
         "cwd": "${workspaceFolder}/backend"
       },
+      "envFile": ["${workspaceFolder}/backend/.env.dev"],
     }
   ]
 }

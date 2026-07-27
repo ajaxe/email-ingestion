@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/dgraph-io/ristretto"
 	"github.com/emersion/go-smtp"
+	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
 	"github.com/mileusna/spf"
 )
@@ -28,6 +30,9 @@ type IngestSession struct {
 	cfg             *config.AppConfig
 	queries         *public.Queries
 	cache           *ristretto.Cache
+	storageService  *storage.S3StorageService
+	ctx             context.Context
+	cancel          context.CancelFunc
 }
 
 func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
@@ -94,7 +99,7 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 	} else {
 		// Cache miss, check db
 		ctx := context.Background()
-		_, err := s.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart)
+		_, err := s.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart[:10]) // Only check the first 10 characters of the local part
 		if err != nil {
 			// Not found or db error
 			isValid = false
@@ -126,18 +131,41 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 func (s *IngestSession) Data(r io.Reader) error {
 	slog.Info("Streaming incoming message payload...")
 
-	// SECURITY: Limit the maximum size to read to prevent memory exhaustion attacks.
-	// Let's say a strict 10MB ceiling limit here as a fallback.
-	lr := io.LimitReader(r, s.cfg.Smtp.EmailMaxSizeBytes()) // Using Server.Port as a placeholder for max size in MB, adjust as needed.
+	dataCtx, cancel := context.WithTimeout(s.ctx, 5*time.Minute)
+	defer cancel()
 
-	// Process the email stream.
-	// For production, parse this using an email parser package like `github.com/emersion/go-message`
-	// Here, we just print it to standard out as a proof of concept.
-	/* buf := new(strings.Builder)
-	if _, err := io.Copy(buf, lr); err != nil {
-		return err
-	} */
-	envelope, err := enmime.ReadEnvelope(lr)
+	identifier := uuid.New()
+	uploadKey, err := s.storageService.UploadRawEmail(dataCtx, identifier.String(), r)
+
+	if err != nil {
+		slog.Error("Failed to upload raw email", "error", err)
+		return &smtp.SMTPError{
+			Code:         451,
+			EnhancedCode: smtp.EnhancedCode{4, 3, 0},
+			Message:      "Temporary server error. Please try again later.",
+		}
+	}
+
+	_, err = s.queries.CreateInboundSpooledEmail(dataCtx, public.CreateInboundSpooledEmailParams{
+		ID:               identifier,
+		S3ObjectKey:      uploadKey,
+		Status:           "PENDING",
+		AttemptCount:     0,
+		LastErrorMessage: "",
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
+	})
+
+	if err != nil {
+		slog.Error("Failed to log inbound email to database", "error", err)
+		return &smtp.SMTPError{
+			Code:         451,
+			EnhancedCode: smtp.EnhancedCode{4, 3, 0},
+			Message:      "Temporary server error. Please try again later.",
+		}
+	}
+
+	envelope, err := enmime.ReadEnvelope(r)
 	if err != nil {
 		slog.Info("email parser error", "error", err)
 		// Returning a 554 tells the sending server the transaction failed due to malformed data
@@ -168,5 +196,6 @@ func (s *IngestSession) Reset() {
 
 // Logout is triggered when connection is terminated.
 func (s *IngestSession) Logout() error {
+	s.cancel()
 	return nil
 }

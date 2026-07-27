@@ -7,6 +7,7 @@ package public
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -34,6 +35,45 @@ func (q *Queries) CreateAssignedEmail(ctx context.Context, arg CreateAssignedEma
 		&i.Description,
 		&i.IsActive,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createInboundSpooledEmail = `-- name: CreateInboundSpooledEmail :one
+INSERT INTO inbound_spool_queue (id, s3_object_key, status, attempt_count, last_error_message, created_at, updated_at)  
+VALUES ($1, $2, $3, $4, $5, $6, $7)  
+RETURNING id, s3_object_key, status, attempt_count, last_error_message, created_at, updated_at
+`
+
+type CreateInboundSpooledEmailParams struct {
+	ID               uuid.UUID   `json:"id"`
+	S3ObjectKey      string      `json:"s3ObjectKey"`
+	Status           interface{} `json:"status"`
+	AttemptCount     int32       `json:"attemptCount"`
+	LastErrorMessage string      `json:"lastErrorMessage"`
+	CreatedAt        time.Time   `json:"createdAt"`
+	UpdatedAt        time.Time   `json:"updatedAt"`
+}
+
+func (q *Queries) CreateInboundSpooledEmail(ctx context.Context, arg CreateInboundSpooledEmailParams) (InboundSpoolQueue, error) {
+	row := q.db.QueryRow(ctx, createInboundSpooledEmail,
+		arg.ID,
+		arg.S3ObjectKey,
+		arg.Status,
+		arg.AttemptCount,
+		arg.LastErrorMessage,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i InboundSpoolQueue
+	err := row.Scan(
+		&i.ID,
+		&i.S3ObjectKey,
+		&i.Status,
+		&i.AttemptCount,
+		&i.LastErrorMessage,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -134,20 +174,20 @@ WHERE a.id = $1
 `
 
 type GetApplicationWithEmailsRow struct {
-	ID             uuid.UUID          `json:"id"`
-	Name           string             `json:"name"`
-	ApiKeyHash     string             `json:"apiKeyHash"`
-	WebhookUrl     string             `json:"webhookUrl"`
-	WebhookSecret  string             `json:"webhookSecret"`
-	AwsIamRoleArn  string             `json:"awsIamRoleArn"`
-	MaxRetries     int32              `json:"maxRetries"`
-	CreatedAt      pgtype.Timestamptz `json:"createdAt"`
-	UpdatedAt      pgtype.Timestamptz `json:"updatedAt"`
-	EmailID        pgtype.UUID        `json:"emailId"`
-	LocalPart      pgtype.Text        `json:"localPart"`
-	Description    pgtype.Text        `json:"description"`
-	IsActive       pgtype.Bool        `json:"isActive"`
-	EmailCreatedAt pgtype.Timestamptz `json:"emailCreatedAt"`
+	ID             uuid.UUID   `json:"id"`
+	Name           string      `json:"name"`
+	ApiKeyHash     string      `json:"apiKeyHash"`
+	WebhookUrl     string      `json:"webhookUrl"`
+	WebhookSecret  string      `json:"webhookSecret"`
+	AwsIamRoleArn  string      `json:"awsIamRoleArn"`
+	MaxRetries     int32       `json:"maxRetries"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	UpdatedAt      time.Time   `json:"updatedAt"`
+	EmailID        pgtype.UUID `json:"emailId"`
+	LocalPart      pgtype.Text `json:"localPart"`
+	Description    pgtype.Text `json:"description"`
+	IsActive       pgtype.Bool `json:"isActive"`
+	EmailCreatedAt *time.Time  `json:"emailCreatedAt"`
 }
 
 func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([]GetApplicationWithEmailsRow, error) {
@@ -270,10 +310,10 @@ WHERE id = $1
 `
 
 type UpdateWebhookJobStatusParams struct {
-	ID             uuid.UUID          `json:"id"`
-	Status         WebhookStatus      `json:"status"`
-	RetryCount     int32              `json:"retryCount"`
-	NextDeliveryAt pgtype.Timestamptz `json:"nextDeliveryAt"`
+	ID             uuid.UUID     `json:"id"`
+	Status         WebhookStatus `json:"status"`
+	RetryCount     int32         `json:"retryCount"`
+	NextDeliveryAt time.Time     `json:"nextDeliveryAt"`
 }
 
 func (q *Queries) UpdateWebhookJobStatus(ctx context.Context, arg UpdateWebhookJobStatusParams) error {

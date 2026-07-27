@@ -55,6 +55,10 @@ type StorageConfig struct {
 	IngestionPrefix string `mapstructure:"ingestion_prefix"`
 	// StoragePrefix is the prefix for the S3 bucket used for storing processed email files after conversion
 	StoragePrefix string `mapstructure:"storage_prefix"`
+	// S3BaseEndpoint is the base endpoint for S3-compatible storage (e.g., MinIO). Leave empty for AWS S3.
+	S3BaseEndpoint string `mapstructure:"s3_base_endpoint"`
+	// UsePathStyle indicates whether to use path-style addressing for S3 (true for MinIO, false for AWS S3)
+	UsePathStyle bool `mapstructure:"use_path_style"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {

@@ -11,16 +11,9 @@ $mailFrom = "test-sender@domain.com" # Fallback defaults
 $rcptTo = "test-rcpt@yourdomain.com"
 
 foreach ($line in $fileLines) {
-    # Stop parsing headers if we hit the blank line separating the body
     if ([string]::IsNullOrWhiteSpace($line)) { break }
-
-    # Extract the email addresses using basic RegEx
-    if ($line -match "^From:\s*(.*<)?(?<email>[^>]+)(>)?") {
-        $mailFrom = $matches['email'].Trim()
-    }
-    if ($line -match "^To:\s*(.*<)?(?<email>[^>]+)(>)?") {
-        $rcptTo = $matches['email'].Trim()
-    }
+    if ($line -match "^From:\s*(.*<)?(?<email>[^>]+)(>)?") { $mailFrom = $matches['email'].Trim() }
+    if ($line -match "^To:\s*(.*<)?(?<email>[^>]+)(>)?") { $rcptTo = $matches['email'].Trim() }
 }
 
 Write-Host "Automated Handshake -> From: <$mailFrom> To: <$rcptTo>" -ForegroundColor Cyan
@@ -31,36 +24,46 @@ $stream = $socket.GetStream()
 $writer = New-Object System.IO.StreamWriter($stream)
 $reader = New-Object System.IO.StreamReader($stream)
 
+# Read complete SMTP response (handles multi-line responses like 250-...)
+function Read-SmtpResponse {
+    $response = ""
+    do {
+        $line = $reader.ReadLine()
+        $response += $line + "`n"
+    } while ($line -match '^\d{3}-') # Continue reading as long as line starts with 250-, 220-, etc.
+    return $response
+}
+
 function Send-Command($command) {
     $writer.WriteLine($command)
     $writer.Flush()
-    Start-Sleep -Milliseconds 100
-    while ($stream.DataAvailable) { $null = $reader.ReadLine() }
+    return Read-SmtpResponse
 }
 
-# Clear initial greeting
-Start-Sleep -Milliseconds 100
-while ($stream.DataAvailable) { $null = $reader.ReadLine() }
+# 3. HANDSHAKE
+$greeting = Read-SmtpResponse # Read initial 220 banner
+$ehloResp = Send-Command "EHLO automated.tester.local"
+$mailResp = Send-Command "MAIL FROM:<$mailFrom>"
+$rcptResp = Send-Command "RCPT TO:<$rcptTo>"
+$dataResp = Send-Command "DATA" # Should receive 354 Start mail input
 
-# 3. DYNAMIC SMTP HANDSHAKE
-Send-Command "EHLO automated.tester.local"
-Send-Command "MAIL FROM:<$mailFrom>"
-Send-Command "RCPT TO:<$rcptTo>"
-Send-Command "DATA"
-
-# 4. STREAM THE RAW EML PAYLOAD AS THE DATA BODY
+# 4. STREAM RAW EML PAYLOAD
 foreach ($line in $fileLines) {
     if ($line -eq ".") {
-        $writer.WriteLine("..") # Byte-stuffing safety
+        $writer.WriteLine("..")
     } else {
         $writer.WriteLine($line)
     }
 }
 $writer.Flush()
 
-# 5. CLOSE OUT TRANSACTION
-Send-Command "."
-Send-Command "QUIT"
+# 5. CLOSE TRANSACTION
+$endDataResp = Send-Command "."    # Waits for 250 OK
+$quitResp    = Send-Command "QUIT" # Waits for 221 Bye
 
-$writer.Close(); $stream.Close(); $socket.Close()
+# Clean close
+$writer.Close()
+$stream.Close()
+$socket.Close()
+
 Write-Host "Success: EML automatically ingested!" -ForegroundColor Green
