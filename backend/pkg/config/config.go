@@ -8,16 +8,21 @@ import (
 )
 
 type AppConfig struct {
-	Server struct {
-		Port        int    `mapstructure:"port"`
-		LogLevel    string `mapstructure:"log_level"`
-		Environment string `mapstructure:"environment"`
-	} `mapstructure:"server"`
-	Database struct {
-		DSN   string `mapstructure:"dsn"`
-		Redis string `mapstructure:"redis"`
-	} `mapstructure:"database"`
-	Smtp SmtpConfig `mapstructure:"smtp"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Smtp     SmtpConfig     `mapstructure:"smtp"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+}
+
+type ServerConfig struct {
+	Port        int    `mapstructure:"port"`
+	LogLevel    string `mapstructure:"log_level"`
+	Environment string `mapstructure:"environment"`
+}
+
+type DatabaseConfig struct {
+	DSN   string `mapstructure:"dsn"`
+	Redis string `mapstructure:"redis"`
 }
 
 // SmtpConfig holds configuration settings for the SMTP server.
@@ -40,6 +45,16 @@ type SmtpConfig struct {
 	S3Bucket string `mapstructure:"s3_bucket"`
 	// AwsRegion is the AWS region for the S3 bucket
 	AwsRegion string `mapstructure:"aws_region"`
+}
+
+type StorageConfig struct {
+	// AwsRegion is the AWS region for the S3 bucket
+	AwsRegion string `mapstructure:"aws_region"`
+	S3Bucket  string `mapstructure:"s3_bucket"`
+	// IngestionPrefix is the prefix for the S3 bucket used for storing raw email files before they are processed
+	IngestionPrefix string `mapstructure:"ingestion_prefix"`
+	// StoragePrefix is the prefix for the S3 bucket used for storing processed email files after conversion
+	StoragePrefix string `mapstructure:"storage_prefix"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {

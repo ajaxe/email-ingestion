@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  log_level: "debug"
+
+database:
+  dsn: "postgres://username:password@host-name/db-name?sslmode=disable"
+  redis: "redis-db:6379"
+
+smtp:
+  listen_address: "127.0.0.1:2525"
+  domain: "mx.some-domain.com" # the hostname this server advertises to connecting MTAs during the SMTP handshake
+  email_size_max_mb: 25
+  max_line_length: 2048
+  email_domain: "gmail.com"
+  read_timeout_seconds: 10
+  write_timeout_seconds: 10
+
+storage:
+  aws_region: "us-east-1" # AWS region where the S3 bucket is located
+  s3_bucket: "email-ingestion-storage" # S3 bucket for storing processed emails.
+  ingestion_prefix: "tmp/" # S3 prefix for storing raw email files before they are processed
+  storage_prefix: "storage/" # S3 prefix for storing processed email files after, converting the raw EML to a json file exclding the attachments.
