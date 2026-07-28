@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"log/slog"
+	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/smtp"
 	"github.com/ajaxe/email-ingestion/internal/startup"
@@ -15,16 +17,16 @@ var smtpCmd = &cobra.Command{
 	Use:   "smtp",
 	Short: "Run the SMTP server",
 	Long:  "Run the SMTP server",
-	RunE:  func(cmd *cobra.Command, args []string) error { return runSMTP() },
+	RunE:  func(cmd *cobra.Command, args []string) error { return runSMTP(cmd.Context()) },
 }
 
-func runSMTP() error {
+func runSMTP(ctx context.Context) error {
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		return err
 	}
 
-	slog.Info("starting application initialization")
+	slog.Info("starting SMTP initialization")
 
 	dbPool := startup.NewDbPool(cfg)
 	defer dbPool.Close()
@@ -35,12 +37,27 @@ func runSMTP() error {
 	storageService := storage.NewStorageService(&cfg.Storage)
 
 	s := smtp.NewSmtpServer(cfg, queries, cache, storageService)
-	if err := s.ListenAndServe(); err != nil {
-		slog.Error("Server structural failure", "error", err)
-		// os.Exit(1)
-		return err
+
+	go func() {
+		if err := s.ListenAndServe(); err != nil {
+			slog.Error("shutting down smtp server", "error", err)
+		}
+	}()
+
+	<-ctx.Done()
+
+	slog.InfoContext(ctx, "graceful shutdown of smtp requested")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err = s.Shutdown(ctx); err != nil {
+		slog.ErrorContext(ctx, "graceful shutdown of smtp failed", "error", err)
+	} else {
+		slog.InfoContext(ctx, "graceful shutdown of smtp completed")
 	}
-	return nil
+
+	return err
 }
 
 func init() {

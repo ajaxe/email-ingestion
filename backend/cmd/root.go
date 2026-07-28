@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
@@ -25,6 +26,6 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func Execute() error {
-	return rootCmd.Execute()
+func Execute(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
 }
