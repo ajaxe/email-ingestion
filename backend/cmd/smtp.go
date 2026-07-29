@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/smtp"
 	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/internal/storage"
@@ -32,11 +33,12 @@ func runSMTP(ctx context.Context) error {
 	defer dbPool.Close()
 
 	queries := public.New(dbPool)
-	cache := startup.NewCache()
+	rdsManager := redis.NewManager(cfg)
+	defer rdsManager.Close()
 
 	storageService := storage.NewStorageService(&cfg.Storage)
 
-	s := smtp.NewSmtpServer(cfg, queries, cache, storageService)
+	s := smtp.NewSmtpServer(cfg, queries, rdsManager, storageService)
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil {

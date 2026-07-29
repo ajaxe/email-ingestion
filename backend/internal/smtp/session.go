@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
-	"github.com/dgraph-io/ristretto"
 	"github.com/emersion/go-smtp"
 	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
@@ -29,7 +29,7 @@ type IngestSession struct {
 	ConnectedAt     time.Time
 	cfg             *config.AppConfig
 	queries         *public.Queries
-	cache           *ristretto.Cache
+	redisManager    *redis.Manager
 	storageService  *storage.S3StorageService
 	ctx             context.Context
 	cancel          context.CancelFunc
@@ -94,8 +94,8 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 
 	// Check cache
 	var isValid bool
-	if val, found := s.cache.Get(baseLocalPart); found {
-		isValid = val.(bool)
+	if val, found, _ := s.redisManager.Cache.Get(s.ctx, baseLocalPart); found {
+		isValid = "true" == val
 	} else {
 		// Cache miss, check db
 		ctx := context.Background()
@@ -103,10 +103,10 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 		if err != nil {
 			// Not found or db error
 			isValid = false
-			s.cache.SetWithTTL(baseLocalPart, false, 1, 5*time.Minute)
+			s.redisManager.Cache.Set(s.ctx, baseLocalPart, "false", 5*time.Minute)
 		} else {
 			isValid = true
-			s.cache.SetWithTTL(baseLocalPart, true, 1, 1*time.Hour)
+			s.redisManager.Cache.Set(s.ctx, baseLocalPart, "true", 1*time.Hour)
 		}
 	}
 

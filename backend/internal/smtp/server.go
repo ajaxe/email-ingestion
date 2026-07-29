@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
-	"github.com/dgraph-io/ristretto"
 	"github.com/emersion/go-smtp"
 	"github.com/google/uuid"
 )
@@ -16,15 +16,15 @@ import (
 type SmtpServerBackend struct {
 	cfg            *config.AppConfig
 	queries        *public.Queries
-	cache          *ristretto.Cache
+	redisManager   *redis.Manager
 	storageService *storage.S3StorageService
 }
 
-func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, cache *ristretto.Cache, storageService *storage.S3StorageService) *smtp.Server {
+func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, redisManager *redis.Manager, storageService *storage.S3StorageService) *smtp.Server {
 	be := &SmtpServerBackend{
 		cfg:            cfg,
 		queries:        queries,
-		cache:          cache,
+		redisManager:   redisManager,
 		storageService: storageService,
 	}
 
@@ -63,7 +63,7 @@ func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	return &IngestSession{
 		cfg:             b.cfg,
 		queries:         b.queries,
-		cache:           b.cache,
+		redisManager:    b.redisManager,
 		RemoteAddr:      c.Conn().RemoteAddr().String(),
 		SessionID:       uuid.New().String(),
 		ConnectedAt:     time.Now(),
