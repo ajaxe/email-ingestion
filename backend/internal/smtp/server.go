@@ -61,15 +61,11 @@ func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	slog.Info("New connection from", "remote_addr", c.Conn().RemoteAddr().String())
 	ctx, cancel := context.WithCancel(context.Background())
 	return &IngestSession{
-		cfg:             b.cfg,
-		queries:         b.queries,
-		redisManager:    b.redisManager,
-		RemoteAddr:      c.Conn().RemoteAddr().String(),
-		SessionID:       uuid.New().String(),
-		ConnectedAt:     time.Now(),
-		ReferenceTokens: make(map[string]string),
-		storageService:  b.storageService,
-		ctx:             ctx,
-		cancel:          cancel,
+		cfg:         b.cfg,
+		RemoteAddr:  c.Conn().RemoteAddr().String(),
+		SessionID:   uuid.New().String(),
+		ConnectedAt: time.Now(),
+		ctx:         ctx,
+		cancel:      cancel,
 	}, nil
 }

@@ -11,5 +11,7 @@ type StreamService struct {
 }
 
 func (s *StreamService) Publish(ctx context.Context, stream string, values any) error {
-	return s.client.XAdd(ctx, &redis.XAddArgs{Stream: stream, Values: values}).Err()
+	return s.client.XAdd(ctx, &redis.XAddArgs{Stream: stream, Values: map[string]interface{}{
+		"payload": values,
+	}}).Err()
 }

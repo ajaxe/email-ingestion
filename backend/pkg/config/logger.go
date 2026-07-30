@@ -8,7 +8,7 @@ import (
 
 func SetupLogger(cfg *AppConfig) {
 	logLevel := slog.LevelInfo
-	if strings.ToLower(cfg.Server.LogLevel) == "debug" {
+	if strings.ToLower(cfg.LogLevel) == "debug" {
 		logLevel = slog.LevelDebug
 	}
 

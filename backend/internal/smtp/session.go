@@ -8,31 +8,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/config"
-	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-smtp"
-	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
 	"github.com/mileusna/spf"
 )
 
 type IngestSession struct {
-	From string
-	To   []string
-	// ReferenceTokens maps the full recipient email to the sub-address token (if any). For example, "
-	// "user+tag@example.com" -> "tag"
-	ReferenceTokens map[string]string
-	RemoteAddr      string
-	SessionID       string
-	ConnectedAt     time.Time
-	cfg             *config.AppConfig
-	queries         *public.Queries
-	redisManager    *redis.Manager
-	storageService  *storage.S3StorageService
-	ctx             context.Context
-	cancel          context.CancelFunc
+	From         string
+	To           []string
+	RemoteAddr   string
+	SessionID    string
+	ConnectedAt  time.Time
+	cfg          *config.AppConfig
+	ctx          context.Context
+	cancel       context.CancelFunc
+	emailService *service.EmailIngestionService
 }
 
 func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
@@ -73,45 +65,10 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 		}
 	}
 
-	parts := strings.Split(to, "@")
-	if len(parts) != 2 {
-		err := &smtp.SMTPError{
-			Code:         550,
-			EnhancedCode: smtp.EnhancedCode{5, 1, 1},
-			Message:      "Invalid email address.",
-		}
-		slog.Error("Invalid email", "error", err)
-		return err
-	}
-	localPart := parts[0]
-
-	baseLocalPart := localPart
-	subAddress := ""
-	if plusIdx := strings.Index(localPart, "+"); plusIdx != -1 {
-		baseLocalPart = localPart[:plusIdx]
-		subAddress = localPart[plusIdx+1:]
-	}
-
-	// Check cache
-	var isValid bool
-	if val, found, _ := s.redisManager.Cache.Get(s.ctx, baseLocalPart); found {
-		isValid = "true" == val
-	} else {
-		// Cache miss, check db
-		ctx := context.Background()
-		_, err := s.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart[:10]) // Only check the first 10 characters of the local part
-		if err != nil {
-			// Not found or db error
-			isValid = false
-			s.redisManager.Cache.Set(s.ctx, baseLocalPart, "false", 5*time.Minute)
-		} else {
-			isValid = true
-			s.redisManager.Cache.Set(s.ctx, baseLocalPart, "true", 1*time.Hour)
-		}
-	}
+	isValid, err := s.emailService.CheckAssignedEmail(s.ctx, to)
 
 	if !isValid {
-		slog.Info("User unknown", "local_part", baseLocalPart)
+		slog.Info("invalid inbound email", slog.String("to", to), slog.Any("error", err))
 		return &smtp.SMTPError{
 			Code:         550,
 			EnhancedCode: smtp.EnhancedCode{5, 1, 1},
@@ -120,9 +77,6 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 	}
 
 	s.To = append(s.To, to)
-	if subAddress != "" {
-		s.ReferenceTokens[to] = subAddress
-	}
 
 	return nil
 }
@@ -131,33 +85,10 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 func (s *IngestSession) Data(r io.Reader) error {
 	slog.Info("Streaming incoming message payload...")
 
-	dataCtx, cancel := context.WithTimeout(s.ctx, 5*time.Minute)
-	defer cancel()
-
-	identifier := uuid.New()
-	uploadKey, err := s.storageService.UploadRawEmail(dataCtx, identifier.String(), r)
+	err := s.emailService.Process(s.ctx, r)
 
 	if err != nil {
-		slog.Error("Failed to upload raw email", "error", err)
-		return &smtp.SMTPError{
-			Code:         451,
-			EnhancedCode: smtp.EnhancedCode{4, 3, 0},
-			Message:      "Temporary server error. Please try again later.",
-		}
-	}
-
-	_, err = s.queries.CreateInboundSpooledEmail(dataCtx, public.CreateInboundSpooledEmailParams{
-		ID:               identifier,
-		S3ObjectKey:      uploadKey,
-		Status:           "PENDING",
-		AttemptCount:     0,
-		LastErrorMessage: "",
-		CreatedAt:        time.Now().UTC(),
-		UpdatedAt:        time.Now().UTC(),
-	})
-
-	if err != nil {
-		slog.Error("Failed to log inbound email to database", "error", err)
+		slog.ErrorContext(s.ctx, "failed to process email", "error", err)
 		return &smtp.SMTPError{
 			Code:         451,
 			EnhancedCode: smtp.EnhancedCode{4, 3, 0},

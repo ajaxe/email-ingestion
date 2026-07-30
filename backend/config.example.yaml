@@ -1,7 +1,7 @@
+environment: dev
+log_level: "debug"
 server:
   port: 8080
-  log_level: "debug"
-
 database:
   dsn: "postgres://username:password@host-name/db-name?sslmode=disable"
   redis: "redis-db:6379"

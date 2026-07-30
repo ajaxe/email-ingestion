@@ -52,8 +52,8 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **3.1 Spool Queue Database Schema**
 
-* [ ] Define the `spool_status` ENUM (e.g., `'PENDING'`, `'PROCESSING'`, `'FAILED'`) in your PostgreSQL schema (`public.sql`).
-* [ ] Create the `inbound_spool_queue` table with the following columns:
+* [x] Define the `spool_status` ENUM (e.g., `'PENDING'`, `'PROCESSING'`, `'FAILED'`) in your PostgreSQL schema (`public.sql`).
+* [x] Create the `inbound_spool_queue` table with the following columns:
   * `id` (UUID, Primary Key)
   * `s3_object_key` (VARCHAR, the path to the raw `.eml` in S3)
   * `status` (spool_status ENUM, default `'PENDING'`)
@@ -61,34 +61,35 @@ This document outlines a high-level, production-grade implementation roadmap. Th
   * `last_error_message` (TEXT, to store worker MIME parsing errors)
   * `created_at` (TIMESTAMPTZ, default NOW())
   * `updated_at` (TIMESTAMPTZ, default NOW())
-* [ ] Generate the corresponding Go models using `sqlc generate`.
+* [x] Generate the corresponding Go models using `sqlc generate`.
 
 ### **3.2 Direct S3 Stream Archiving**
 
-* [ ] Implement the Data() SMTP hook. Inside, generate a secure UUID for the transaction.  
-* [ ] Setup an `s3manager.Uploader` connected to the SMTP `io.Reader` stream.  
-* [ ] Stream the raw MIME payload directly to an S3 spool object key (e.g., `s3://bucket/spool/{uuid}.eml`) using concurrent chunked uploads (e.g., 5MB parts) over a VPC Gateway Endpoint.  
-* [ ] Get library github.com/emersion/go-msgauth to implement DKIM
-* [ ] Simultaneously pipe the stream into a single-pass DKIM signature checker using a Go io.TeeReader or MultiWriter wrapper.  
-* [ ] Configure an S3 Bucket Lifecycle Rule to abort incomplete multipart uploads after 1 day.
+* [x] Implement the Data() SMTP hook. Inside, generate a secure UUID for the transaction.  
+* [x] Setup an `s3manager.Uploader` connected to the SMTP `io.Reader` stream.  
+* [x] Stream the raw MIME payload directly to an S3 spool object key (e.g., `s3://bucket/spool/{uuid}.eml`) using concurrent chunked uploads (e.g., 5MB parts) ~~over a VPC Gateway Endpoint~~.  
+* [x] Get library github.com/emersion/go-msgauth to implement DKIM
+* [x] Simultaneously pipe the stream into a single-pass DKIM signature checker using a Go io.TeeReader or MultiWriter wrapper.  
+* [x] ~~Configure an S3 Bucket Lifecycle Rule to abort incomplete multipart uploads after 1 day.~~ infrastructure related, to be done later.
 * **Verification Checkpoint**: Send a large mock email containing attachments. Verify the Go process memory (RAM) consumption remains flat while the `.eml` file is successfully assembled in the S3 bucket.
 
 ### **3.3 Atomic Outbox Enqueueing**
 
-* [ ] Write a transactional DB hook to insert the S3 object key (`s3://bucket/spool/{uuid}.eml`) into the inbound_spool_queue database table with a PENDING status.  
-* [ ] Only after a successful S3 upload and PostgreSQL commit, return 250 OK to the sender.  
-* **Verification Checkpoint**: Send an email. Verify that an inbound_spool_queue row appears in the database and the connection gracefully terminates.
+* [x] Publish a JSON payload containing the S3 object key (`s3://bucket/spool/{uuid}.eml`) to a Redis stream.  
+* [x] Only after a successful S3 upload and Redis stream publish, return 250 OK to the sender.  
+* **Verification Checkpoint**: Send an email. Verify that a message containing the S3 object key is published to the Redis stream and the connection gracefully terminates.
 
 ## **Phase 4: Spool Queue Worker & MIME Parsing Engine**
 
 *Process spooled email files concurrently, parse nested attachments, and upload results securely.*
 
-### **4.1 SKIP LOCKED Spool Poller**
+### **4.1 Redis Consumer Group Worker Pool**
 
 * [ ] Implement a concurrent, multi-threaded worker pool utilizing Go channels and Goroutines.  
-* [ ] Write a poller loop that queries GetNextSpoolJob utilizing PostgreSQL's native FOR UPDATE SKIP LOCKED.  
-* [ ] Ensure that even if multiple Go worker nodes scale up, each spool job is acquired by exactly one thread without locking others.  
-* **Verification Checkpoint**: Force-populate the DB queue with multiple test logs and verify that your workers process them concurrently with zero collisions or race conditions.
+* [ ] Initialize a Redis Consumer Group (`XGROUP CREATE`) to track message consumption across multiple worker nodes.  
+* [ ] Write a worker loop that blocks on `XREADGROUP` to consume new spool jobs from the Redis stream, ensuring each message is routed to exactly one thread.  
+* [ ] Implement a recovery loop utilizing `XPENDING` and `XCLAIM` to detect and retry messages that have stalled or failed to process, updating the `attempt_count` in the `inbound_spool_queue` database table.  
+* **Verification Checkpoint**: Publish mock job JSON payloads directly to the Redis stream and verify that multiple running workers process them concurrently with zero collisions. Kill a worker during processing and ensure another worker re-claims the pending job.
 
 ### **4.2 MIME Engine & S3 Storage Ingestion**
 
@@ -99,8 +100,8 @@ This document outlines a high-level, production-grade implementation roadmap. Th
   4. Store the parsed email body structure as a `contents.json` file in S3 inside the application folder path (`apps/{application_id}/...`).  
   5. Upload raw attachment binaries as separate files (`attachments/{id}.bin`).  
   6. Insert meta rows into the `ingested_emails` database table.  
-  7. Delete the raw spool `.eml` object from S3 and execute `DeleteSpoolJob` in PostgreSQL.  
-* **Verification Checkpoint**: Send a test email containing multiple files (e.g., a PDF and an image). Verify the spool database row is cleared, the raw `.eml` is deleted from S3, and S3 contains the mapped directory structure with all binary files matching their original byte sizes.
+  7. Delete the raw spool `.eml` object from S3, update the `inbound_spool_queue` status to `COMPLETED`, and acknowledge the Redis stream message (`XACK`).  
+* **Verification Checkpoint**: Send a test email containing multiple files (e.g., a PDF and an image). Verify the spool database row status is updated to `COMPLETED`, the Redis message is acknowledged, the raw `.eml` is deleted from S3, and S3 contains the mapped directory structure.
 
 ## **Phase 5: Secure Webhook & Callback Dispatch Engine**
 

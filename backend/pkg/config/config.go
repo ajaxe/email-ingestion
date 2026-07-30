@@ -7,17 +7,19 @@ import (
 	"github.com/spf13/viper"
 )
 
+const AppName = "email-ingestion"
+
 type AppConfig struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Smtp     SmtpConfig     `mapstructure:"smtp"`
-	Storage  StorageConfig  `mapstructure:"storage"`
+	Environment string         `mapstructure:"environment"`
+	LogLevel    string         `mapstructure:"log_level"`
+	Server      ServerConfig   `mapstructure:"server"`
+	Database    DatabaseConfig `mapstructure:"database"`
+	Smtp        SmtpConfig     `mapstructure:"smtp"`
+	Storage     StorageConfig  `mapstructure:"storage"`
 }
 
 type ServerConfig struct {
-	Port        int    `mapstructure:"port"`
-	LogLevel    string `mapstructure:"log_level"`
-	Environment string `mapstructure:"environment"`
+	Port int `mapstructure:"port"`
 }
 
 type DatabaseConfig struct {
