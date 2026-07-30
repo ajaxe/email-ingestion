@@ -17,7 +17,7 @@ func (p *IngestEmailPayload) JSON() (string, error) {
 	return string(d), nil
 }
 func ParseIngestEmail(payload string) (*IngestEmailPayload, error) {
-	if p == "" {
+	if payload == "" {
 		return nil, fmt.Errorf("empty payload")
 	}
 	p := &IngestEmailPayload{}

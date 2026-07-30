@@ -16,8 +16,12 @@ import (
 	"github.com/google/uuid"
 )
 
+func StreamName(appName, env string) string {
+	return fmt.Sprintf("%:%:stream", appName, env)
+}
+
 func NewEmailIngestion(redisManager *redis.Manager, queries *public.Queries, storageService *storage.S3StorageService, env string) *EmailIngestionService {
-	p := fmt.Sprintf("%:%:stream", config.AppName, env)
+	p := StreamName(config.AppName, env)
 	return &EmailIngestionService{
 		redisManager:   redisManager,
 		queries:        queries,

@@ -3,6 +3,7 @@ package redis
 import (
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/redis/go-redis/v9"
@@ -26,7 +27,10 @@ func NewManager(cfg *config.AppConfig) *Manager {
 	return &Manager{
 		client: rdb,
 		Cache:  &CacheService{client: rdb},
-		Stream: &StreamService{client: rdb},
+		Stream: &StreamService{
+			client: rdb,
+			block:  20 * time.Second,
+		},
 	}
 }
 
