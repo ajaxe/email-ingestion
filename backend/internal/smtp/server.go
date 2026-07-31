@@ -25,18 +25,18 @@ func NewSmtpServer(cfg *config.SmtpConfig, emailService *service.EmailIngestionS
 	s := smtp.NewServer(be)
 
 	// --- SECURITY HARDENING SETTINGS ---
-	s.Addr = cfg.Smtp.ListenAddress // Local port for testing. In prod, use ":25"
-	s.Domain = cfg.Smtp.Domain
+	s.Addr = cfg.ListenAddress // Local port for testing. In prod, use ":25"
+	s.Domain = cfg.Domain
 
 	// Tight timeouts protect against slow TCP resource starvation attacks
-	s.ReadTimeout = time.Duration(cfg.Smtp.ReadTimeoutSec) * time.Second
-	s.WriteTimeout = time.Duration(cfg.Smtp.WriteTimeoutSec) * time.Second
+	s.ReadTimeout = time.Duration(cfg.ReadTimeoutSec) * time.Second
+	s.WriteTimeout = time.Duration(cfg.WriteTimeoutSec) * time.Second
 
 	// Hard payload size cap enforced at the protocol level (e.g., 5MB limit)
-	s.MaxMessageBytes = cfg.Smtp.EmailMaxSizeBytes()
+	s.MaxMessageBytes = cfg.EmailMaxSizeBytes()
 
 	// Enforce a sensible line length limit to block buffer overflow exploits
-	s.MaxLineLength = cfg.Smtp.MaxLineLength
+	s.MaxLineLength = cfg.MaxLineLength
 
 	// Disable authentication since this is an ingestion-only public server.
 	// Public MX servers must accept unauthenticated mail from foreign MTAs.
