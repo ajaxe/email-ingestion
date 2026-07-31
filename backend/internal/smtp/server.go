@@ -5,27 +5,21 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/config"
-	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-smtp"
 	"github.com/google/uuid"
 )
 
 type SmtpServerBackend struct {
-	cfg            *config.AppConfig
-	queries        *public.Queries
-	redisManager   *redis.Manager
-	storageService *storage.S3StorageService
+	cfg          *config.SmtpConfig
+	emailService *service.EmailIngestionService
 }
 
-func NewSmtpServer(cfg *config.AppConfig, queries *public.Queries, redisManager *redis.Manager, storageService *storage.S3StorageService) *smtp.Server {
+func NewSmtpServer(cfg *config.SmtpConfig, emailService *service.EmailIngestionService) *smtp.Server {
 	be := &SmtpServerBackend{
-		cfg:            cfg,
-		queries:        queries,
-		redisManager:   redisManager,
-		storageService: storageService,
+		cfg:          cfg,
+		emailService: emailService,
 	}
 
 	s := smtp.NewServer(be)
@@ -61,11 +55,12 @@ func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 	slog.Info("New connection from", "remote_addr", c.Conn().RemoteAddr().String())
 	ctx, cancel := context.WithCancel(context.Background())
 	return &IngestSession{
-		cfg:         b.cfg,
-		RemoteAddr:  c.Conn().RemoteAddr().String(),
-		SessionID:   uuid.New().String(),
-		ConnectedAt: time.Now(),
-		ctx:         ctx,
-		cancel:      cancel,
+		cfg:          b.cfg,
+		RemoteAddr:   c.Conn().RemoteAddr().String(),
+		SessionID:    uuid.New().String(),
+		ConnectedAt:  time.Now(),
+		ctx:          ctx,
+		cancel:       cancel,
+		emailService: b.emailService,
 	}, nil
 }

@@ -21,7 +21,7 @@ type IngestSession struct {
 	RemoteAddr   string
 	SessionID    string
 	ConnectedAt  time.Time
-	cfg          *config.AppConfig
+	cfg          *config.SmtpConfig
 	ctx          context.Context
 	cancel       context.CancelFunc
 	emailService *service.EmailIngestionService
@@ -37,9 +37,9 @@ func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
 
 	ip := net.ParseIP(host)
 	if ip != nil {
-		result := spf.CheckHost(ip, s.cfg.Smtp.Domain, from, "")
+		result := spf.CheckHost(ip, s.cfg.Domain, from, "")
 		if result == spf.Fail {
-			slog.Info("SPF Validation failed", "ip", ip, "domain", s.cfg.Smtp.Domain, "from", from, "result", result)
+			slog.Info("SPF Validation failed", "ip", ip, "domain", s.cfg.Domain, "from", from, "result", result)
 			return &smtp.SMTPError{
 				Code:         550,
 				EnhancedCode: smtp.EnhancedCode{5, 7, 1},
@@ -56,7 +56,7 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 	slog.Info("Rcpt to", "to_email", to)
 
 	// SECURITY: Only accept emails destined for your managed domain.
-	if !strings.HasSuffix(to, "@"+s.cfg.Smtp.EmailDomain) {
+	if !strings.HasSuffix(to, "@"+s.cfg.EmailDomain) {
 		slog.Info("Cannot accept email", "to_email", to)
 		return &smtp.SMTPError{
 			Code:         550,

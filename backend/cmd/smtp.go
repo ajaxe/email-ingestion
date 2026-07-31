@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
+	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/internal/smtp"
 	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/internal/storage"
@@ -38,7 +39,9 @@ func runSMTP(ctx context.Context) error {
 
 	storageService := storage.NewStorageService(&cfg.Storage)
 
-	s := smtp.NewSmtpServer(cfg, queries, rdsManager, storageService)
+	emailService := service.NewEmailIngestion(rdsManager, queries, storageService, cfg.Environment)
+
+	s := smtp.NewSmtpServer(&cfg.Smtp, emailService)
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil {
