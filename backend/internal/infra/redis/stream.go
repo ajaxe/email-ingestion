@@ -58,6 +58,14 @@ func (s *StreamService) Consume(ctx context.Context, streamName, groupName, cons
 	return d, nil
 }
 
+func (s *StreamService) MarkCompleted(ctx context.Context, data *StreamData) error {
+	if data == nil {
+		return nil
+	}
+	r := s.client.XAck(ctx, data.StreamName, data.GroupName, data.MessageID)
+	return r.Err()
+}
+
 func (s *StreamService) CheckPending(ctx context.Context, streamName, groupName, consumerID string) ([]*StreamData, error) {
 	messages, _, err := s.client.XAutoClaim(ctx, &redis.XAutoClaimArgs{
 		Stream:   streamName,

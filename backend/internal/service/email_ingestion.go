@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
+	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
@@ -17,7 +18,7 @@ import (
 )
 
 func StreamName(appName, env string) string {
-	return fmt.Sprintf("%:%:stream", appName, env)
+	return fmt.Sprintf("%s:%s:stream", appName, env)
 }
 
 func NewEmailIngestion(redisManager *redis.Manager, queries *public.Queries, storageService *storage.S3StorageService, env string) *EmailIngestionService {
@@ -134,18 +135,19 @@ func (e *EmailIngestionService) Process(ctx context.Context, data io.Reader) err
 		return fmt.Errorf("failed to log inbound email to database")
 	}
 
-	p := &IngestEmailPayload{
+	p := &model.IngestEmailPayload{
+		SpoolID:   id,
 		UploadKey: uploadKey,
 	}
 
 	j, err := p.JSON()
 	if err != nil {
-		return fmt.Errorf("failed to serialize payload for redis stream", slog.String("identifier", id), slog.Any("error", err))
+		return fmt.Errorf("failed to serialize payload for redis stream: id-%s: %v", id, err)
 	}
 
 	err = e.redisManager.Stream.Publish(ctx, e.streamName, j)
 	if err != nil {
-		return fmt.Errorf("failed to enqueue email for processing", slog.String("identifier", id), slog.Any("error", err))
+		return fmt.Errorf("failed to enqueue email for processing: id-%s: %v", id, err)
 	}
 
 	return nil

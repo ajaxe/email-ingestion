@@ -38,7 +38,7 @@ func runWorker(ctx context.Context) error {
 
 	storageService := storage.NewStorageService(&cfg.Storage)
 
-	w := worker.NewProcessor(cfg, queries, rdsManager, storageService)
+	w := worker.New(cfg, queries, rdsManager, storageService)
 
 	go func() {
 		w.Start(ctx)
