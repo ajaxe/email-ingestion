@@ -13,6 +13,51 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type SpoolStatus string
+
+const (
+	SpoolStatusPENDING    SpoolStatus = "PENDING"
+	SpoolStatusPROCESSING SpoolStatus = "PROCESSING"
+	SpoolStatusSUCCESS    SpoolStatus = "SUCCESS"
+	SpoolStatusFAILED     SpoolStatus = "FAILED"
+	SpoolStatusDEAD       SpoolStatus = "DEAD"
+)
+
+func (e *SpoolStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SpoolStatus(s)
+	case string:
+		*e = SpoolStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SpoolStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSpoolStatus struct {
+	SpoolStatus SpoolStatus `json:"spoolStatus"`
+	Valid       bool        `json:"valid"` // Valid is true if SpoolStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSpoolStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SpoolStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SpoolStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSpoolStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SpoolStatus), nil
+}
+
 type WebhookStatus string
 
 const (
@@ -82,7 +127,7 @@ type AssignedEmail struct {
 type InboundSpoolQueue struct {
 	ID               uuid.UUID   `json:"id"`
 	S3ObjectKey      string      `json:"s3ObjectKey"`
-	Status           interface{} `json:"status"`
+	Status           SpoolStatus `json:"status"`
 	AttemptCount     int32       `json:"attemptCount"`
 	LastErrorMessage string      `json:"lastErrorMessage"`
 	CreatedAt        time.Time   `json:"createdAt"`

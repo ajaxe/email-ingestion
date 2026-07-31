@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
@@ -16,9 +15,10 @@ import (
 )
 
 type S3StorageService struct {
-	config *config.StorageConfig
-	mu     sync.Mutex
-	client *transfermanager.Client
+	config    *config.StorageConfig
+	mu        sync.Mutex
+	txmanager *transfermanager.Client
+	s3client  *s3.Client
 }
 
 func NewStorageService(config *config.StorageConfig) *S3StorageService {
@@ -27,17 +27,22 @@ func NewStorageService(config *config.StorageConfig) *S3StorageService {
 	}
 }
 
+func (s *S3StorageService) Config() *config.StorageConfig {
+	return s.config
+}
+
 // UploadRawEmail uploads the raw email content to S3 and returns the S3 object key.
-func (s *S3StorageService) UploadRawEmail(ctx context.Context, messageID string, content io.Reader) (string, error) {
-	txmanager, err := s.transferManager(ctx)
+func (s *S3StorageService) UploadObject(ctx context.Context, key string, content io.Reader, contentType string) (string, error) {
+	txmanager, _, err := s.transferManager(ctx)
 	if err != nil {
 		return "", err
 	}
-	key := ingestionS3Key(s.config.IngestionPrefix, messageID)
+
 	_, err = txmanager.UploadObject(ctx, &transfermanager.UploadObjectInput{
-		Bucket: aws.String(s.config.S3Bucket),
-		Key:    aws.String(key),
-		Body:   content,
+		Bucket:      aws.String(s.config.S3Bucket),
+		Key:         aws.String(key),
+		Body:        content,
+		ContentType: aws.String(contentType),
 	})
 	if err != nil {
 		return "", err
@@ -45,19 +50,61 @@ func (s *S3StorageService) UploadRawEmail(ctx context.Context, messageID string,
 	return key, nil
 }
 
-func (s *S3StorageService) transferManager(ctx context.Context) (*transfermanager.Client, error) {
+func (s *S3StorageService) DownloadObject(ctx context.Context, key string) (io.ReadCloser, error) {
+	txmanager, _, err := s.transferManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	downloadCtx, cancel := context.WithCancel(ctx)
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer cancel()
+		_, err := txmanager.DownloadObject(downloadCtx, &transfermanager.DownloadObjectInput{
+			Bucket:   aws.String(s.config.S3Bucket),
+			Key:      aws.String(key),
+			WriterAt: &pipeWriterAt{w: pw},
+		}, func(o *transfermanager.Options) {
+			o.Concurrency = 1
+		})
+
+		_ = pw.CloseWithError(err)
+	}()
+
+	return &pipeReadCloser{
+		PipeReader: pr,
+		cancel:     cancel,
+	}, nil
+}
+
+func (s *S3StorageService) DeleteObject(ctx context.Context, key string) error {
+	_, s3client, err := s.transferManager(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = s3client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.config.S3Bucket),
+		Key:    aws.String(key),
+	})
+
+	return err
+}
+
+func (s *S3StorageService) transferManager(ctx context.Context) (*transfermanager.Client, *s3.Client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Return cached client if already initialized
-	if s.client != nil {
-		return s.client, nil
+	if s.txmanager != nil {
+		return s.txmanager, s.s3client, nil
 	}
 
 	// Initialize S3 client
 	cfg, err := awscfg.LoadDefaultConfig(ctx, awscfg.WithRegion(s.config.AwsRegion), awscfg.WithBaseEndpoint(""))
 	if err != nil {
-		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+		return nil, nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	s3client := s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -71,13 +118,7 @@ func (s *S3StorageService) transferManager(ctx context.Context) (*transfermanage
 	})
 
 	// Cache client on success
-	s.client = c
-	return s.client, nil
-}
-
-func ingestionS3Key(ingestionPrefix, messageID string) string {
-	if strings.HasSuffix(ingestionPrefix, "/") {
-		return ingestionPrefix + messageID
-	}
-	return fmt.Sprintf("%s/%s", ingestionPrefix, messageID)
+	s.txmanager = c
+	s.s3client = s3client
+	return s.txmanager, s.s3client, nil
 }

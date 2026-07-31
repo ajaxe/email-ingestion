@@ -11,6 +11,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/internal/utils"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-msgauth/dkim"
@@ -99,7 +100,9 @@ func (e *EmailIngestionService) Process(ctx context.Context, data io.Reader) err
 
 	identifier := uuid.New()
 	id := identifier.String()
-	uploadKey, err := e.storageService.UploadRawEmail(dataCtx, id, tee)
+
+	key := utils.IngestionS3Key(e.storageService.Config().IngestionPrefix, id)
+	uploadKey, err := e.storageService.UploadObject(dataCtx, key, tee, "")
 
 	// Close the pipe writer to signal EOF (or error) to the reader goroutine
 	pw.CloseWithError(err)
