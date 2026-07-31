@@ -2,8 +2,8 @@
 create extension if not exists "uuid-ossp";
 
 -- webhook delivery transaction outbox enum
-do $$
-begin
+/*do $$
+begin*/
   create type public.spool_status as enum (
       'PENDING',
       'PROCESSING',
@@ -11,12 +11,12 @@ begin
       'FAILED',
       'DEAD'
     );
-exception
+/*exception
   when duplicate_object then null;
-end $$;
+end $$;*/
 
-do $$
-begin
+/*do $$
+begin*/
   create type public.webhook_status as enum (
     'PENDING',
     'PROCESSING',
@@ -24,9 +24,9 @@ begin
     'FAILED',
     'DEAD'
   );
-exception
+/*exception
   when duplicate_object then null;
-end $$;
+end $$;*/
 
 -- ==========================================
 -- applications (tenants)

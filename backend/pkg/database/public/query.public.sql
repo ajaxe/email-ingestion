@@ -43,3 +43,8 @@ VALUES ($1, $2, $3, $4, $5, $6);
 INSERT INTO inbound_spool_queue (id, s3_object_key, status, attempt_count, last_error_message, created_at, updated_at)  
 VALUES ($1, $2, $3, $4, $5, $6, $7)  
 RETURNING *;
+
+-- name: UpdateSpooledEmailStatus :exec
+UPDATE inbound_spool_queue
+SET status = $2, attempt_count = attempt_count + 1, last_error_message = $3, updated_at = NOW()
+WHERE id = $1;

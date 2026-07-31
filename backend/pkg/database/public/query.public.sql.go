@@ -48,7 +48,7 @@ RETURNING id, s3_object_key, status, attempt_count, last_error_message, created_
 type CreateInboundSpooledEmailParams struct {
 	ID               uuid.UUID   `json:"id"`
 	S3ObjectKey      string      `json:"s3ObjectKey"`
-	Status           interface{} `json:"status"`
+	Status           SpoolStatus `json:"status"`
 	AttemptCount     int32       `json:"attemptCount"`
 	LastErrorMessage string      `json:"lastErrorMessage"`
 	CreatedAt        time.Time   `json:"createdAt"`
@@ -300,6 +300,23 @@ func (q *Queries) LogWebhookAttempt(ctx context.Context, arg LogWebhookAttemptPa
 		arg.IsRetry,
 		arg.DurationMs,
 	)
+	return err
+}
+
+const updateSpooledEmailStatus = `-- name: UpdateSpooledEmailStatus :exec
+UPDATE inbound_spool_queue
+SET status = $2, attempt_count = attempt_count + 1, last_error_message = $3, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateSpooledEmailStatusParams struct {
+	ID               uuid.UUID   `json:"id"`
+	Status           SpoolStatus `json:"status"`
+	LastErrorMessage string      `json:"lastErrorMessage"`
+}
+
+func (q *Queries) UpdateSpooledEmailStatus(ctx context.Context, arg UpdateSpooledEmailStatusParams) error {
+	_, err := q.db.Exec(ctx, updateSpooledEmailStatus, arg.ID, arg.Status, arg.LastErrorMessage)
 	return err
 }
 
