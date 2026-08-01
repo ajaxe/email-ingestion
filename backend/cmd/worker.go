@@ -40,9 +40,16 @@ func runWorker(ctx context.Context) error {
 
 	w := worker.New(cfg, queries, rdsManager, storageService)
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	go func() {
+		defer cancel()
 		w.Start(ctx)
 	}()
+
+	<-ctx.Done()
+
+	slog.InfoContext(ctx, "graceful shutdown of worker requested")
 
 	return nil
 }

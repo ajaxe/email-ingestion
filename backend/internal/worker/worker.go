@@ -2,13 +2,15 @@ package worker
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/model"
-	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
@@ -33,6 +35,9 @@ func (w *EmailWorker) Start(ctx context.Context) {
 
 	go w.autoClaimLoop(ctx)
 
+	slog.InfoContext(ctx, "starting main data processing loop")
+	logCtr := -1
+
 	for {
 		select {
 		case <-ctx.Done(): // cancellation received from host
@@ -42,15 +47,18 @@ func (w *EmailWorker) Start(ctx context.Context) {
 			data, err := w.redisManager.Stream.Consume(ctx, w.streamName, groupName, w.consumerID)
 			if err != nil {
 				slog.WarnContext(ctx, "failed to read data from stream", "consumerID", w.consumerID, "error", err)
-				return
+				continue
 			}
+
 			if data == nil {
-				slog.InfoContext(ctx, "no data for processing", "consumerID", w.consumerID)
+				if logCtr == -1 || logCtr%10 == 0 {
+					logCtr = 0
+					slog.InfoContext(ctx, "no data for processing", "consumerID", w.consumerID)
+				}
+				logCtr++
+				continue
 			}
 			w.processMessage(ctx, data)
-			if err != nil {
-				slog.ErrorContext(ctx, "failed to mark message as completed", "consumerID", w.consumerID, "error", err)
-			}
 		}
 	}
 }
@@ -63,6 +71,9 @@ func (w *EmailWorker) initGroup(ctx context.Context) error {
 func (w *EmailWorker) autoClaimLoop(ctx context.Context) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
+
+	slog.InfoContext(ctx, "starting auto-claim loop")
+	logCtr := -1
 
 	for {
 		select {
@@ -77,12 +88,17 @@ func (w *EmailWorker) autoClaimLoop(ctx context.Context) {
 				continue
 			}
 
+			if len(data) == 0 {
+				if logCtr == -1 || logCtr%10 == 0 {
+					logCtr = 0
+					slog.InfoContext(ctx, "no auto-claimed data for processing", "consumerID", w.consumerID)
+				}
+				logCtr++
+				continue
+			}
+
 			for _, msg := range data {
 				w.processMessage(ctx, msg)
-				err = w.redisManager.Stream.MarkCompleted(ctx, msg)
-				if err != nil {
-					slog.ErrorContext(ctx, "failed to mark message as completed", "consumerID", w.consumerID, "error", err)
-				}
 			}
 		}
 	}
@@ -92,30 +108,37 @@ func (w *EmailWorker) processMessage(ctx context.Context, msg *redis.StreamData)
 	j, ok := msg.Data.(string)
 	if !ok {
 		slog.ErrorContext(ctx, "failed to parse message data", "consumerID", w.consumerID)
+		return fmt.Errorf("failed to parse message data")
 	}
 	p, err := model.ParseIngestEmail(j)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to parse message data", "consumerID", w.consumerID, "error", err)
+		return err
 	}
 
 	err = w.processor.Process(ctx, p)
 
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to process message", "consumerID", w.consumerID, "error", err)
-	} else {
-		err = w.redisManager.Stream.MarkCompleted(ctx, msg)
-
-		if err != nil {
-			slog.ErrorContext(ctx, "failed to mark message as complete", "consumerID", w.consumerID, "error", err)
-		} else {
-			slog.InfoContext(ctx, "message processed successfully")
+		slog.ErrorContext(ctx, "failed to process message", "spoolID", p.SpoolID, "consumerID", w.consumerID, "error", err)
+		var retryErr *RetryableError
+		if errors.As(err, &retryErr) {
+			// Do not ack, return so it can be retried
+			return err
 		}
 	}
+
+	ackErr := w.redisManager.Stream.MarkCompleted(ctx, msg)
+	if ackErr != nil {
+		slog.ErrorContext(ctx, "failed to mark message as complete", "spoolID", p.SpoolID, "consumerID", w.consumerID, "error", ackErr)
+	} else {
+		slog.InfoContext(ctx, "message processed and acknowledged", "spoolID", p.SpoolID, "consumerID", w.consumerID)
+	}
+
 	return err
 }
 
 func New(cfg *config.AppConfig, queries *public.Queries, redisManager *redis.Manager, storageService *storage.S3StorageService) *EmailWorker {
-	s := service.StreamName(config.AppName, cfg.Environment)
+	s := util.StreamName(config.AppName, cfg.Environment)
 	p := &EmailProcessor{
 		queries:        queries,
 		storageService: storageService,

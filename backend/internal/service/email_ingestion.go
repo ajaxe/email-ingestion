@@ -11,19 +11,15 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/storage"
-	"github.com/ajaxe/email-ingestion/internal/utils"
+	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/google/uuid"
 )
 
-func StreamName(appName, env string) string {
-	return fmt.Sprintf("%s:%s:stream", appName, env)
-}
-
 func NewEmailIngestion(redisManager *redis.Manager, queries *public.Queries, storageService *storage.S3StorageService, env string) *EmailIngestionService {
-	p := StreamName(config.AppName, env)
+	p := util.StreamName(config.AppName, env)
 	return &EmailIngestionService{
 		redisManager:   redisManager,
 		queries:        queries,
@@ -52,9 +48,10 @@ func (e *EmailIngestionService) CheckAssignedEmail(ctx context.Context, to strin
 		baseLocalPart = localPart[:plusIdx]
 	}
 
+	cacheKey := fmt.Sprintf("assigned_email:%s:found", baseLocalPart)
 	// Check cache
 	var isValid bool
-	if val, found, _ := e.redisManager.Cache.Get(ctx, baseLocalPart); found {
+	if val, found, _ := e.redisManager.Cache.Get(ctx, cacheKey); found {
 		isValid = "true" == val
 	} else {
 		// Cache miss, check db
@@ -63,10 +60,10 @@ func (e *EmailIngestionService) CheckAssignedEmail(ctx context.Context, to strin
 		if err != nil {
 			// Not found or db error
 			isValid = false
-			e.redisManager.Cache.Set(ctx, baseLocalPart, "false", 5*time.Minute)
+			e.redisManager.Cache.Set(ctx, cacheKey, "false", 5*time.Minute)
 		} else {
 			isValid = true
-			e.redisManager.Cache.Set(ctx, baseLocalPart, "true", 1*time.Hour)
+			e.redisManager.Cache.Set(ctx, cacheKey, "true", 1*time.Hour)
 		}
 	}
 
@@ -101,7 +98,7 @@ func (e *EmailIngestionService) Process(ctx context.Context, data io.Reader) err
 	identifier := uuid.New()
 	id := identifier.String()
 
-	key := utils.IngestionS3Key(e.storageService.Config().IngestionPrefix, id)
+	key := util.IngestionS3Key(e.storageService.Config().IngestionPrefix, id)
 	uploadKey, err := e.storageService.UploadObject(dataCtx, key, tee, "")
 
 	// Close the pipe writer to signal EOF (or error) to the reader goroutine

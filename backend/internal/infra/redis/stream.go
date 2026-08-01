@@ -62,8 +62,19 @@ func (s *StreamService) MarkCompleted(ctx context.Context, data *StreamData) err
 	if data == nil {
 		return nil
 	}
-	r := s.client.XAck(ctx, data.StreamName, data.GroupName, data.MessageID)
-	return r.Err()
+	// Use a pipeline so both commands are sent in a single round-trip
+	pipe := s.client.Pipeline()
+
+	// 1. Acknowledge the message
+	pipe.XAck(ctx, data.StreamName, data.GroupName, data.MessageID)
+
+	// 2. Trim everything up to (and including) this MessageID
+	// MinIDApprox (~= true) makes this extremely low-overhead in Redis
+	// keep it simple since there is one consumer group.
+	pipe.XTrimMinID(ctx, data.StreamName, data.MessageID)
+
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 func (s *StreamService) CheckPending(ctx context.Context, streamName, groupName, consumerID string) ([]*StreamData, error) {
@@ -80,7 +91,7 @@ func (s *StreamService) CheckPending(ctx context.Context, streamName, groupName,
 		return nil, err
 	}
 
-	data := make([]*StreamData, len(messages))
+	data := []*StreamData{}
 	for _, m := range messages {
 		d := &StreamData{
 			MessageID:  m.ID,

@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -26,7 +27,7 @@ func NewManager(cfg *config.AppConfig) *Manager {
 
 	return &Manager{
 		client: rdb,
-		Cache:  &CacheService{client: rdb},
+		Cache:  &CacheService{client: rdb, cacheKeyPrefix: fmt.Sprintf("%s:%s:", config.AppName, cfg.Environment)},
 		Stream: &StreamService{
 			client: rdb,
 			block:  20 * time.Second,
