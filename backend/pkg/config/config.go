@@ -66,6 +66,8 @@ type StorageConfig struct {
 type WebhookConfig struct {
 	// AllowedDomains are trusted internal domains that are exempt from the SSRF blocking checks.
 	AllowedDomains []string `mapstructure:"allowed_domains"`
+	// EncryptionKey is a 32-byte string used to encrypt the webhook secret in the database.
+	EncryptionKey string `mapstructure:"encryption_key"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {

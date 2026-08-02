@@ -8,6 +8,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/labstack/echo/v4"
@@ -24,6 +25,7 @@ type ApiInitOptions struct {
 func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
+	e.HTTPErrorHandler = apperror.NewEchoHTTPErrorHandler()
 
 	// Generic middleware
 	e.Use(slogecho.New(slog.Default()))
@@ -38,6 +40,11 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	edgeGroup.Use(middleware.EdgeAuth(cfg.Smtp.MTAAuthToken))
 	edgeGroup.POST("/ingest", handler.HandleIngest(emailService))
 	edgeGroup.GET("/addresses/:email", handler.HandleIngestEmailLookup("email", emailService))
+
+	// Application API
+	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
+	// For now, mapping it here for testing Phase 5.1
+	e.PUT("/api/v1/applications/:app_id/webhook", handler.HandleRegisterWebhook(o.Queries, &cfg.Webhook))
 
 	return e
 }

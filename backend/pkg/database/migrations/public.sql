@@ -36,7 +36,7 @@ create table if not exists public.applications (
   name             varchar(255)                not null,
   api_key_hash     varchar(64)                 not null unique, -- sha256 hash of api key
   webhook_url      varchar(2048)               not null,
-  webhook_secret   varchar(128)                not null,        -- key used to sign hmac payloads
+  webhook_secret   varchar(255)                not null,        -- key used to sign hmac payloads
   aws_iam_role_arn varchar(2048)               not null,        -- dedicated iam role mapped at registration
   max_retries      int                         not null default 5,
   is_trusted       boolean                     not null default false, -- skips SSRF webhook checks
