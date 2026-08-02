@@ -79,28 +79,49 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 * [x] Only after a successful S3 upload and Redis stream publish, return 250 OK to the sender.  
 * **Verification Checkpoint**: Send an email. Verify that a message containing the S3 object key is published to the Redis stream and the connection gracefully terminates.
 
+### **3.4 SMTP Edge Proxy & Ingestion API Refactor**
+
+*Isolate the SMTP daemon into a lightweight stateless proxy and migrate core ingestion logic to an Echo-based HTTP API.*
+
+* [x] **Add Framework:** Run `go get github.com/labstack/echo/v4` and initialize the Echo router in `cmd/api.go`.
+* [x] **`internal/ingest` (Shared Contracts):** Create this base package to hold shared constants (e.g., `HeaderEdgeToken = "X-Edge-Auth-Token"`, standard routes, and JSON error structures) to prevent magic strings across client/server boundaries.
+* [x] **`internal/ingest/client` (Lightweight Edge Client):** 
+  * [x] Implement an `IngestClient` struct wrapping the standard `net/http` library.
+  * [x] Add a `StreamPayload(ctx context.Context, reader io.Reader) error` method that performs an HTTP POST, piping the reader directly to the request body, and applies the edge authentication header.
+* [ ] **`internal/api/` (Unified HTTP Layer):**
+  * [x] **`router/`**: Create router setup to mount middleware and API routes (e.g., `POST /internal/api/v1/ingest`).
+  * [x] **`middleware/`**: Implement Edge Authentication middleware to validate the shared secret/token for ingest routes.
+  * [ ] **`handler/ingest.go`**: Create the Ingestion controller. Move the S3 `s3manager.Uploader` logic, DKIM validation, and Redis outbox enqueueing from the SMTP daemon into this handler. Connect `c.Request().Body` directly to the S3 uploader.
+* [x] **Refactor SMTP Daemon (`internal/smtp/session.go`):** 
+  * [x] Initialize `client.NewIngestClient()` during SMTP server startup.
+  * [x] Update the `Data()` hook to pass its `io.Reader` directly to `client.StreamPayload()`.
+  * [x] Handle HTTP status codes: return `250 OK` to the MTA on a successful API upload, and `4xx/5xx` SMTP errors on failure.
+  * [x] Remove all S3, Redis, and direct database dependencies from the SMTP daemon to finalize its stateless proxy architecture.
+* **Verification Checkpoint**: Send a mock email containing attachments via the local SMTP server. Verify the payload is proxied over HTTP to the Echo server and successfully spooled to S3 without the SMTP process importing the AWS SDK.
+
 ## **Phase 4: Spool Queue Worker & MIME Parsing Engine**
 
 *Process spooled email files concurrently, parse nested attachments, and upload results securely.*
 
 ### **4.1 Redis Consumer Group Worker Pool**
 
-* [ ] Implement a concurrent, multi-threaded worker pool utilizing Go channels and Goroutines.  
-* [ ] Initialize a Redis Consumer Group (`XGROUP CREATE`) to track message consumption across multiple worker nodes.  
-* [ ] Write a worker loop that blocks on `XREADGROUP` to consume new spool jobs from the Redis stream, ensuring each message is routed to exactly one thread.  
-* [ ] Implement a recovery loop utilizing `XPENDING` and `XCLAIM` to detect and retry messages that have stalled or failed to process, updating the `attempt_count` in the `inbound_spool_queue` database table.  
+* [x] Implement a concurrent, multi-threaded worker pool utilizing Go channels and Goroutines.  
+* [x] Initialize a Redis Consumer Group (`XGROUP CREATE`) to track message consumption across multiple worker nodes.  
+* [x] Write a worker loop that blocks on `XREADGROUP` to consume new spool jobs from the Redis stream, ensuring each message is routed to exactly one thread.  
+* [x] Implement a recovery loop utilizing `XPENDING` and `XCLAIM` to detect and retry messages that have stalled or failed to process.  
 * **Verification Checkpoint**: Publish mock job JSON payloads directly to the Redis stream and verify that multiple running workers process them concurrently with zero collisions. Kill a worker during processing and ensure another worker re-claims the pending job.
 
 ### **4.2 MIME Engine & S3 Storage Ingestion**
 
-* [ ] Inside the worker thread:  
+* [x] Inside the worker thread:  
   1. Download the raw `.eml` spool file from S3 into memory or a streaming reader.  
   2. Pass the data stream to the enmime parser (`enmime.ReadEnvelope`).  
   3. Extract standard text bodies, metadata headers, and attachments.  
   4. Store the parsed email body structure as a `contents.json` file in S3 inside the application folder path (`apps/{application_id}/...`).  
   5. Upload raw attachment binaries as separate files (`attachments/{id}.bin`).  
   6. Insert meta rows into the `ingested_emails` database table.  
-  7. Delete the raw spool `.eml` object from S3, update the `inbound_spool_queue` status to `COMPLETED`, and acknowledge the Redis stream message (`XACK`).  
+  7. Handle processing results and errors: update `attempt_count` in the `inbound_spool_queue` database table. Use the processing error to decide whether to acknowledge (`XACK`) the message (e.g. fatal errors or max attempts reached) or leave it for retry.  
+  8. On success, delete the raw spool `.eml` object from S3, update the `inbound_spool_queue` status to `COMPLETED`, and acknowledge the Redis stream message (`XACK`).  
 * **Verification Checkpoint**: Send a test email containing multiple files (e.g., a PDF and an image). Verify the spool database row status is updated to `COMPLETED`, the Redis message is acknowledged, the raw `.eml` is deleted from S3, and S3 contains the mapped directory structure.
 
 ## **Phase 5: Secure Webhook & Callback Dispatch Engine**
