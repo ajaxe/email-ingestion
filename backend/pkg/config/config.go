@@ -42,17 +42,16 @@ type SmtpConfig struct {
 	// MaxLineLength is the maximum allowed length for a single SMTP line
 	MaxLineLength int `mapstructure:"max_line_length"`
 	// EmailDomain is the domain used for email addresses (e.g., for bounce handling)
-	EmailDomain string `mapstructure:"email_domain"`
+	EmailDomain  string `mapstructure:"email_domain"`
+	ApiURL       string `mapstructure:"api_url"`
+	MTAAuthToken string `mapstructure:"mta_auth_token"`
+}
+
+type StorageConfig struct {
 	// S3Bucket is the AWS S3 bucket name for spooling and storage
 	S3Bucket string `mapstructure:"s3_bucket"`
 	// AwsRegion is the AWS region for the S3 bucket
 	AwsRegion string `mapstructure:"aws_region"`
-}
-
-type StorageConfig struct {
-	// AwsRegion is the AWS region for the S3 bucket
-	AwsRegion string `mapstructure:"aws_region"`
-	S3Bucket  string `mapstructure:"s3_bucket"`
 	// IngestionPrefix is the prefix for the S3 bucket used for storing raw email files before they are processed
 	IngestionPrefix string `mapstructure:"ingestion_prefix"`
 	// StoragePrefix is the prefix for the S3 bucket used for storing processed email files after conversion

@@ -26,12 +26,7 @@ func runSMTP(ctx context.Context) error {
 
 	slog.Info("starting SMTP initialization")
 
-	// Instantiate the lightweight HTTP client to proxy traffic to the core API
-	// TODO: map these to config variables (API URL and Edge Token)
-	baseURL := "http://localhost:8080"
-	edgeToken := "development-edge-token-123"
-
-	ingestClient := client.NewIngestClient(baseURL, edgeToken)
+	ingestClient := client.NewIngestClient(cfg.Smtp.ApiURL, cfg.Smtp.MTAAuthToken)
 
 	s := smtp.NewSmtpServer(&cfg.Smtp, ingestClient)
 

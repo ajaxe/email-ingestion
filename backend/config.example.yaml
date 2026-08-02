@@ -14,6 +14,8 @@ smtp:
   email_domain: "gmail.com"
   read_timeout_seconds: 10
   write_timeout_seconds: 10
+  api_url: "http://localhost:8080" # The base URL of the core API
+  mta_auth_token: "development-edge-token-123" # The authentication token for the MTA to use when sending data to the core API
 
 storage:
   aws_region: "us-east-1" # AWS region where the S3 bucket is located
