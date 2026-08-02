@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/api/router"
+	"github.com/ajaxe/email-ingestion/internal/infra/redis"
+	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/pkg/config"
+	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/spf13/cobra"
 )
 
@@ -20,15 +23,23 @@ var apiCmd = &cobra.Command{
 	Long:  "Run the API server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
-		// The PersistentPreRunE in root.go has already loaded config and setup logger.
-		// However, cobra RunE allows us to fetch it again or we can just access it if global.
-		// For safety, let's load it here since we don't have a global config variable.
 		cfg, err := config.LoadConfig(".")
 		if err != nil {
 			return err
 		}
 
-		e := router.New(cfg)
+		dbPool := startup.NewDbPool(cfg)
+		defer dbPool.Close()
+
+		queries := public.New(dbPool)
+
+		rdsManager := redis.NewManager(cfg)
+		defer rdsManager.Close()
+
+		e := router.New(cfg, &router.ApiInitOptions{
+			Queries:      queries,
+			RedisManager: rdsManager,
+		})
 
 		go func() {
 			portStr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -42,7 +53,6 @@ var apiCmd = &cobra.Command{
 		<-ctx.Done()
 		slog.Info("received termination signal, shutting down server")
 
-		// Create a deadline to wait for, using context.Background()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/config"
@@ -20,7 +21,7 @@ const groupName = "worker_group"
 
 type EmailWorker struct {
 	cfg          *config.AppConfig
-	processor    *EmailProcessor
+	processor    *service.EmailProcessor
 	redisManager *redis.Manager
 	streamName   string
 	consumerID   string
@@ -120,7 +121,7 @@ func (w *EmailWorker) processMessage(ctx context.Context, msg *redis.StreamData)
 
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to process message", "spoolID", p.SpoolID, "consumerID", w.consumerID, "error", err)
-		var retryErr *RetryableError
+		var retryErr *model.RetryableError
 		if errors.As(err, &retryErr) {
 			// Do not ack, return so it can be retried
 			return err
@@ -139,10 +140,7 @@ func (w *EmailWorker) processMessage(ctx context.Context, msg *redis.StreamData)
 
 func New(cfg *config.AppConfig, queries *public.Queries, redisManager *redis.Manager, storageService *storage.S3StorageService) *EmailWorker {
 	s := util.StreamName(config.AppName, cfg.Environment)
-	p := &EmailProcessor{
-		queries:        queries,
-		storageService: storageService,
-	}
+	p := service.NewEmailProcessor(queries, storageService)
 	return &EmailWorker{
 		cfg:          cfg,
 		processor:    p,

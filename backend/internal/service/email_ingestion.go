@@ -35,8 +35,8 @@ type EmailIngestionService struct {
 	streamName     string
 }
 
-// CheckAssignedEmail looks up the database for the assigned email. It caches the result whether it finds the email or not.
-func (e *EmailIngestionService) CheckAssignedEmail(ctx context.Context, to string) (bool, error) {
+// LookupAssignedEmail looks up the database for the assigned email. It caches the result whether it finds the email or not.
+func (e *EmailIngestionService) LookupAssignedEmail(ctx context.Context, to string) (bool, error) {
 	parts := strings.Split(to, "@")
 	if len(parts) != 2 {
 		return false, fmt.Errorf("Invalid email")
@@ -56,7 +56,7 @@ func (e *EmailIngestionService) CheckAssignedEmail(ctx context.Context, to strin
 	} else {
 		// Cache miss, check db
 		ctx := context.Background()
-		_, err := e.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart[:10]) // Only check the first 10 characters of the local part
+		_, err := e.queries.GetAssignedEmailByLocalPart(ctx, baseLocalPart) // Only check the first 10 characters of the local part
 		if err != nil {
 			// Not found or db error
 			isValid = false

@@ -1,4 +1,4 @@
-package worker
+package service
 
 import (
 	"bytes"
@@ -16,6 +16,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
 )
+
+func NewEmailProcessor(queries *public.Queries, storageService *storage.S3StorageService) *EmailProcessor {
+	return &EmailProcessor{
+		queries:        queries,
+		storageService: storageService,
+	}
+}
 
 type EmailProcessor struct {
 	queries        *public.Queries
@@ -37,7 +44,7 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 			Status:           public.SpoolStatusPENDING,
 			LastErrorMessage: err.Error(),
 		})
-		return NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
+		return model.NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
 	}
 	defer stream.Close()
 
@@ -123,21 +130,21 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 	contentKey := fmt.Sprintf("%s/contents.json", basePath)
 	_, err = e.storageService.UploadObject(ctx, contentKey, bytes.NewReader(contentJSON), "application/json")
 	if err != nil {
-		return NewRetryableError(fmt.Errorf("failed to upload contents: %w", err))
+		return model.NewRetryableError(fmt.Errorf("failed to upload contents: %w", err))
 	}
 	atchPrefix := util.ProcessedAttachmentS3KeyPrefix(basePath)
 	for _, att := range env.Attachments {
 		attKey := fmt.Sprintf("%s/%s", atchPrefix, att.FileName)
 		_, err = e.storageService.UploadObject(ctx, attKey, bytes.NewReader(att.Content), att.ContentType)
 		if err != nil {
-			return NewRetryableError(fmt.Errorf("failed to upload attachment: %w", err))
+			return model.NewRetryableError(fmt.Errorf("failed to upload attachment: %w", err))
 		}
 	}
 	for _, in := range env.Inlines {
 		attKey := fmt.Sprintf("%s/%s", atchPrefix, in.FileName)
 		_, err = e.storageService.UploadObject(ctx, attKey, bytes.NewReader(in.Content), in.ContentType)
 		if err != nil {
-			return NewRetryableError(fmt.Errorf("failed to upload inline attachment: %w", err))
+			return model.NewRetryableError(fmt.Errorf("failed to upload inline attachment: %w", err))
 		}
 	}
 
@@ -151,7 +158,7 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 		S3KeyPrefix:     basePath,
 	})
 	if err != nil {
-		return NewRetryableError(fmt.Errorf("failed to create ingested email record: %w", err))
+		return model.NewRetryableError(fmt.Errorf("failed to create ingested email record: %w", err))
 	}
 
 	/*
@@ -161,7 +168,7 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 			IngestedEmailID: ingestedEmail.ID,
 		})
 		if err != nil {
-			return NewRetryableError(fmt.Errorf("failed to enqueue webhook job: %w", err))
+			return model.NewRetryableError(fmt.Errorf("failed to enqueue webhook job: %w", err))
 		}*/
 
 	// TODO: publish a job on webhok-stream, another job type to be processed by the worker.

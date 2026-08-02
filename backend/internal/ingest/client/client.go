@@ -62,11 +62,12 @@ func (c *IngestClient) ValidateAddress(ctx context.Context, address string) (boo
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		return true, nil
-	} else if resp.StatusCode == http.StatusNotFound {
+	case http.StatusNotFound:
 		return false, nil
 	}
-	
+
 	return false, fmt.Errorf("address validation returned unexpected status %d", resp.StatusCode)
 }

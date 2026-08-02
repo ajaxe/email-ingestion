@@ -15,6 +15,7 @@ require (
 	github.com/labstack/echo/v4 v4.15.4
 	github.com/mileusna/spf v0.9.5
 	github.com/redis/go-redis/v9 v9.21.0
+	github.com/samber/slog-echo v1.23.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 )
@@ -63,7 +64,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/samber/lo v1.52.0 // indirect
-	github.com/samber/slog-echo v1.23.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
