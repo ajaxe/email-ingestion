@@ -11,8 +11,8 @@ import (
 
 	"github.com/ajaxe/email-ingestion/internal/api/router"
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/pkg/config"
+	"github.com/ajaxe/email-ingestion/pkg/database"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +28,7 @@ var apiCmd = &cobra.Command{
 			return err
 		}
 
-		dbPool := startup.NewDbPool(cfg)
+		dbPool := database.NewDbPool(cfg)
 		defer dbPool.Close()
 
 		queries := public.New(dbPool)

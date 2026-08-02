@@ -1,4 +1,4 @@
-package startup
+package database
 
 import (
 	"context"
