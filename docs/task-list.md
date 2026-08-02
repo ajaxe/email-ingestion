@@ -88,10 +88,10 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 * [x] **`internal/ingest/client` (Lightweight Edge Client):** 
   * [x] Implement an `IngestClient` struct wrapping the standard `net/http` library.
   * [x] Add a `StreamPayload(ctx context.Context, reader io.Reader) error` method that performs an HTTP POST, piping the reader directly to the request body, and applies the edge authentication header.
-* [ ] **`internal/api/` (Unified HTTP Layer):**
+* [x] **`internal/api/` (Unified HTTP Layer):**
   * [x] **`router/`**: Create router setup to mount middleware and API routes (e.g., `POST /internal/api/v1/ingest`).
   * [x] **`middleware/`**: Implement Edge Authentication middleware to validate the shared secret/token for ingest routes.
-  * [ ] **`handler/ingest.go`**: Create the Ingestion controller. Move the S3 `s3manager.Uploader` logic, DKIM validation, and Redis outbox enqueueing from the SMTP daemon into this handler. Connect `c.Request().Body` directly to the S3 uploader.
+  * [x] **`handler/ingest.go`**: Create the Ingestion controller. Move the S3 `s3manager.Uploader` logic, DKIM validation, and Redis outbox enqueueing from the SMTP daemon into this handler. Connect `c.Request().Body` directly to the S3 uploader.
 * [x] **Refactor SMTP Daemon (`internal/smtp/session.go`):** 
   * [x] Initialize `client.NewIngestClient()` during SMTP server startup.
   * [x] Update the `Data()` hook to pass its `io.Reader` directly to `client.StreamPayload()`.
@@ -130,9 +130,9 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **5.1 Callback Setup & SSRF Defense Handshake**
 
-* [ ] Implement the webhook configuration and subscription logic inside the Application API.  
-* [ ] Create an outbound DNS-resolving network dialer that overrides standard lookups and drops connection targets resolving to private, loopback, or link-local address blocks (RFC 1918 limits).  
-* [ ] Implement the Challenge Handshake:  
+* [x] Implement the webhook configuration and subscription logic inside the Application API.  
+* [x] Create an outbound DNS-resolving network dialer that overrides standard lookups and drops connection targets resolving to private, loopback, or link-local address blocks (RFC 1918 limits).  
+* [x] Implement the Challenge Handshake:  
   1. Generate a cryptographic hex challenge token.  
   2. Send an outbound POST containing the challenge to the candidate's webhook endpoint.  
   3. Verify the endpoint returns an HTTP 200 echoing the exact challenge.  

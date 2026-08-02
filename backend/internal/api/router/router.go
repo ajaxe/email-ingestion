@@ -44,7 +44,8 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	// Application API
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
-	e.PUT("/api/v1/applications/:app_id/webhook", handler.HandleRegisterWebhook(o.Queries, &cfg.Webhook))
+	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
+	e.PUT("/api/v1/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
 	return e
 }
