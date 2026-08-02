@@ -140,11 +140,11 @@ This document outlines a high-level, production-grade implementation roadmap. Th
 
 ### **5.2 Outbox Runner & Jitter Retries**
 
-* [ ] Write the background loop to poll webhook_delivery_jobs.  
-* [ ] Formulate the payload containing parsed JSON content metadata.  
-* [ ] Implement HMAC-SHA256 signature generator. Append the signature in the custom header X-Gateway-Signature alongside the transmission timestamp.  
-* [ ] Implement Exponential Backoff with Full Jitter retry calculations to handle failed callback targets.  
-* [ ] Write audit attempts to the webhook_logs table.  
+* [x] Write the background loop to poll webhook_delivery_jobs.  
+* [x] Formulate the payload containing parsed JSON content metadata.  
+* [x] Implement HMAC-SHA256 signature generator. Append the signature in the custom header X-Gateway-Signature alongside the transmission timestamp.  
+* [x] Implement Exponential Backoff with Full Jitter retry calculations to handle failed callback targets.  
+* [x] Write audit attempts to the webhook_logs table.  
 * **Verification Checkpoint**: Point webhooks to a test endpoint. Shut down the test endpoint to trigger failure retries. Verify that backoff wait times increase exponentially with randomized jitter intervals.
 
 ## **Phase 6: Application API & Brokered S3 Access Control**

@@ -66,7 +66,7 @@ func runWorker(ctx context.Context) error {
 			consumers = append(consumers, consumer)
 
 		case "webhook":
-			webhookProcessor := service.NewWebhookDeliveryProcessor(queries)
+			webhookProcessor := service.NewWebhookDeliveryProcessor(queries, storageService, &cfg.Webhook)
 			webhookHandler := handler.NewWebhookDeliveryHandler(webhookProcessor)
 			consumer := worker.NewStreamConsumer(rdsManager, webhookStreamName, "webhook_worker_group", webhookHandler)
 			consumers = append(consumers, consumer)

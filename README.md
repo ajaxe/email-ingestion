@@ -4,14 +4,25 @@
 
 The Email Ingestion Gateway is a production-grade integrated microservices suite designed to handle inbound SMTP traffic, parse MIME emails, securely store attachments, and deliver webhooks to registered SaaS applications. It is built to support high throughput, horizontal scalability, and strict isolation between tenants.
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture Overview & Deployable Units
 
-The system operates using the following core components:
-- **Go SMTP Daemon**: A lightweight, non-blocking SMTP receiver utilizing `go-smtp`.
-- **Ingestion Engine & Parser**: Parses MIME messages using `enmime`, storing binary attachments securely in AWS S3, and serializing metadata into PostgreSQL.
-- **Application Control API**: A secure REST API for registered applications to manage routing and query logs.
-- **Outbox Worker Pool**: Handles reliable webhook delivery using the transactional outbox pattern with exponential backoff.
-- **Management Dashboard**: A Vue.js SPA for developers to manage application configurations, inspect API keys, and monitor webhooks.
+The Email Ingestion Gateway compiles down to a **single Go binary** that encapsulates four distinct, independently scalable microservices. You can deploy any of these profiles by overriding the run command in your container orchestration (e.g., Docker, Kubernetes):
+
+1. **SMTP Edge Proxy (`email-ingestion smtp`)**
+   - **Role:** Faces the public internet, holds open TCP connections, rejects invalid recipients at the perimeter, and streams valid incoming payloads to the internal API.
+   - **Scale:** Scales horizontally based on inbound SMTP traffic volume.
+
+2. **API Service (`email-ingestion api`)**
+   - **Role:** Handles the heavy lifting of streaming raw emails directly to S3 via HTTP, serves the secure REST endpoints for the developer dashboard, and issues S3 Presigned URLs for attachments.
+   - **Scale:** Scales horizontally based on dashboard traffic and inbound email proxy requests.
+
+3. **Stream Workers (`email-ingestion worker --streams email,webhook`)**
+   - **Role:** Background engines listening to Redis consumer groups. They pull spooled emails from S3, run the CPU-intensive MIME parser (`enmime`), and execute outgoing HTTP Webhooks to downstream clients.
+   - **Scale:** Scales horizontally based on backlog size. (You can split `email` and `webhook` into separate deployments for granular resource allocation).
+
+4. **Cron Scheduler (`email-ingestion cron`)**
+   - **Role:** The lightweight singleton loop that sweeps the database for scheduled webhook retries (using Exponential Backoff with Full Jitter) and pushes them into the Redis stream for the workers.
+   - **Scale:** Deployed strictly as a single instance (`replicas: 1`) to prevent scheduling race conditions.
 
 ## 🛠️ Tech Stack
 

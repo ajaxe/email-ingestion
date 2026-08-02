@@ -287,6 +287,27 @@ func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart str
 	return i, err
 }
 
+const getIngestedEmailByID = `-- name: GetIngestedEmailByID :one
+SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetIngestedEmailByID(ctx context.Context, id uuid.UUID) (IngestedEmail, error) {
+	row := q.db.QueryRow(ctx, getIngestedEmailByID, id)
+	var i IngestedEmail
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.AssignedEmailID,
+		&i.ReferenceToken,
+		&i.FromAddress,
+		&i.Subject,
+		&i.MessageID,
+		&i.S3KeyPrefix,
+		&i.ReceivedAt,
+	)
+	return i, err
+}
+
 const getPendingWebhookJobs = `-- name: GetPendingWebhookJobs :many
 SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs  
 WHERE status = 'PENDING' AND next_delivery_at <= CURRENT_TIMESTAMP  
@@ -319,6 +340,30 @@ func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]Web
 		return nil, err
 	}
 	return items, nil
+}
+
+const getWebhookJobByIDs = `-- name: GetWebhookJobByIDs :one
+SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1
+`
+
+type GetWebhookJobByIDsParams struct {
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	IngestedEmailID uuid.UUID `json:"ingestedEmailId"`
+}
+
+func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDsParams) (WebhookDeliveryJob, error) {
+	row := q.db.QueryRow(ctx, getWebhookJobByIDs, arg.ApplicationID, arg.IngestedEmailID)
+	var i WebhookDeliveryJob
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.IngestedEmailID,
+		&i.Status,
+		&i.RetryCount,
+		&i.NextDeliveryAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const logWebhookAttempt = `-- name: LogWebhookAttempt :exec

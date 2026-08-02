@@ -62,3 +62,9 @@ SELECT * FROM applications WHERE id = $1 LIMIT 1;
 UPDATE applications
 SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
 WHERE id = $1;
+
+-- name: GetIngestedEmailByID :one
+SELECT * FROM ingested_emails WHERE id = $1 LIMIT 1;
+
+-- name: GetWebhookJobByIDs :one
+SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1;
