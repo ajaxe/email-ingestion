@@ -49,14 +49,13 @@ create table if not exists public.applications (
 create table if not exists public.assigned_emails (
   id             uuid                        primary key default uuid_generate_v4(),
   application_id uuid                        not null,
-  local_part     varchar(10)                 not null unique, -- exactly 10 characters
+  local_part     varchar(64)                 not null unique, -- exactly 64 characters, app creates 10 character unique email prefix
   description    varchar(500),
   is_active      boolean                     not null default true,
   created_at     timestamp with time zone    not null default current_timestamp,
 
   -- foreign keys & constraints
-  foreign key (application_id) references public.applications(id) on delete cascade,
-  constraint chk_local_part_len check (char_length(local_part) = 10)
+  foreign key (application_id) references public.applications(id) on delete cascade
 );
 
 create index if not exists idx_assigned_emails_lookup 
