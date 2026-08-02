@@ -12,14 +12,13 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
-	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/google/uuid"
 )
 
 func NewEmailIngestion(redisManager *redis.Manager, queries *public.Queries, storageService *storage.S3StorageService, env string) *EmailIngestionService {
-	p := util.StreamName(config.AppName, env)
+	p := util.EmailStreamName(env)
 	return &EmailIngestionService{
 		redisManager:   redisManager,
 		queries:        queries,

@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 	"strings"
+
+	"github.com/ajaxe/email-ingestion/pkg/config"
 )
 
 func IngestionS3Key(ingestionPrefix, messageID string) string {
@@ -18,6 +20,10 @@ func ProcessedEmailS3KeyPrefix(applicationID, messageID string) string {
 func ProcessedAttachmentS3KeyPrefix(emailBasePath string) string {
 	return fmt.Sprintf("%s/attachments", emailBasePath)
 }
-func StreamName(appName, env string) string {
-	return fmt.Sprintf("%s:%s:stream", appName, env)
+func EmailStreamName(env string) string {
+	return fmt.Sprintf("%s:%s:email:stream", config.AppName, env)
+}
+
+func WebhookStreamName(env string) string {
+	return fmt.Sprintf("%s:%s:webhook:stream", config.AppName, env)
 }
