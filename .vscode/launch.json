@@ -25,7 +25,7 @@
         "cwd": "${workspaceFolder}/backend"
       },
       "envFile": ["${workspaceFolder}/backend/.env.dev"],
-      "args": ["worker"]
+      "args": ["worker", "--streams", "email,webhook"]
     }, 
     {
       "name": "Launch API",
@@ -39,11 +39,23 @@
       "envFile": ["${workspaceFolder}/backend/.env.dev"],
       "args": ["api"]
     },
+    {
+      "name": "Launch Cron",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/",
+      "windows": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "envFile": ["${workspaceFolder}/backend/.env.dev"],
+      "args": ["cron"]
+    },
   ],
   "compounds": [
     {
       "name": "Dev: Full Stack",
-      "configurations": ["Launch Smtp Server", "Launch Worker", "Launch API"],
+      "configurations": ["Launch Smtp Server", "Launch Worker", "Launch API", "Launch Cron"],
       "stopAll": true
     }
   ]

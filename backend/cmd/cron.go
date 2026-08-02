@@ -68,14 +68,21 @@ func runCron(ctx context.Context) error {
 					continue
 				}
 
-				err = rdsManager.Stream.Publish(ctx, streamName, &model.WebhookDeliveryPayload{
+				j, err := util.JSON(&model.WebhookDeliveryPayload{
 					ApplicationID:   job.ApplicationID.String(),
 					IngestedEmailID: job.IngestedEmailID.String(),
 				})
+
+				if err != nil {
+					slog.ErrorContext(ctx, "failed to serialize webhook payload", "job_id", job.ID, "error", err)
+					continue
+				}
+
+				err = rdsManager.Stream.Publish(ctx, streamName, j)
 				if err != nil {
 					slog.ErrorContext(ctx, "failed to publish job to stream", "job_id", job.ID, "error", err)
-					// We might need a mechanism to revert it, but for now we rely on the consumer auto-claim 
-					// or subsequent polling if it was lost. But since it's PROCESSING, it might be stuck. 
+					// We might need a mechanism to revert it, but for now we rely on the consumer auto-claim
+					// or subsequent polling if it was lost. But since it's PROCESSING, it might be stuck.
 					// Ideally we revert to PENDING.
 					_ = queries.UpdateWebhookJobStatus(ctx, public.UpdateWebhookJobStatusParams{
 						ID:             job.ID,

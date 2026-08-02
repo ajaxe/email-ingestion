@@ -34,13 +34,13 @@ type EventPublisher interface {
 }
 
 // EmailRepository defines the exact queries required by the EmailProcessor.
-// To satisfy the Transactional Outbox pattern, the `CreateIngestedEmailAndJobTx` 
+// To satisfy the Transactional Outbox pattern, the `CreateIngestedEmailAndJobTx`
 // method should be implemented in your DB layer to execute both inserts in a single transaction.
 // (You can also satisfy this using sqlc's generated Querier interface if you adjust the Tx method).
 type EmailRepository interface {
 	GetAssignedEmailByLocalPart(ctx context.Context, localPart string) (public.AssignedEmail, error)
 	UpdateSpooledEmailStatus(ctx context.Context, arg public.UpdateSpooledEmailStatusParams) error
-	
+
 	// Transactional Outbox Method
 	CreateIngestedEmailAndJobTx(ctx context.Context, emailParams public.CreateIngestedEmailParams) (public.IngestedEmail, error)
 }
@@ -124,11 +124,15 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 		return model.NewRetryableError(fmt.Errorf("db transaction failed: %w", processErr))
 	}
 
-	// 5. Notify downstream workers via Message Broker
-	processErr = e.publisher.Publish(ctx, e.webhookStreamName, &model.WebhookDeliveryPayload{
+	j, err := util.JSON(&model.WebhookDeliveryPayload{
 		ApplicationID:   assignedEmail.ApplicationID.String(),
 		IngestedEmailID: ingestedEmail.ID.String(),
 	})
+	if err != nil {
+		return model.NewRetryableError(fmt.Errorf("failed to serialize webhook payload: %w", err))
+	}
+	// 5. Notify downstream workers via Message Broker
+	processErr = e.publisher.Publish(ctx, e.webhookStreamName, j)
 	if processErr != nil {
 		return model.NewRetryableError(fmt.Errorf("failed to publish webhook delivery job: %w", processErr))
 	}
