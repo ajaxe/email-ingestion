@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/service"
+	"github.com/ajaxe/email-ingestion/internal/ingest/client"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/emersion/go-smtp"
-	"github.com/jhillyerd/enmime"
 	"github.com/mileusna/spf"
 )
 
@@ -24,7 +23,7 @@ type IngestSession struct {
 	cfg          *config.SmtpConfig
 	ctx          context.Context
 	cancel       context.CancelFunc
-	emailService *service.EmailIngestionService
+	ingestClient *client.IngestClient
 }
 
 func (s *IngestSession) Mail(from string, opts *smtp.MailOptions) error {
@@ -65,9 +64,9 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 		}
 	}
 
-	isValid, err := s.emailService.CheckAssignedEmail(s.ctx, to)
+	isValid, err := s.ingestClient.ValidateAddress(s.ctx, to)
 
-	if !isValid {
+	if err != nil || !isValid {
 		slog.Info("invalid inbound email", slog.String("to", to), slog.Any("error", err))
 		return &smtp.SMTPError{
 			Code:         550,
@@ -83,12 +82,12 @@ func (s *IngestSession) Rcpt(to string, opts *smtp.RcptOptions) error {
 
 // Data handles the 'DATA' phase where the email payload arrives.
 func (s *IngestSession) Data(r io.Reader) error {
-	slog.Info("Streaming incoming message payload...")
+	slog.Info("Streaming incoming message payload to ingest API...")
 
-	err := s.emailService.Process(s.ctx, r)
+	err := s.ingestClient.StreamPayload(s.ctx, r)
 
 	if err != nil {
-		slog.ErrorContext(s.ctx, "failed to process email", "error", err)
+		slog.ErrorContext(s.ctx, "failed to proxy email payload", "error", err)
 		return &smtp.SMTPError{
 			Code:         451,
 			EnhancedCode: smtp.EnhancedCode{4, 3, 0},
@@ -96,26 +95,7 @@ func (s *IngestSession) Data(r io.Reader) error {
 		}
 	}
 
-	envelope, err := enmime.ReadEnvelope(r)
-	if err != nil {
-		slog.Info("email parser error", "error", err)
-		// Returning a 554 tells the sending server the transaction failed due to malformed data
-		return &smtp.SMTPError{
-			Code:         554,
-			EnhancedCode: smtp.EnhancedCode{5, 6, 0},
-			Message:      "Error: Failed to parse MIME topology.",
-		}
-	}
-
-	slog.Info("--- SUCCESS: PARSED EMAIL ---")
-	slog.Info("Subject", "subject", envelope.GetHeader("Subject"))
-	slog.Info("From", "from", envelope.GetHeader("From"))
-	slog.Info("Text Body", "text_body", envelope.Text)
-
-	if len(envelope.Attachments) > 0 {
-		slog.Info("Attachments detected", "count", len(envelope.Attachments))
-	}
-	slog.Info("-----------------------------")
+	slog.Info("--- SUCCESS: PROXIED EMAIL TO API ---")
 	return nil
 }
 

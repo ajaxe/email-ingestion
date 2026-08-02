@@ -5,13 +5,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/service"
+	"github.com/ajaxe/email-ingestion/internal/ingest/client"
 	"github.com/ajaxe/email-ingestion/internal/smtp"
-	"github.com/ajaxe/email-ingestion/internal/startup"
-	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/pkg/config"
-	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/spf13/cobra"
 )
 
@@ -30,18 +26,14 @@ func runSMTP(ctx context.Context) error {
 
 	slog.Info("starting SMTP initialization")
 
-	dbPool := startup.NewDbPool(cfg)
-	defer dbPool.Close()
+	// Instantiate the lightweight HTTP client to proxy traffic to the core API
+	// TODO: map these to config variables (API URL and Edge Token)
+	baseURL := "http://localhost:8080"
+	edgeToken := "development-edge-token-123"
 
-	queries := public.New(dbPool)
-	rdsManager := redis.NewManager(cfg)
-	defer rdsManager.Close()
+	ingestClient := client.NewIngestClient(baseURL, edgeToken)
 
-	storageService := storage.NewStorageService(&cfg.Storage)
-
-	emailService := service.NewEmailIngestion(rdsManager, queries, storageService, cfg.Environment)
-
-	s := smtp.NewSmtpServer(&cfg.Smtp, emailService)
+	s := smtp.NewSmtpServer(&cfg.Smtp, ingestClient)
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil {

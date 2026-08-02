@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/service"
+	"github.com/ajaxe/email-ingestion/internal/ingest/client"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/emersion/go-smtp"
 	"github.com/google/uuid"
@@ -13,13 +13,13 @@ import (
 
 type SmtpServerBackend struct {
 	cfg          *config.SmtpConfig
-	emailService *service.EmailIngestionService
+	ingestClient *client.IngestClient
 }
 
-func NewSmtpServer(cfg *config.SmtpConfig, emailService *service.EmailIngestionService) *smtp.Server {
+func NewSmtpServer(cfg *config.SmtpConfig, ingestClient *client.IngestClient) *smtp.Server {
 	be := &SmtpServerBackend{
 		cfg:          cfg,
-		emailService: emailService,
+		ingestClient: ingestClient,
 	}
 
 	s := smtp.NewServer(be)
@@ -61,6 +61,6 @@ func (b *SmtpServerBackend) NewSession(c *smtp.Conn) (smtp.Session, error) {
 		ConnectedAt:  time.Now(),
 		ctx:          ctx,
 		cancel:       cancel,
-		emailService: b.emailService,
+		ingestClient: b.ingestClient,
 	}, nil
 }
