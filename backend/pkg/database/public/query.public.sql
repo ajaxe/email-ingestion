@@ -20,6 +20,12 @@ INSERT INTO ingested_emails (application_id, assigned_email_id, reference_token,
 VALUES ($1, $2, $3, $4, $5, $6, $7)  
 RETURNING *;
 
+-- name: CheckDuplicateWebhookJob :one  
+SELECT EXISTS (
+  SELECT 1 FROM webhook_delivery_jobs  
+  WHERE application_id = $1 AND ingested_email_id = $2
+);
+
 -- name: EnqueueWebhookJob :one  
 INSERT INTO webhook_delivery_jobs (application_id, ingested_email_id, next_delivery_at)  
 VALUES ($1, $2, CURRENT_TIMESTAMP)  

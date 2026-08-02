@@ -13,6 +13,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkDuplicateWebhookJob = `-- name: CheckDuplicateWebhookJob :one
+SELECT EXISTS (
+  SELECT 1 FROM webhook_delivery_jobs  
+  WHERE application_id = $1 AND ingested_email_id = $2
+)
+`
+
+type CheckDuplicateWebhookJobParams struct {
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	IngestedEmailID uuid.UUID `json:"ingestedEmailId"`
+}
+
+func (q *Queries) CheckDuplicateWebhookJob(ctx context.Context, arg CheckDuplicateWebhookJobParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkDuplicateWebhookJob, arg.ApplicationID, arg.IngestedEmailID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createAssignedEmail = `-- name: CreateAssignedEmail :one
 INSERT INTO assigned_emails (application_id, local_part, description)  
 VALUES ($1, $2, $3)  

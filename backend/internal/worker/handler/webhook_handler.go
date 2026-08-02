@@ -11,17 +11,17 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 )
 
-type EmailIngestionHandler struct {
-	processor *service.EmailProcessor
+type WebhookDeliveryHandler struct {
+	processor *service.WebhookDeliveryProcessor
 }
 
-func NewEmailIngestionHandler(processor *service.EmailProcessor) *EmailIngestionHandler {
-	return &EmailIngestionHandler{
+func NewWebhookDeliveryHandler(processor *service.WebhookDeliveryProcessor) *WebhookDeliveryHandler {
+	return &WebhookDeliveryHandler{
 		processor: processor,
 	}
 }
 
-func (h *EmailIngestionHandler) Handle(ctx context.Context, msg *redis.StreamData) error {
+func (h *WebhookDeliveryHandler) Handle(ctx context.Context, msg *redis.StreamData) error {
 	j, ok := msg.Data.(string)
 	if !ok {
 		slog.ErrorContext(ctx, "failed to parse message data as string")
@@ -29,17 +29,17 @@ func (h *EmailIngestionHandler) Handle(ctx context.Context, msg *redis.StreamDat
 		return nil
 	}
 
-	p := &model.IngestEmailPayload{}
+	p := &model.WebhookDeliveryPayload{}
 	err := json.Unmarshal([]byte(j), p)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to parse ingest email payload", "error", err)
+		slog.ErrorContext(ctx, "failed to parse webhook delivery payload", "error", err)
 		// Not retryable
 		return nil
 	}
 
 	err = h.processor.Process(ctx, p)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to process email message", "spoolID", p.SpoolID, "error", err)
+		slog.ErrorContext(ctx, "failed to process webhook message", "applicationID", p.ApplicationID, "ingestedEmailID", p.IngestedEmailID, "error", err)
 		var retryErr *model.RetryableError
 		if errors.As(err, &retryErr) {
 			// Return error so consumer does not ack it (it will be auto-claimed and retried)

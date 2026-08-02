@@ -5,29 +5,69 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/mail"
 	"strings"
 
 	"github.com/ajaxe/email-ingestion/internal/model"
-	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
 )
 
-func NewEmailProcessor(queries *public.Queries, storageService *storage.S3StorageService) *EmailProcessor {
+// ==========================================
+// 1. Consumer-Defined Interfaces
+// ==========================================
+
+// EmailStorage abstracts S3 interactions (Satisfied by storage.S3StorageService)
+type EmailStorage interface {
+	DownloadObject(ctx context.Context, key string) (io.ReadCloser, error)
+	UploadObject(ctx context.Context, key string, body io.Reader, contentType string) (string, error)
+	DeleteObject(ctx context.Context, key string) error
+}
+
+// EventPublisher abstracts Redis streams (Satisfied by redis.StreamService)
+type EventPublisher interface {
+	Publish(ctx context.Context, stream string, payload interface{}) error
+}
+
+// EmailRepository defines the exact queries required by the EmailProcessor.
+// To satisfy the Transactional Outbox pattern, the `CreateIngestedEmailAndJobTx` 
+// method should be implemented in your DB layer to execute both inserts in a single transaction.
+// (You can also satisfy this using sqlc's generated Querier interface if you adjust the Tx method).
+type EmailRepository interface {
+	GetAssignedEmailByLocalPart(ctx context.Context, localPart string) (public.AssignedEmail, error)
+	UpdateSpooledEmailStatus(ctx context.Context, arg public.UpdateSpooledEmailStatusParams) error
+	
+	// Transactional Outbox Method
+	CreateIngestedEmailAndJobTx(ctx context.Context, emailParams public.CreateIngestedEmailParams) (public.IngestedEmail, error)
+}
+
+// ==========================================
+// 2. Service Definition
+// ==========================================
+
+type EmailProcessor struct {
+	repo              EmailRepository
+	storage           EmailStorage
+	publisher         EventPublisher
+	webhookStreamName string
+}
+
+func NewEmailProcessor(repo EmailRepository, storage EmailStorage, publisher EventPublisher, webhookStreamName string) *EmailProcessor {
 	return &EmailProcessor{
-		queries:        queries,
-		storageService: storageService,
+		repo:              repo,
+		storage:           storage,
+		publisher:         publisher,
+		webhookStreamName: webhookStreamName,
 	}
 }
 
-type EmailProcessor struct {
-	queries        *public.Queries
-	storageService *storage.S3StorageService
-}
+// ==========================================
+// 3. Orchestration Method (Clean SRP)
+// ==========================================
 
 func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmailPayload) error {
 	spoolID, err := uuid.Parse(payload.SpoolID)
@@ -37,28 +77,108 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 
 	slog.InfoContext(ctx, "begin processing email", "spool_id", spoolID, "upload_key", payload.UploadKey)
 
-	stream, err := e.storageService.DownloadObject(ctx, payload.UploadKey)
+	// Centralized error handling & state transition
+	var processErr error
+	defer func() {
+		e.finalizeSpoolStatus(ctx, spoolID, processErr)
+	}()
+
+	// 1. Download & Parse
+	env, processErr := e.fetchAndParseEmail(ctx, payload.UploadKey)
+	if processErr != nil {
+		return processErr
+	}
+
+	// 2. Resolve Recipient
+	assignedEmail, refToken, processErr := e.resolveRecipient(ctx, env)
+	if processErr != nil {
+		return processErr
+	}
+
+	slog.InfoContext(ctx, "found assigned email address", "spool_id", spoolID, "application_id", assignedEmail.ApplicationID)
+
+	msgID := strings.Trim(env.GetHeader("Message-Id"), "<>")
+	if msgID == "" {
+		slog.InfoContext(ctx, "falling back to spoolID as Message-ID", "spool_id", spoolID)
+		msgID = spoolID.String()
+	}
+
+	// 3. Extract and Upload Assets to S3
+	basePath := util.ProcessedEmailS3KeyPrefix(assignedEmail.ApplicationID.String(), msgID)
+	processErr = e.uploadParsedAssets(ctx, env, basePath)
+	if processErr != nil {
+		return model.NewRetryableError(fmt.Errorf("failed to upload parsed assets: %w", processErr))
+	}
+
+	// 4. Transactional Outbox (Atomic DB Insert)
+	ingestedEmail, processErr := e.repo.CreateIngestedEmailAndJobTx(ctx, public.CreateIngestedEmailParams{
+		ApplicationID:   assignedEmail.ApplicationID,
+		AssignedEmailID: assignedEmail.ID,
+		ReferenceToken:  refToken,
+		FromAddress:     env.GetHeader("From"),
+		Subject:         env.GetHeader("Subject"),
+		MessageID:       msgID,
+		S3KeyPrefix:     basePath,
+	})
+	if processErr != nil {
+		return model.NewRetryableError(fmt.Errorf("db transaction failed: %w", processErr))
+	}
+
+	// 5. Notify downstream workers via Message Broker
+	processErr = e.publisher.Publish(ctx, e.webhookStreamName, &model.WebhookDeliveryPayload{
+		ApplicationID:   assignedEmail.ApplicationID.String(),
+		IngestedEmailID: ingestedEmail.ID.String(),
+	})
+	if processErr != nil {
+		return model.NewRetryableError(fmt.Errorf("failed to publish webhook delivery job: %w", processErr))
+	}
+
+	// 6. Cleanup raw email from S3 (Spool DB status is updated in defer block)
+	_ = e.storage.DeleteObject(ctx, payload.UploadKey)
+	slog.InfoContext(ctx, "email processed successfully", "spool_id", spoolID, "ingested_email_id", ingestedEmail.ID)
+
+	return nil
+}
+
+// ==========================================
+// 4. Helper Methods
+// ==========================================
+
+func (e *EmailProcessor) finalizeSpoolStatus(ctx context.Context, spoolID uuid.UUID, processErr error) {
+	status := public.SpoolStatusSUCCESS
+	errMsg := ""
+
+	if processErr != nil {
+		status = public.SpoolStatusFAILED
+		// If it's a retryable error, mark as PENDING to retry, else it's a terminal FAILED
+		if _, ok := processErr.(*model.RetryableError); ok {
+			status = public.SpoolStatusPENDING
+		}
+		errMsg = processErr.Error()
+	}
+
+	_ = e.repo.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
+		ID:               spoolID,
+		Status:           status,
+		LastErrorMessage: errMsg,
+	})
+}
+
+func (e *EmailProcessor) fetchAndParseEmail(ctx context.Context, uploadKey string) (*enmime.Envelope, error) {
+	stream, err := e.storage.DownloadObject(ctx, uploadKey)
 	if err != nil {
-		_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-			ID:               spoolID,
-			Status:           public.SpoolStatusPENDING,
-			LastErrorMessage: err.Error(),
-		})
-		return model.NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
+		return nil, model.NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
 	}
 	defer stream.Close()
 
-	slog.InfoContext(ctx, "parsing email envelope", "spool_id", spoolID)
 	env, err := enmime.ReadEnvelope(stream)
 	if err != nil {
-		_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-			ID:               spoolID,
-			Status:           public.SpoolStatusFAILED,
-			LastErrorMessage: fmt.Sprintf("failed to parse mime: %v", err),
-		})
-		return nil // terminal error
+		return nil, fmt.Errorf("failed to parse mime: %w", err)
 	}
+	return env, nil
+}
 
+func (e *EmailProcessor) resolveRecipient(ctx context.Context, env *enmime.Envelope) (public.AssignedEmail, string, error) {
 	toAddress := env.GetHeader("Delivered-To")
 	if toAddress == "" {
 		toAddress = env.GetHeader("To")
@@ -66,54 +186,29 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 
 	addr, err := mail.ParseAddress(toAddress)
 	if err != nil {
-		_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-			ID:               spoolID,
-			Status:           public.SpoolStatusFAILED,
-			LastErrorMessage: "invalid to address",
-		})
-		return nil // terminal error
+		return public.AssignedEmail{}, "", fmt.Errorf("invalid to address: %w", err)
 	}
 
 	localPart := strings.Split(addr.Address, "@")[0]
-	referenceToken := ""
+	refToken := ""
 	if idx := strings.Index(localPart, "+"); idx != -1 {
+		refToken = localPart[idx+1:]
 		localPart = localPart[:idx]
-		referenceToken = localPart[idx+1:]
 	}
 
-	assignedEmail, err := e.queries.GetAssignedEmailByLocalPart(ctx, localPart)
+	assignedEmail, err := e.repo.GetAssignedEmailByLocalPart(ctx, localPart)
 	if err != nil {
-		_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-			ID:               spoolID,
-			Status:           public.SpoolStatusFAILED,
-			LastErrorMessage: err.Error(),
-		})
-		slog.ErrorContext(ctx, "permanent failure: failed to get assigned email by local part", "spool_id", spoolID, "localPart", localPart, "error", err)
-		return nil // terminal error
+		return public.AssignedEmail{}, "", fmt.Errorf("failed to get assigned email: %w", err)
 	}
 
 	if assignedEmail.ApplicationID == uuid.Nil {
-		_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-			ID:               spoolID,
-			Status:           public.SpoolStatusFAILED,
-			LastErrorMessage: "unassigned email address",
-		})
-		slog.ErrorContext(ctx, "permanent failure: unassigned email address", "spool_id", spoolID, "localPart", localPart, "error", err)
-		return nil // terminal error
+		return public.AssignedEmail{}, "", fmt.Errorf("unassigned email address")
 	}
 
-	slog.InfoContext(ctx, "found assigned email address", "spool_id", spoolID, "localPart", localPart, "application_id", assignedEmail.ApplicationID)
+	return assignedEmail, refToken, nil
+}
 
-	msgID := env.GetHeader("Message-Id")
-	msgID = strings.Trim(msgID, "<>")
-	if msgID == "" {
-		slog.InfoContext(ctx, "falling back to spoolID as Message-ID", "spool_id", spoolID)
-		msgID = spoolID.String()
-	}
-
-	basePath := util.ProcessedEmailS3KeyPrefix(assignedEmail.ApplicationID.String(), msgID)
-	slog.InfoContext(ctx, "upload key path for email content json", "spool_id", spoolID, "base_path", basePath, "application_id", assignedEmail.ApplicationID)
-
+func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Envelope, basePath string) error {
 	headerMap := make(map[string]string)
 	for _, key := range env.GetHeaderKeys() {
 		headerMap[key] = env.GetHeader(key)
@@ -124,63 +219,31 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 		"html":    env.HTML,
 		"headers": headerMap,
 	}
-
 	contentJSON, _ := json.Marshal(contentBody)
 
 	contentKey := fmt.Sprintf("%s/contents.json", basePath)
-	_, err = e.storageService.UploadObject(ctx, contentKey, bytes.NewReader(contentJSON), "application/json")
+	_, err := e.storage.UploadObject(ctx, contentKey, bytes.NewReader(contentJSON), "application/json")
 	if err != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to upload contents: %w", err))
+		return fmt.Errorf("failed to upload contents.json: %w", err)
 	}
+
 	atchPrefix := util.ProcessedAttachmentS3KeyPrefix(basePath)
+
 	for _, att := range env.Attachments {
 		attKey := fmt.Sprintf("%s/%s", atchPrefix, att.FileName)
-		_, err = e.storageService.UploadObject(ctx, attKey, bytes.NewReader(att.Content), att.ContentType)
+		_, err = e.storage.UploadObject(ctx, attKey, bytes.NewReader(att.Content), att.ContentType)
 		if err != nil {
-			return model.NewRetryableError(fmt.Errorf("failed to upload attachment: %w", err))
+			return fmt.Errorf("failed to upload attachment %s: %w", att.FileName, err)
 		}
 	}
+
 	for _, in := range env.Inlines {
 		attKey := fmt.Sprintf("%s/%s", atchPrefix, in.FileName)
-		_, err = e.storageService.UploadObject(ctx, attKey, bytes.NewReader(in.Content), in.ContentType)
+		_, err = e.storage.UploadObject(ctx, attKey, bytes.NewReader(in.Content), in.ContentType)
 		if err != nil {
-			return model.NewRetryableError(fmt.Errorf("failed to upload inline attachment: %w", err))
+			return fmt.Errorf("failed to upload inline attachment %s: %w", in.FileName, err)
 		}
 	}
-
-	ingestedEmail, err := e.queries.CreateIngestedEmail(ctx, public.CreateIngestedEmailParams{
-		ApplicationID:   assignedEmail.ApplicationID,
-		AssignedEmailID: assignedEmail.ID,
-		ReferenceToken:  referenceToken,
-		FromAddress:     env.GetHeader("From"),
-		Subject:         env.GetHeader("Subject"),
-		MessageID:       msgID,
-		S3KeyPrefix:     basePath,
-	})
-	if err != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to create ingested email record: %w", err))
-	}
-
-	/*
-		// webhook processing to come soon.
-		_, err = e.queries.EnqueueWebhookJob(ctx, public.EnqueueWebhookJobParams{
-			ApplicationID:   assignedEmail.ApplicationID,
-			IngestedEmailID: ingestedEmail.ID,
-		})
-		if err != nil {
-			return model.NewRetryableError(fmt.Errorf("failed to enqueue webhook job: %w", err))
-		}*/
-
-	// TODO: publish a job on webhok-stream, another job type to be processed by the worker.
-
-	_ = e.queries.UpdateSpooledEmailStatus(ctx, public.UpdateSpooledEmailStatusParams{
-		ID:               spoolID,
-		Status:           public.SpoolStatusSUCCESS,
-		LastErrorMessage: "",
-	})
-	_ = e.storageService.DeleteObject(ctx, payload.UploadKey)
-
-	slog.InfoContext(ctx, "email processed successfully, raw email deleted", "spoolID", spoolID, "uploadKey", payload.UploadKey, "applicationID", assignedEmail.ApplicationID, "ingestedEmailID", ingestedEmail.ID)
 
 	return nil
 }

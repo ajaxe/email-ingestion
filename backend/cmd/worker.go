@@ -11,7 +11,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/internal/worker"
-	"github.com/ajaxe/email-ingestion/internal/worker/handlers"
+	"github.com/ajaxe/email-ingestion/internal/worker/handler"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
@@ -54,22 +54,22 @@ func runWorker(ctx context.Context) error {
 			continue
 		}
 
+		emailStreamName := util.EmailStreamName(cfg.Environment)
+		webhookStreamName := util.WebhookStreamName(cfg.Environment)
+
 		switch s {
 		case "email":
-			emailProcessor := service.NewEmailProcessor(queries, storageService)
-			emailHandler := handlers.NewEmailIngestionHandler(emailProcessor)
-			streamName := util.EmailStreamName(cfg.Environment)
-			consumer := worker.NewStreamConsumer(rdsManager, streamName, "email_worker_group", emailHandler)
+			emailRepo := service.NewPgxEmailRepository(dbPool)
+			emailProcessor := service.NewEmailProcessor(emailRepo, storageService, rdsManager.Stream, webhookStreamName)
+			emailHandler := handler.NewEmailIngestionHandler(emailProcessor)
+			consumer := worker.NewStreamConsumer(rdsManager, emailStreamName, "email_worker_group", emailHandler)
 			consumers = append(consumers, consumer)
 
 		case "webhook":
-			// TODO: Add webhook processor and handler when implemented
-			slog.Warn("webhook stream logic is not fully implemented yet")
-			// webhookProcessor := service.NewWebhookProcessor(queries)
-			// webhookHandler := handlers.NewWebhookDeliveryHandler(webhookProcessor)
-			// streamName := util.WebhookStreamName(cfg.Environment)
-			// consumer := worker.NewStreamConsumer(rdsManager, streamName, "webhook_worker_group", webhookHandler)
-			// consumers = append(consumers, consumer)
+			webhookProcessor := service.NewWebhookDeliveryProcessor(queries)
+			webhookHandler := handler.NewWebhookDeliveryHandler(webhookProcessor)
+			consumer := worker.NewStreamConsumer(rdsManager, webhookStreamName, "webhook_worker_group", webhookHandler)
+			consumers = append(consumers, consumer)
 
 		default:
 			return fmt.Errorf("unknown stream type requested: %s", s)

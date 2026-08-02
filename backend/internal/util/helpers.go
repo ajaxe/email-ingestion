@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -26,4 +27,12 @@ func EmailStreamName(env string) string {
 
 func WebhookStreamName(env string) string {
 	return fmt.Sprintf("%s:%s:webhook:stream", config.AppName, env)
+}
+
+func JSON(p any) (string, error) {
+	d, e := json.Marshal(p)
+	if e != nil {
+		return "", e
+	}
+	return string(d), nil
 }

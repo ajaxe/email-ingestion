@@ -139,7 +139,7 @@ func (e *EmailIngestionService) Process(ctx context.Context, data io.Reader) err
 		UploadKey: uploadKey,
 	}
 
-	j, err := p.JSON()
+	j, err := util.JSON(p)
 	if err != nil {
 		return fmt.Errorf("failed to serialize payload for redis stream: id-%s: %v", id, err)
 	}
