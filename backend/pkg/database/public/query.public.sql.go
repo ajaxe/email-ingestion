@@ -146,7 +146,7 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 }
 
 const getApplicationByAPIKey = `-- name: GetApplicationByAPIKey :one
-SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, created_at, updated_at FROM applications WHERE api_key_hash = $1 LIMIT 1
+SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE api_key_hash = $1 LIMIT 1
 `
 
 func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string) (Application, error) {
@@ -160,6 +160,29 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string)
 		&i.WebhookSecret,
 		&i.AwsIamRoleArn,
 		&i.MaxRetries,
+		&i.IsTrusted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getApplicationByID = `-- name: GetApplicationByID :one
+SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Application, error) {
+	row := q.db.QueryRow(ctx, getApplicationByID, id)
+	var i Application
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ApiKeyHash,
+		&i.WebhookUrl,
+		&i.WebhookSecret,
+		&i.AwsIamRoleArn,
+		&i.MaxRetries,
+		&i.IsTrusted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -167,7 +190,7 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string)
 }
 
 const getApplicationWithEmails = `-- name: GetApplicationWithEmails :many
-SELECT a.id, a.name, a.api_key_hash, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.created_at, a.updated_at, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
+SELECT a.id, a.name, a.api_key_hash, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
 FROM applications a  
 LEFT JOIN assigned_emails e ON a.id = e.application_id  
 WHERE a.id = $1
@@ -181,6 +204,7 @@ type GetApplicationWithEmailsRow struct {
 	WebhookSecret  string      `json:"webhookSecret"`
 	AwsIamRoleArn  string      `json:"awsIamRoleArn"`
 	MaxRetries     int32       `json:"maxRetries"`
+	IsTrusted      bool        `json:"isTrusted"`
 	CreatedAt      time.Time   `json:"createdAt"`
 	UpdatedAt      time.Time   `json:"updatedAt"`
 	EmailID        pgtype.UUID `json:"emailId"`
@@ -207,6 +231,7 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 			&i.WebhookSecret,
 			&i.AwsIamRoleArn,
 			&i.MaxRetries,
+			&i.IsTrusted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EmailID,
@@ -300,6 +325,23 @@ func (q *Queries) LogWebhookAttempt(ctx context.Context, arg LogWebhookAttemptPa
 		arg.IsRetry,
 		arg.DurationMs,
 	)
+	return err
+}
+
+const updateApplicationWebhook = `-- name: UpdateApplicationWebhook :exec
+UPDATE applications
+SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateApplicationWebhookParams struct {
+	ID            uuid.UUID `json:"id"`
+	WebhookUrl    string    `json:"webhookUrl"`
+	WebhookSecret string    `json:"webhookSecret"`
+}
+
+func (q *Queries) UpdateApplicationWebhook(ctx context.Context, arg UpdateApplicationWebhookParams) error {
+	_, err := q.db.Exec(ctx, updateApplicationWebhook, arg.ID, arg.WebhookUrl, arg.WebhookSecret)
 	return err
 }
 

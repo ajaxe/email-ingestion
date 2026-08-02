@@ -39,6 +39,7 @@ create table if not exists public.applications (
   webhook_secret   varchar(128)                not null,        -- key used to sign hmac payloads
   aws_iam_role_arn varchar(2048)               not null,        -- dedicated iam role mapped at registration
   max_retries      int                         not null default 5,
+  is_trusted       boolean                     not null default false, -- skips SSRF webhook checks
   created_at       timestamp with time zone    not null default current_timestamp,
   updated_at       timestamp with time zone    not null default current_timestamp
 );

@@ -48,3 +48,11 @@ RETURNING *;
 UPDATE inbound_spool_queue
 SET status = $2, attempt_count = attempt_count + 1, last_error_message = $3, updated_at = NOW()
 WHERE id = $1;
+
+-- name: GetApplicationByID :one
+SELECT * FROM applications WHERE id = $1 LIMIT 1;
+
+-- name: UpdateApplicationWebhook :exec
+UPDATE applications
+SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
+WHERE id = $1;

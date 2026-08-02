@@ -16,6 +16,7 @@ type AppConfig struct {
 	Database    DatabaseConfig `mapstructure:"database"`
 	Smtp        SmtpConfig     `mapstructure:"smtp"`
 	Storage     StorageConfig  `mapstructure:"storage"`
+	Webhook     WebhookConfig  `mapstructure:"webhook"`
 }
 
 type ServerConfig struct {
@@ -60,6 +61,11 @@ type StorageConfig struct {
 	S3BaseEndpoint string `mapstructure:"s3_base_endpoint"`
 	// UsePathStyle indicates whether to use path-style addressing for S3 (true for MinIO, false for AWS S3)
 	UsePathStyle bool `mapstructure:"use_path_style"`
+}
+
+type WebhookConfig struct {
+	// AllowedDomains are trusted internal domains that are exempt from the SSRF blocking checks.
+	AllowedDomains []string `mapstructure:"allowed_domains"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {

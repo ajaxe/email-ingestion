@@ -111,6 +111,7 @@ type Application struct {
 	WebhookSecret string    `json:"webhookSecret"`
 	AwsIamRoleArn string    `json:"awsIamRoleArn"`
 	MaxRetries    int32     `json:"maxRetries"`
+	IsTrusted     bool      `json:"isTrusted"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
