@@ -13,7 +13,6 @@
       "windows": {
         "cwd": "${workspaceFolder}/backend"
       },
-      "envFile": ["${workspaceFolder}/backend/.env.dev"],
       "args": ["smtp"]
     },
     {
@@ -27,12 +26,24 @@
       },
       "envFile": ["${workspaceFolder}/backend/.env.dev"],
       "args": ["worker"]
-    }
+    }, 
+    {
+      "name": "Launch API",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/",
+      "windows": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "envFile": ["${workspaceFolder}/backend/.env.dev"],
+      "args": ["api"]
+    },
   ],
   "compounds": [
     {
       "name": "Dev: Full Stack",
-      "configurations": ["Launch Smtp Server", "Launch Worker"],
+      "configurations": ["Launch Smtp Server", "Launch Worker", "Launch API"],
       "stopAll": true
     }
   ]
