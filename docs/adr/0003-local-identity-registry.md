@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (Partially superseded by [ADR-0007](./0007-api-key-m2m-authentication.md) for M2M identity resolution)
 
 ## Context
 

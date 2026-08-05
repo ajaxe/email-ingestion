@@ -52,3 +52,9 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
   ```bash
   cd backend && sqlc generate
   ```
+
+## 8. Architecture Decision Records (ADRs)
+When making structural changes, API modifications, or data model updates, you **MUST** consult the Architecture Decision Records (ADRs) located in the `docs/adr/` directory to ensure alignment with past decisions.
+* **Start here:** Always review **`docs/adr/INDEX.md`** to find relevant historical decisions before implementing major features.
+* **Existing ADRs** cover critical topics such as: SMTP proxy architecture, the dual-principal API model, local identity registry, and JIT user provisioning.
+* **New Decisions:** If proposing a new architectural change that deviates from or expands upon existing patterns, document it by creating a new ADR in this directory.
