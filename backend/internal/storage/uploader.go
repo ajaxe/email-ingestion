@@ -51,31 +51,25 @@ func (s *S3StorageService) UploadObject(ctx context.Context, key string, content
 }
 
 func (s *S3StorageService) DownloadObject(ctx context.Context, key string) (io.ReadCloser, error) {
-	txmanager, _, err := s.transferManager(ctx)
+	_, s3client, err := s.transferManager(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	downloadCtx, cancel := context.WithCancel(ctx)
-	pr, pw := io.Pipe()
+	if len(key) == 0 {
+		return nil, fmt.Errorf("empty object key")
+	}
 
-	go func() {
-		defer cancel()
-		_, err := txmanager.DownloadObject(downloadCtx, &transfermanager.DownloadObjectInput{
-			Bucket:   aws.String(s.config.S3Bucket),
-			Key:      aws.String(key),
-			WriterAt: &pipeWriterAt{w: pw},
-		}, func(o *transfermanager.Options) {
-			o.Concurrency = 1
-		})
+	data, err := s3client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.config.S3Bucket),
+		Key:    aws.String(key),
+	})
 
-		_ = pw.CloseWithError(err)
-	}()
+	if err != nil {
+		return nil, err
+	}
 
-	return &pipeReadCloser{
-		PipeReader: pr,
-		cancel:     cancel,
-	}, nil
+	return data.Body, nil
 }
 
 func (s *S3StorageService) DeleteObject(ctx context.Context, key string) error {
@@ -102,7 +96,7 @@ func (s *S3StorageService) transferManager(ctx context.Context) (*transfermanage
 	}
 
 	// Initialize S3 client
-	cfg, err := awscfg.LoadDefaultConfig(ctx, awscfg.WithRegion(s.config.AwsRegion), awscfg.WithBaseEndpoint(""))
+	cfg, err := awscfg.LoadDefaultConfig(ctx, awscfg.WithRegion(s.config.AwsRegion))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}

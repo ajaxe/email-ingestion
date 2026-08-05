@@ -3,6 +3,8 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -97,9 +99,9 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 
 	slog.InfoContext(ctx, "found assigned email address", "spool_id", spoolID, "application_id", assignedEmail.ApplicationID)
 
-	msgID := strings.Trim(env.GetHeader("Message-Id"), "<>")
-	if msgID == "" {
-		slog.InfoContext(ctx, "falling back to spoolID as Message-ID", "spool_id", spoolID)
+	msgID, found := e.emailMessageID(env)
+	if !found {
+		slog.Info("falling back to spoolID as Message-ID", "spool_id", spoolID)
 		msgID = spoolID.String()
 	}
 
@@ -177,7 +179,7 @@ func (e *EmailProcessor) fetchAndParseEmail(ctx context.Context, uploadKey strin
 
 	env, err := enmime.ReadEnvelope(stream)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse mime: %w", err)
+		return nil, fmt.Errorf("failed to parse raw email: %w", err)
 	}
 	return env, nil
 }
@@ -218,20 +220,9 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 		headerMap[key] = env.GetHeader(key)
 	}
 
-	contentBody := map[string]interface{}{
-		"text":    env.Text,
-		"html":    env.HTML,
-		"headers": headerMap,
-	}
-	contentJSON, _ := json.Marshal(contentBody)
-
-	contentKey := fmt.Sprintf("%s/contents.json", basePath)
-	_, err := e.storage.UploadObject(ctx, contentKey, bytes.NewReader(contentJSON), "application/json")
-	if err != nil {
-		return fmt.Errorf("failed to upload contents.json: %w", err)
-	}
-
-	atchPrefix := util.ProcessedAttachmentS3KeyPrefix(basePath)
+	var err error
+	var attachments []model.EmailStorageAttachment
+	atchPrefix := util.AttachmentStorageKeyPrefix(basePath)
 
 	for _, att := range env.Attachments {
 		attKey := fmt.Sprintf("%s/%s", atchPrefix, att.FileName)
@@ -239,6 +230,14 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 		if err != nil {
 			return fmt.Errorf("failed to upload attachment %s: %w", att.FileName, err)
 		}
+		slog.DebugContext(ctx, "uploaded attachment", "attachment_key", attKey, "size", len(att.Content), "content_type", att.ContentType, "filename", att.FileName, "content-disposition", att.Disposition)
+		attachments = append(attachments, model.EmailStorageAttachment{
+			AttachmentID: attKey,
+			FileName:     att.FileName,
+			ContentType:  att.ContentType,
+			Size:         int64(len(att.Content)),
+			IsInline:     false,
+		})
 	}
 
 	for _, in := range env.Inlines {
@@ -247,7 +246,43 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 		if err != nil {
 			return fmt.Errorf("failed to upload inline attachment %s: %w", in.FileName, err)
 		}
+		slog.DebugContext(ctx, "uploaded inline attachment", "attachment_key", attKey, "size", len(in.Content), "content_type", in.ContentType, "filename", in.FileName, "content-disposition", in.Disposition)
+		attachments = append(attachments, model.EmailStorageAttachment{
+			AttachmentID: attKey,
+			FileName:     in.FileName,
+			ContentType:  in.ContentType,
+			Size:         int64(len(in.Content)),
+			IsInline:     true,
+		})
+	}
+
+	contentBody := model.EmailStorageContent{
+		Text:        env.Text,
+		HTML:        env.HTML,
+		Headers:     headerMap,
+		Attachments: attachments,
+	}
+
+	contentJSON, _ := json.Marshal(contentBody)
+
+	contentKey := util.ContentJSONStorageKeyPrefix(basePath)
+	_, err = e.storage.UploadObject(ctx, contentKey, bytes.NewReader(contentJSON), "application/json")
+	if err != nil {
+		return fmt.Errorf("failed to upload contents.json: %w", err)
 	}
 
 	return nil
+}
+
+// emailMessageID extracts Message-ID email header from the envelop and transforms into a url safe hash.
+func (e *EmailProcessor) emailMessageID(env *enmime.Envelope) (v string, found bool) {
+	msgID := strings.TrimSpace(env.GetHeader("Message-Id"))
+	msgID = strings.Trim(msgID, "<>")
+	if msgID == "" {
+		return "", false
+	} else {
+		hash := sha256.Sum256([]byte(msgID))
+		msgID = hex.EncodeToString(hash[:])
+	}
+	return msgID, true
 }

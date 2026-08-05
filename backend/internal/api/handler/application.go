@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
@@ -28,10 +29,6 @@ func HandleGetApplication(svc *service.ApplicationService) echo.HandlerFunc {
 	}
 }
 
-type CreateAddressRequest struct {
-	Description string `json:"description"`
-}
-
 func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		appIDStr := c.Param("app_id")
@@ -40,7 +37,7 @@ func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 			return apperror.Validation("invalid application ID")
 		}
 
-		var req CreateAddressRequest
+		var req model.CreateAddressRequest
 		if err := c.Bind(&req); err != nil {
 			return apperror.Validation("invalid request body", err)
 		}

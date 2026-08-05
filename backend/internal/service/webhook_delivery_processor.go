@@ -71,7 +71,10 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.W
 	}
 
 	// 3. Get Ingested Email Metadata
-	email, err := w.queries.GetIngestedEmailByID(ctx, emailID)
+	email, err := w.queries.GetIngestedEmailByID(ctx, public.GetIngestedEmailByIDParams{
+		ID:            emailID,
+		ApplicationID: appID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to get ingested email: %w", err)
 	}

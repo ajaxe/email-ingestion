@@ -18,8 +18,11 @@ func IngestionS3Key(ingestionPrefix, messageID string) string {
 func ProcessedEmailS3KeyPrefix(applicationID, messageID string) string {
 	return fmt.Sprintf("apps/%s/emails/%s", applicationID, messageID)
 }
-func ProcessedAttachmentS3KeyPrefix(emailBasePath string) string {
+func AttachmentStorageKeyPrefix(emailBasePath string) string {
 	return fmt.Sprintf("%s/attachments", emailBasePath)
+}
+func ContentJSONStorageKeyPrefix(emailBasePath string) string {
+	return fmt.Sprintf("%s/contents.json", emailBasePath)
 }
 func EmailStreamName(env string) string {
 	return fmt.Sprintf("%s:%s:email:stream", config.AppName, env)

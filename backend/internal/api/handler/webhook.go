@@ -3,20 +3,12 @@ package handler
 import (
 	"net/http"
 
+	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
-
-type RegisterWebhookRequest struct {
-	WebhookURL string `json:"webhook_url"`
-}
-
-type RegisterWebhookResponse struct {
-	Message       string `json:"message"`
-	WebhookSecret string `json:"webhook_secret"`
-}
 
 func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -26,7 +18,7 @@ func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 			return apperror.Validation("invalid application ID")
 		}
 
-		var req RegisterWebhookRequest
+		var req model.RegisterWebhookRequest
 		if err := c.Bind(&req); err != nil {
 			return apperror.Validation("invalid request body", err)
 		}
@@ -40,7 +32,7 @@ func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, RegisterWebhookResponse{
+		return c.JSON(http.StatusOK, model.RegisterWebhookResponse{
 			Message:       "Webhook registered and verified successfully",
 			WebhookSecret: secret,
 		})
