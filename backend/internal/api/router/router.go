@@ -32,26 +32,52 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	e.Use(echomiddleware.Recover())
 
 	storageService := storage.NewStorageService(&cfg.Storage)
+	apiKeyService := service.NewApiKeyService(o.Queries)
 
-	emailService := service.NewEmailIngestion(o.RedisManager, o.Queries, storageService, cfg.Environment)
+	configureInternalAPI(e, cfg, o, storageService)
 
-	// Edge API group
-	edgeGroup := e.Group("/internal/api/v1")
-	edgeGroup.Use(middleware.EdgeAuth(cfg.Smtp.MTAAuthToken))
-	edgeGroup.POST("/ingest", handler.HandleIngest(emailService))
-	edgeGroup.GET("/addresses/:email", handler.HandleIngestEmailLookup("email", emailService))
+	configureAppAPI(e, cfg, o, apiKeyService)
 
+	configureM2MAPI(e, o, storageService, apiKeyService)
+
+	return e
+}
+
+func configureM2MAPI(e *echo.Echo, o *ApiInitOptions, storageService *storage.S3StorageService, apiKeyService *service.ApiKeyService) {
+	authz := service.NewAuthorizationService(o.RedisManager.Cache, apiKeyService)
+	// M2M API routes
+	m2mGroup := e.Group("/api/v1")
+	m2mGroup.Use(middleware.M2MAuth(authz))
+
+	emailService := service.NewEmailService(o.Queries, storageService)
+
+	m2mGroup.GET("/emails/:email_id", handler.HandleAPIEmailByID(emailService))
+}
+
+func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, apiKeyService *service.ApiKeyService) {
 	// Application API
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
 	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
-	e.PUT("/api/v1/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
-	// API routes for web application
+	appGroup := e.Group("/app/v1")
+	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
+
 	appService := service.NewApplicationService(o.Queries)
-	e.GET("/api/v1/applications/:app_id", handler.HandleGetApplication(appService))
-	e.POST("/api/v1/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
-	e.GET("/api/v1/applications/:app_id/emails", handler.HandleListEmails(appService))
+	appGroup.GET("/applications/:app_id", handler.HandleGetApplication(appService))
+	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
+	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
+	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
+}
 
-	return e
+// configureInternalAPI sets up the internal API routes for the application, including the ingestion and email lookup endpoints.
+// begins with api prefix: /internal/api/v1
+func configureInternalAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, storageService *storage.S3StorageService) {
+	ingestionService := service.NewEmailIngestion(o.RedisManager, o.Queries, storageService, cfg.Environment)
+
+	// Edge API group
+	edgeGroup := e.Group("/internal/api/v1")
+	edgeGroup.Use(middleware.EdgeAuth(cfg.Smtp.MTAAuthToken))
+	edgeGroup.POST("/ingest", handler.HandleIngest(ingestionService))
+	edgeGroup.GET("/addresses/:email", handler.HandleIngestEmailLookup("email", ingestionService))
 }

@@ -1,0 +1,32 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/service"
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+)
+
+// HandleAPIEmailByID handles the GET request to retrieve an ingested email by its ID for a specific application.
+// Returns the contents of the ingested email wihtout any attachments.
+func HandleAPIEmailByID(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		e := c.Param("email_id")
+		emailID, err := uuid.Parse(e)
+		if err != nil {
+			return apperror.Validation("Invalid email ID", err)
+		}
+
+		appID := ctx.Value(model.ApplicationIDContextKey).(uuid.UUID)
+
+		r, err := svc.GetEmailByID(ctx, appID, emailID)
+		if err != nil {
+			return apperror.NotFound("Email not found", err)
+		}
+		return c.JSON(http.StatusOK, r)
+	}
+}

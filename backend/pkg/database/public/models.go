@@ -103,6 +103,17 @@ func (ns NullWebhookStatus) Value() (driver.Value, error) {
 	return string(ns.WebhookStatus), nil
 }
 
+type ApiKey struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+	Name          string    `json:"name"`
+	KeyPrefix     string    `json:"keyPrefix"`
+	KeyHash       string    `json:"keyHash"`
+	CreatedAt     time.Time `json:"createdAt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+	LastUserAt    time.Time `json:"lastUserAt"`
+}
+
 type Application struct {
 	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`
@@ -145,6 +156,24 @@ type IngestedEmail struct {
 	MessageID       string    `json:"messageId"`
 	S3KeyPrefix     string    `json:"s3KeyPrefix"`
 	ReceivedAt      time.Time `json:"receivedAt"`
+}
+
+type User struct {
+	ID          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	IdpUserSub  string    `json:"idpUserSub"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ActivatedAt time.Time `json:"activatedAt"`
+	LastLoginAt time.Time `json:"lastLoginAt"`
+}
+
+type UserApplicationAccess struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+	UserID        uuid.UUID `json:"userId"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type WebhookDeliveryJob struct {

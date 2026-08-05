@@ -32,6 +32,32 @@ func (q *Queries) CheckDuplicateWebhookJob(ctx context.Context, arg CheckDuplica
 	return exists, err
 }
 
+const createApiKey = `-- name: CreateApiKey :exec
+INSERT INTO api_keys (application_id, name, key_prefix, key_hash, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateApiKeyParams struct {
+	ApplicationID uuid.UUID `json:"applicationId"`
+	Name          string    `json:"name"`
+	KeyPrefix     string    `json:"keyPrefix"`
+	KeyHash       string    `json:"keyHash"`
+	CreatedAt     time.Time `json:"createdAt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+}
+
+func (q *Queries) CreateApiKey(ctx context.Context, arg CreateApiKeyParams) error {
+	_, err := q.db.Exec(ctx, createApiKey,
+		arg.ApplicationID,
+		arg.Name,
+		arg.KeyPrefix,
+		arg.KeyHash,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createAssignedEmail = `-- name: CreateAssignedEmail :one
 INSERT INTO assigned_emails (application_id, local_part, description)  
 VALUES ($1, $2, $3)  
@@ -164,6 +190,26 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 	return i, err
 }
 
+const getApiKeyByKeyHash = `-- name: GetApiKeyByKeyHash :one
+SELECT id, application_id, name, key_prefix, key_hash, created_at, expires_at, last_user_at FROM api_keys WHERE key_hash = $1
+`
+
+func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKey, error) {
+	row := q.db.QueryRow(ctx, getApiKeyByKeyHash, keyHash)
+	var i ApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.Name,
+		&i.KeyPrefix,
+		&i.KeyHash,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.LastUserAt,
+	)
+	return i, err
+}
+
 const getApplicationByAPIKey = `-- name: GetApplicationByAPIKey :one
 SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE api_key_hash = $1 LIMIT 1
 `
@@ -288,11 +334,16 @@ func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart str
 }
 
 const getIngestedEmailByID = `-- name: GetIngestedEmailByID :one
-SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE id = $1 LIMIT 1
+SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE id = $1 and application_id = $2 LIMIT 1
 `
 
-func (q *Queries) GetIngestedEmailByID(ctx context.Context, id uuid.UUID) (IngestedEmail, error) {
-	row := q.db.QueryRow(ctx, getIngestedEmailByID, id)
+type GetIngestedEmailByIDParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (IngestedEmail, error) {
+	row := q.db.QueryRow(ctx, getIngestedEmailByID, arg.ID, arg.ApplicationID)
 	var i IngestedEmail
 	err := row.Scan(
 		&i.ID,
