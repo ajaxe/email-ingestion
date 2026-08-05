@@ -68,3 +68,5 @@ SELECT * FROM ingested_emails WHERE id = $1 LIMIT 1;
 
 -- name: GetWebhookJobByIDs :one
 SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1;
+-- name: ListIngestedEmailsByApplication :many
+SELECT * FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;

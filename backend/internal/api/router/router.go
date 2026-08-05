@@ -47,5 +47,11 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
 	e.PUT("/api/v1/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
+	// API routes for web application
+	appService := service.NewApplicationService(o.Queries)
+	e.GET("/api/v1/applications/:app_id", handler.HandleGetApplication(appService))
+	e.POST("/api/v1/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
+	e.GET("/api/v1/applications/:app_id/emails", handler.HandleListEmails(appService))
+
 	return e
 }

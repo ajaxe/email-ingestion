@@ -366,6 +366,46 @@ func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDs
 	return i, err
 }
 
+const listIngestedEmailsByApplication = `-- name: ListIngestedEmailsByApplication :many
+SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3
+`
+
+type ListIngestedEmailsByApplicationParams struct {
+	ApplicationID uuid.UUID `json:"applicationId"`
+	Limit         int32     `json:"limit"`
+	Offset        int32     `json:"offset"`
+}
+
+func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]IngestedEmail, error) {
+	rows, err := q.db.Query(ctx, listIngestedEmailsByApplication, arg.ApplicationID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []IngestedEmail
+	for rows.Next() {
+		var i IngestedEmail
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.AssignedEmailID,
+			&i.ReferenceToken,
+			&i.FromAddress,
+			&i.Subject,
+			&i.MessageID,
+			&i.S3KeyPrefix,
+			&i.ReceivedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const logWebhookAttempt = `-- name: LogWebhookAttempt :exec
 INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms)  
 VALUES ($1, $2, $3, $4, $5, $6)

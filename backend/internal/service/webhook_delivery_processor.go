@@ -158,6 +158,8 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.W
 	})
 
 	if deliverErr != nil {
+		// in case of webhook error update status of the job as DEAD if retry exhausted
+		// otherwise, update as PENDING and set the next try time based on exponential backoff with full jitter.
 		if job.RetryCount < app.MaxRetries {
 			status = public.WebhookStatusPENDING
 			// Exponential Backoff with Full Jitter
@@ -176,7 +178,7 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.W
 				RetryCount:     job.RetryCount + 1,
 				NextDeliveryAt: nextDelivery,
 			})
-			// Return nil so the stream consumer ACKs the message. 
+			// Return nil so the stream consumer ACKs the message.
 			// The cron job will re-enqueue it when NextDeliveryAt is reached.
 			return nil
 		} else {
@@ -200,4 +202,3 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.W
 
 	return nil
 }
-
