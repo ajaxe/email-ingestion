@@ -18,6 +18,7 @@ router.beforeEach(async (to) => {
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
     const authStore = useAuthStore();
+    await authStore.loadUser()
     if (!authStore.isAuthenticated) {
       // Redirect to login page
       return await Promise.resolve({ name: "/login/" });
