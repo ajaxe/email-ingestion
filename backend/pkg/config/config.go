@@ -74,7 +74,7 @@ type WebhookConfig struct {
 type AuthConfig struct {
 	Provider string `mapstructure:"provider"`
 	OIDC     struct {
-		Issuer string `mapstructure:"issuer"`
+		Authority string `mapstructure:"authority"`
 		// ClientID is the client ID for OAuth2 authentication.
 		ClientID string `mapstructure:"client_id"`
 		JWKSURI  string `mapstructure:"jwks_uri"`

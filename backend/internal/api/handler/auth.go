@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"text/template"
 
 	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/service"
@@ -11,19 +12,20 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const authConfigTemplate = `window.APP_CONFIG = {
+  AUTH_PROVIDER: '{{ .Provider }}',{{if eq .Provider "oidc"}}
+  OIDC_AUTHORITY: '{{ .OIDC.Authority }}',
+  OIDC_CLIENT_ID: '{{ .OIDC.ClientID }}',{{end}}
+}`
+
+var tmpl = template.Must(template.New("auth_config").Parse(authConfigTemplate))
+
 func HandleGetAuthConfig(authCfg *config.AuthConfig) echo.HandlerFunc {
 	return func(e echo.Context) error {
 		e.Response().Header().Set("Cache-Control", "public, max-age=3600")
-		if authCfg.Provider == "password" {
-			return e.JSON(200, map[string]string{
-				"provider": authCfg.Provider,
-			})
-		}
-		return e.JSON(200, map[string]string{
-			"provider":  authCfg.Provider,
-			"client_id": authCfg.OIDC.ClientID,
-			"issuer":    authCfg.OIDC.Issuer,
-		})
+		e.Response().Header().Set(echo.HeaderContentType, "application/javascript; charset=utf-8")
+		e.Response().WriteHeader(http.StatusOK)
+		return tmpl.Execute(e.Response(), authCfg)
 	}
 }
 

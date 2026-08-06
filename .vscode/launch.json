@@ -51,11 +51,26 @@
       "envFile": ["${workspaceFolder}/backend/.env.dev"],
       "args": ["cron"]
     },
+    {
+      "name": "Frontend: Vite Dev Server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend/apps/dashboard/",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
   ],
   "compounds": [
     {
       "name": "Dev: Full Stack",
-      "configurations": ["Launch Smtp Server", "Launch Worker", "Launch API", "Launch Cron"],
+      "configurations": ["Launch Smtp Server", "Launch Worker", "Launch API", "Launch Cron", "Frontend: Vite Dev Server"],
+      "stopAll": true
+    },
+    {
+      "name": "Dev: Dashboard",
+      "configurations": ["Launch API", "Frontend: Vite Dev Server"],
       "stopAll": true
     }
   ]
