@@ -49,16 +49,110 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ## **Phase 7: Management Dashboard (Vue.js SPA)**
 
-*Provide the developer portal interface to tie the system components together.*
+*Provide the developer portal interface in `frontend/apps/dashboard` to tie all system components together.*
 
-### **7.1 Key Portal Views**
+> [!IMPORTANT]
+> **Strict Requirement:** Vue 3 Router MUST use **file-based routing** via `src/pages/`. Do NOT define static route arrays manually in `src/router/index.js`.  
+> **API Dual Principal Model (ADR-0002 & ADR-0004):** Dashboard SPA API requests MUST use the **`/app/v1/...`** prefix (with explicit `:app_id` scope in URL: `/app/v1/applications/:app_id/...`), authenticated via `UserAuth` OIDC Bearer tokens. Do NOT use M2M API `/api/v1/...` endpoints for dashboard operations.
 
-* [ ] Implement standard OIDC login with PKCE against the Custom IdP (`Apogee-dev`).  
-* [ ] Build the Core Management Console view containing:  
-  * **API Keys & Webhooks tab**: Manage endpoints, secrets, and trigger verification handshakes.  
-  * **Routing Console**: Dynamically provision, activate, and deactivate 10-character email addresses.  
-  * **Delivery Sandbox Log**: Browse inbound emails, inspect raw metadata payloads, view active webhook retry counters, and click "Re-deliver Webhook" to troubleshoot failed integrations.  
-* **Verification Checkpoint**: Perform an end-to-end integration test: send an email to a newly provisioned address in the UI, watch the webhook dispatch successfully, and inspect the delivery logs in the developer dashboard.
+### **7.1 OIDC Auth Provider & HTTP Client Subsystem**
+
+* [ ] Implement OIDC PKCE authentication handler (`src/services/authService.js` / `src/services/oidcService.js`) utilizing `oidc-client-ts` (`UserManager`) interfacing with `Apogee-dev` IdP.  
+* [ ] Configure HTTP client module (`src/services/apiService.js`) with base URL `/app/v1`, automatic `Authorization: Bearer <token>` header injection, 401 response handling, and automatic token refresh managed by `oidc-client-ts`.  
+* [ ] Implement `useAuthStore` in `src/stores/auth.js` to manage user identity, OIDC tokens (via `oidc-client-ts`), active `app_id` selection, login, and logout state using `src/services/` modules.  
+* **Verification Checkpoint**: Run dev server (`pnpm dev`), verify OIDC authentication handshake via `oidc-client-ts`, token storage, and Bearer token attachment to outgoing `/app/v1/...` API requests.
+
+### **7.2 Core Pinia Stores & API Client Integration**
+
+* [ ] Implement `useAppStore` (`src/stores/application.js`) for tenant details, API keys, and global settings (`GET /app/v1/applications/:app_id`).  
+* [ ] Implement `useAddressStore` (`src/stores/addresses.js`) for provisioning (`POST /app/v1/applications/:app_id/addresses`) and toggling active 10-character email local-part routing addresses.  
+* [ ] Implement `useEmailStore` (`src/stores/emails.js`) for paginated email logs (`GET /app/v1/applications/:app_id/emails`) and fetching S3 presigned attachment URLs (`GET /app/v1/applications/:app_id/emails/{emailId}/attachments/{attachmentId}`).  
+* [ ] Implement `useWebhookStore` (`src/stores/webhooks.js`) for endpoint challenge verification (`PUT /app/v1/applications/:app_id/webhook`), job history logs, and manual outbox re-delivery requests (`POST /app/v1/applications/:app_id/webhook/jobs/{id}/redeliver`).  
+* **Verification Checkpoint**: Test store actions against backend mock/live `/app/v1/...` API endpoints and confirm reactive state updates.
+
+### **7.3 Dashboard Navigation Shell & Global UI Layout Specs**
+
+* [ ] **App Layout Frame (`src/App.vue`)**:
+  * `v-app`: Root container wrapper.  
+  * `v-navigation-drawer`: Left-hand vertical navigation drawer (collapsible, fixed). Contains application selector (`v-select` for switching active tenant `app_id`) and nav items (`v-list-item`) with icons:
+    * Dashboard Overview (`mdi-view-dashboard-outline` → `/`)  
+    * Routing Addresses (`mdi-email-multiple-outline` → `/addresses`)  
+    * Ingestion Logs (`mdi-table-clock` → `/emails`)  
+    * Webhook Console (`mdi-webhook` → `/webhooks`)  
+    * API Keys & Security (`mdi-key-chain` → `/settings`)  
+  * `v-app-bar`: Top header bar containing branding title ("Email Ingestion Gateway"), active tenant badge (`v-chip`), dark/light theme switcher (`v-btn` icon `mdi-theme-light-dark`), and user avatar menu (`v-menu` with user name/email & Logout action).  
+  * `v-main` + `v-container fluid`: Dynamic content area rendering `<router-view />`.  
+  * `v-snackbar`: Global toast notification bar for API response feedback (success/error).  
+* [ ] **Shared Component Primitives (`src/components/`)**:
+  * `StatusChip.vue`: Standardized status badge component using `v-chip` (Green for `ACTIVE`/`SUCCESS`, Red for `DEAD`/`FAILED`, Yellow for `PENDING`/`PROCESSING`, Grey for `INACTIVE`).  
+  * `ConfirmDialog.vue`: Reusable `v-dialog` confirmation modal for key regeneration or deletion actions.  
+  * `CodePreview.vue`: Syntax-highlighted code block component (`v-card` wrapper) for JSON bodies and headers.  
+  * `StatsWidget.vue`: Metric summary card component with icon, value, label, and trend indicator.  
+* **Verification Checkpoint**: Confirm sidebar navigation, dark/light theme toggle, and responsive layout across desktop and mobile viewports.
+
+### **7.4 Vue 3 File-Based Page Routes & Detailed Screen Specifications (`src/pages/`)**
+
+* [ ] `src/pages/index.vue`: **Dashboard Overview Screen**
+  * **Top Metrics Grid (`v-row`)**: 4 equal-width `v-col` cards (`StatsWidget.vue`):
+    1. Total Ingested Emails (`mdi-email-outline`, stat number, +X% trend).  
+    2. Active Routing Addresses (`mdi-at`, active/total count).  
+    3. Webhook Delivery Success Rate (`mdi-webhook`, percentage, success badge).  
+    4. Failed Outbox Jobs (`mdi-alert-circle-outline`, failure count, warning badge).  
+  * **Main Content Layout (`v-row`)**:
+    * Left Column (8 cols): **Recent Ingestion Stream (`v-card`)** — Compact `v-data-table` listing 5 most recent emails (`Received At`, `From`, `Subject`, `Local Part`), with a "View All Logs" link button.  
+    * Right Column (4 cols): **Quick Actions & Gateway Status (`v-card`)** — Quick action buttons ("Provision Address", "Test Webhook"), active AWS IAM Role ARN badge, and system health status.  
+
+* [ ] `src/pages/addresses/index.vue`: **Address Management Panel**
+  * **Header Toolbar (`v-row`)**: Screen title ("Assigned Email Addresses"), search text field (`v-text-field` `mdi-magnify`), status filter (`v-btn-toggle` All/Active/Inactive), and primary button ("Provision New Address" `v-btn` color="primary" `mdi-plus`).  
+  * **Data Table (`v-card`)**: `v-data-table-server` displaying:
+    * Columns: `Local Part` (font-monospace), `Email Address` (`[local_part]@ingest.domain.com` with copy button), `Description`, `Status` (`StatusChip.vue`), `Created At`, `Actions` (Active toggle `v-switch`).  
+  * **Provision Modal (`v-dialog`)**: Form with Description field (`v-text-field`), info alert explaining 10-char system generation, and "Generate Address" submit button.  
+
+* [ ] `src/pages/emails/index.vue`: **Ingested Email Log Analyzer**
+  * **Filter Toolbar (`v-card`)**: Search field (`From`/`Subject`), Local Part filter (`v-select`), Date picker, and Auto-refresh toggle switch (`v-switch`).  
+  * **Data Table (`v-card`)**: `v-data-table-server` displaying:
+    * Columns: `Received At` (formatted timestamp), `Local Part` (`StatusChip.vue`), `From`, `Subject` (truncated with tooltip), `Ref Token` (`v-chip`), `Attachments` (badge count), `Actions` (`v-btn` icon `mdi-eye` navigating to `/emails/[id]`).  
+
+* [ ] `src/pages/emails/[id].vue`: **Email Detail & Attachment Downloader**
+  * **Header Bar**: Back button (`v-btn` `mdi-arrow-left`), Subject title, Message-ID chip (`v-chip` font-monospace), Received timestamp.  
+  * **Split Layout (`v-row`)**:
+    * Left Column (4 cols): **Metadata Card (`v-card`)** — `From` address, Envelope `To`, `Reference Token`, S3 Key Prefix path, Ingestion UUID.  
+    * Right Column (8 cols): **Content & Attachments Card (`v-card`)**:
+      * Tabs header (`v-tabs`): `HTML Body`, `Text Body`, `Raw JSON (contents.json)`.  
+      * Tab items (`v-window-item`): Sanitized HTML body iframe, Text body block (`CodePreview.vue`), JSON contents block (`CodePreview.vue`).  
+      * **Attachments Section (`v-divider` + list)**: Attachment cards displaying filename, mime type (`contentType`), byte size, and a primary button ("Download Attachment" `v-btn` `mdi-download`) that calls `GET /app/v1/applications/:app_id/emails/:id/attachments/:attachment_id` to acquire the STS presigned S3 link and open the secure download.  
+
+* [ ] `src/pages/webhooks/index.vue`: **Webhook Config & Delivery Sandbox Console**
+  * **Top Card: Webhook Endpoint & Secret Settings (`v-card`)**:
+    * Endpoint URL input (`v-text-field`), Max Retries slider (`v-slider` 1-10), Webhook Secret field (`whsec_...` masked with reveal/copy button).  
+    * Actions: "Save Configuration" (`v-btn` color="primary"), "Test & Verify Endpoint" (`v-btn` color="secondary" `mdi-lightning-bolt` triggering `PUT /app/v1/applications/:app_id/webhook` challenge handshake).  
+    * Handshake Alert (`v-alert`): Shows challenge verification result status.  
+  * **Bottom Card: Webhook Delivery Outbox Sandbox (`v-card`)**:
+    * Toolbar: Title ("Outbox Delivery Attempt History"), Auto-refresh toggle, Status filter chips (`All`, `PENDING`, `SUCCESS`, `FAILED`, `DEAD`).  
+    * Data Table (`v-data-table-server`): Columns `Job ID`, `Attempt #`, `HTTP Status` (`StatusChip.vue`), `Duration` (`ms`), `Executed At`, `Is Retry` (boolean chip), `Actions`: "View Payload" modal button, and "Re-deliver Webhook" button (`v-btn` icon `mdi-refresh` calling `POST /app/v1/applications/:app_id/webhook/jobs/:id/redeliver`).  
+    * **Payload & Response Modal (`v-dialog`)**: Side-by-side or tabbed request JSON payload and client HTTP response body inside `CodePreview.vue`.  
+
+* [ ] `src/pages/settings/index.vue`: **API Keys & Security Settings**
+  * **API Key Card (`v-card`)**: Active API key (`eg_live_a1b2...` masked with reveal/copy toggle), "Regenerate API Key" button (`v-btn` color="error" opening `ConfirmDialog.vue` to call `POST /app/v1/applications/:app_id/api-keys`).  
+  * **AWS S3 & IAM Security Card (`v-card`)**: Mapped AWS IAM Role ARN (`arn:aws:iam::...`), S3 Storage Bucket Prefix path (`s3://bucket/apps/{app_id}/`), STS presigned URL TTL duration (15 minutes).  
+
+* [ ] `src/pages/[...all].vue`: **404 Not Found View**
+  * Centered card (`v-card`), 404 error icon (`mdi-alert-octagon-outline`), error message, and "Back to Dashboard" button (`v-btn` color="primary" `to="/"`).  
+
+* **Verification Checkpoint**: Navigate between all generated routes, verify route parameters, dynamic paths (`/emails/:id`), and automatic typed route generation in `src/typed-router.d.ts`.
+
+### **7.5 Operational Sandbox & Real-Time Log Inspector**
+
+* [ ] Build interactive JSON payload inspector in `src/pages/webhooks/index.vue` and `src/pages/emails/[id].vue` to display formatted headers, body, and attempt logs.  
+* [ ] Add auto-refresh / polling toggle for delivery sandbox log table to monitor live outbox worker job execution.  
+* [ ] Add toast notification system (Vuetify `v-snackbar`) for success/error feedback across all user actions.  
+* **Verification Checkpoint**: Perform manual webhook re-delivery from sandbox log table and verify UI updates immediately upon completion.
+
+### **7.6 End-to-End System Integration & Verification**
+
+* [ ] Run full system flow: Log in via OIDC PKCE -> Select/fetch app scope (`/app/v1/applications/:app_id`) -> Provision new 10-character address -> Send email via SMTP -> Verify ingestion in Email Logs -> Download attachment via STS presigned S3 link -> Verify webhook payload delivered -> Trigger manual re-delivery from Sandbox.  
+* [ ] Run `pnpm lint` and `pnpm build` in `frontend/apps/dashboard` to verify zero build or linting errors.  
+* **Verification Checkpoint**: Confirm clean `pnpm build` output and zero lint errors.
 
 ---
 

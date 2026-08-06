@@ -131,7 +131,7 @@ Manages login state, token persistence, and active application context:
   * `fetchUser()`: Calls `GET /app/v1/auth/me` on app boot to restore session.
   * `logout()`: Clears storage and resets store state.
 
-### 5.2 Axios Interceptor Module (`src/plugins/axios.js`)
+### 5.2 HTTP & API Client Service Module (`src/services/apiService.js`)
 
 * **Request Interceptor**: Reads `authStore.token` and attaches header:  
   `Authorization: Bearer <token>`
@@ -168,8 +168,8 @@ When transitioning from Password Auth to OIDC in the future, the migration invol
 2. **Backend Verifier Switch**:
    The factory instantiates `OIDCTokenVerifier` instead of `PasswordTokenVerifier`.
 3. **Frontend Mode Switch**:
-   * If `authProvider == "oidc"`, the frontend login action initiates an OIDC PKCE redirect flow to `Apogee-dev` IdP instead of showing the static password form.
-   * On callback at `/auth/callback`, the PKCE authorization code is exchanged for an OIDC access token.
+   * If `authProvider == "oidc"`, the frontend uses `oidc-client-ts` (`UserManager`) to initiate an OIDC PKCE redirect flow to `Apogee-dev` IdP instead of showing the static password form.
+   * On callback at `/auth/callback`, `oidc-client-ts` processes the redirect (`signinRedirectCallback`) and extracts the OIDC access token and user profile.
    * `/app/v1/...` API endpoints continue receiving `Authorization: Bearer <token>` headers seamlessly.
 
 ---
