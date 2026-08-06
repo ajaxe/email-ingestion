@@ -22,3 +22,8 @@ type RegisterWebhookResponse struct {
 	Message       string `json:"message"`
 	WebhookSecret string `json:"webhookSecret"`
 }
+
+type LoginAuthRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

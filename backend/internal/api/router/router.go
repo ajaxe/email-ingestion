@@ -59,8 +59,8 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
 	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
-
-	appGroup := e.Group("/app/v1")
+	prefix := "/app/v1"
+	appGroup := e.Group(prefix)
 	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
 	appService := service.NewApplicationService(o.Queries)
@@ -68,6 +68,13 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
+
+	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
+	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth))
+	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth)
+
+	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
+	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))
 }
 
 // configureInternalAPI sets up the internal API routes for the application, including the ingestion and email lookup endpoints.

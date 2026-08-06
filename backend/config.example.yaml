@@ -29,3 +29,16 @@ webhook:
   allowed_domains:
     - "localhost"
     - "internal.some-domain.com"
+
+auth:
+  provider: "password" # options: "password" | "oidc"
+  admin: # Admin user credentials for local password auth. Not used if auth.provider is set to "oidc".
+    username: "admin"
+    password: "admin123-change-me"
+    jwt_secret: "dev-dashboard-jwt-secret-key-change-in-prod" # Or env EM_AUTH_JWT_SECRET, only when provider is "password"
+    issuer: "dev-application" # Issuer for JWT tokens. Only used when provider is "password
+    token_ttl_minutes: 1440
+  oidc:
+    issuer: https://auth.some-domain.com
+    client_id: client-id-dev
+    jwks_uri: https://auth.some-domain.com/.well-known/jwks

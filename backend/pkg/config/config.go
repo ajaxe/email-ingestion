@@ -17,6 +17,7 @@ type AppConfig struct {
 	Smtp        SmtpConfig     `mapstructure:"smtp"`
 	Storage     StorageConfig  `mapstructure:"storage"`
 	Webhook     WebhookConfig  `mapstructure:"webhook"`
+	Auth        AuthConfig     `mapstructure:"auth"`
 }
 
 type ServerConfig struct {
@@ -68,6 +69,23 @@ type WebhookConfig struct {
 	AllowedDomains []string `mapstructure:"allowed_domains"`
 	// EncryptionKey is a 32-byte string used to encrypt the webhook secret in the database.
 	EncryptionKey string `mapstructure:"encryption_key"`
+}
+
+type AuthConfig struct {
+	Provider string `mapstructure:"provider"`
+	OIDC     struct {
+		Issuer string `mapstructure:"issuer"`
+		// ClientID is the client ID for OAuth2 authentication.
+		ClientID string `mapstructure:"client_id"`
+		JWKSURI  string `mapstructure:"jwks_uri"`
+	} `mapstructure:"oidc"`
+	Admin struct {
+		Username        string `mapstructure:"username"`
+		Password        string `mapstructure:"password"`
+		JWTSecret       string `mapstructure:"jwt_secret"`
+		Issuer          string `mapstructure:"issuer"`
+		TokenTTLMinutes int64  `mapstructure:"token_ttl_minutes"`
+	} `mapstructure:"admin"`
 }
 
 func (s *SmtpConfig) EmailMaxSizeBytes() int64 {
