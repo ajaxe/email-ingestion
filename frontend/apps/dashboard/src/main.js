@@ -11,14 +11,14 @@ import { createApp } from 'vue'
 import { registerPlugins } from '@/plugins'
 
 // Components
-import App from './App.vue'
+import Main from './Main.vue'
 
 // Styles
 import 'unfonts.css'
 import 'virtual:uno.css'
 import './styles/main.scss'
 
-const app = createApp(App)
+const app = createApp(Main)
 
 registerPlugins(app)
 
