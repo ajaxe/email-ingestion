@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
+	"github.com/ajaxe/email-ingestion/internal/worker"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/google/uuid"
@@ -134,7 +134,7 @@ func (e *EmailIngestionService) Process(ctx context.Context, data io.Reader) err
 		return fmt.Errorf("failed to log inbound email to database")
 	}
 
-	p := &model.IngestEmailPayload{
+	p := &worker.IngestEmailPayload{
 		SpoolID:   id,
 		UploadKey: uploadKey,
 	}

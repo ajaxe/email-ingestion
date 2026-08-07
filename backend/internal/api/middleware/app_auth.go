@@ -5,14 +5,14 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/labstack/echo/v4"
 )
 
 type UserAccessVerifier interface {
-	VerifyToken(ctx context.Context, token string) (*model.UserProfile, error)
+	VerifyToken(ctx context.Context, token string) (*dto.UserProfile, error)
 	PermittedApplications(ctx context.Context, userID string) ([]public.Application, error)
 }
 
@@ -39,7 +39,7 @@ func AppAuth(verifier UserAccessVerifier) echo.MiddlewareFunc {
 				return apperror.Forbidden("invalid token", err)
 			}
 
-			ctx = context.WithValue(ctx, model.UserAccessContextKey, &model.UserAccessResult{
+			ctx = WithUserAccess(ctx, &dto.UserAccessResult{
 				UserProfile:  profile,
 				Applications: apps,
 			})

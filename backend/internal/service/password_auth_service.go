@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/golang-jwt/jwt/v5"
@@ -27,7 +27,7 @@ const (
 )
 
 type PasswordAuthRepository interface {
-	ProvisionUser(ctx context.Context, userData *model.UserProvisionData) (*public.User, error)
+	ProvisionUser(ctx context.Context, userData *UserProvisionData) (*public.User, error)
 	GetAdminApplications(ctx context.Context) ([]public.Application, error)
 }
 
@@ -49,7 +49,7 @@ func (p *PasswordAuthService) Authenticate(ctx context.Context, username, passwo
 		return "", fmt.Errorf("username or password do not match")
 	}
 
-	u, err := p.repo.ProvisionUser(ctx, &model.UserProvisionData{
+	u, err := p.repo.ProvisionUser(ctx, &UserProvisionData{
 		Email:         AdminEmailClaimValue,
 		EmailVerified: true,
 		Subject:       SubjectPasswordAuth,
@@ -83,7 +83,7 @@ func (p *PasswordAuthService) Authenticate(ctx context.Context, username, passwo
 	return jwtToken, err
 }
 
-func (p *PasswordAuthService) VerifyToken(ctx context.Context, token string) (*model.UserProfile, error) {
+func (p *PasswordAuthService) VerifyToken(ctx context.Context, token string) (*dto.UserProfile, error) {
 	claims := &customClaims{}
 	t, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
@@ -106,7 +106,7 @@ func (p *PasswordAuthService) VerifyToken(ctx context.Context, token string) (*m
 	if !t.Valid {
 		return nil, errors.New("invalid token")
 	}
-	return &model.UserProfile{
+	return &dto.UserProfile{
 		UserID:   claims.UserID,
 		Email:    claims.Email,
 		Username: claims.Username,

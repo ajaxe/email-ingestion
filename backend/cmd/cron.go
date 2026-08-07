@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/util"
+	"github.com/ajaxe/email-ingestion/internal/worker"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
@@ -68,7 +68,7 @@ func runCron(ctx context.Context) error {
 					continue
 				}
 
-				j, err := util.JSON(&model.WebhookDeliveryPayload{
+				j, err := util.JSON(&worker.WebhookDeliveryPayload{
 					ApplicationID:   job.ApplicationID.String(),
 					IngestedEmailID: job.IngestedEmailID.String(),
 				})

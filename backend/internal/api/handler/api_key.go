@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ func HandleCreateAPIKey(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
 			return apperror.Validation("invalid application ID")
 		}
 
-		var req model.CreateAPIKeyRequest
+		var req dto.CreateAPIKeyRequest
 		if err := c.Bind(&req); err != nil {
 			return apperror.Validation("invalid request body", err)
 		}
@@ -28,7 +28,7 @@ func HandleCreateAPIKey(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
 		if err != nil {
 			return apperror.Internal("failed to create api key", err)
 		}
-		return c.JSON(http.StatusCreated, model.CreateApiKeyResponse{
+		return c.JSON(http.StatusCreated, dto.CreateApiKeyResponse{
 			APIKey: apiKey,
 		})
 

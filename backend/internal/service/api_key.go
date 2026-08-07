@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
 )
@@ -31,7 +31,7 @@ func (a *ApiKeyService) GetApiKey(ctx context.Context, apiKey string) (*public.A
 	return &k, nil
 }
 
-func (a *ApiKeyService) CreateAPIKey(ctx context.Context, appID uuid.UUID, data model.CreateAPIKeyRequest) (string, error) {
+func (a *ApiKeyService) CreateAPIKey(ctx context.Context, appID uuid.UUID, data dto.CreateAPIKeyRequest) (string, error) {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
 	if err != nil {

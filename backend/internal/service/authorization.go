@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
@@ -67,7 +66,7 @@ func (a *AuthorizationService) ValidateApiKey(ctx context.Context, apiKey string
 	return valid, key.ApplicationID, nil
 }
 
-func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *model.UserProvisionData) (*public.User, error) {
+func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *UserProvisionData) (*public.User, error) {
 	if userData == nil {
 		return nil, fmt.Errorf("user data is nil")
 	}
@@ -101,7 +100,7 @@ func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *mode
 	return user, nil
 }
 
-func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData *model.UserProvisionData) (*public.User, bool, error) {
+func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData *UserProvisionData) (*public.User, bool, error) {
 	u, err := a.queries.GetUserBySubject(ctx, userData.Subject)
 
 	if err != nil {
@@ -138,7 +137,7 @@ func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData 
 	return &u, true, nil
 }
 
-func (a *AuthorizationService) provisionByEmail(ctx context.Context, userData *model.UserProvisionData) (*public.User, bool, error) {
+func (a *AuthorizationService) provisionByEmail(ctx context.Context, userData *UserProvisionData) (*public.User, bool, error) {
 	u, err := a.queries.GetUserByEmail(ctx, userData.Email)
 
 	if err != nil {

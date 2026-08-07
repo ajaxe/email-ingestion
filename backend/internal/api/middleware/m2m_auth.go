@@ -1,11 +1,9 @@
 package middleware
 
 import (
-	"context"
 	"log/slog"
 	"strings"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/labstack/echo/v4"
@@ -36,7 +34,7 @@ func M2MAuth(authz *service.AuthorizationService) echo.MiddlewareFunc {
 				return apperror.Unauthorized("invalid authorization header")
 			}
 
-			ctx = context.WithValue(ctx, model.ApplicationIDContextKey, appID)
+			ctx = WithApplicationID(ctx, appID)
 			n := c.Request().WithContext(ctx)
 			c.SetRequest(n)
 

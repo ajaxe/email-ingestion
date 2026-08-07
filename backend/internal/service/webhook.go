@@ -11,6 +11,7 @@ import (
 	"github.com/ajaxe/email-ingestion/pkg/crypto"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type WebhookService struct {
@@ -59,6 +60,42 @@ func (s *WebhookService) RegisterWebhook(ctx context.Context, appID uuid.UUID, w
 	if err != nil {
 		return "", apperror.Internal("failed to save webhook configuration", err)
 	}
-
 	return webhookSecret, nil
+}
+
+func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string) ([]public.ListWebhookJobsByApplicationRow, error) {
+	jobs, err := s.queries.ListWebhookJobsByApplication(ctx, public.ListWebhookJobsByApplicationParams{
+		ApplicationID: appID,
+		Limit:         limit,
+		Offset:        offset,
+		Status:        pgtype.Text{String: status, Valid: true},
+	})
+
+	if err != nil {
+		return nil, apperror.Internal("failed to list webhook jobs", err)
+	}
+	return jobs, nil
+}
+
+func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobID uuid.UUID) error {
+	// Validate job ownership
+	_, err := s.queries.GetWebhookJobByIDAndAppID(ctx, public.GetWebhookJobByIDAndAppIDParams{
+		ID:            jobID,
+		ApplicationID: appID,
+	})
+	if err != nil {
+		return apperror.NotFound("webhook job not found", err)
+	}
+
+	// Reset job status
+	_, err = s.queries.ResetWebhookJobForRedelivery(ctx, public.ResetWebhookJobForRedeliveryParams{
+		ID:            jobID,
+		ApplicationID: appID,
+	})
+	if err != nil {
+		return apperror.Internal("failed to reset webhook job", err)
+	}
+
+	// Notify Redis outbox for immediate reprocessing
+	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
@@ -31,7 +31,7 @@ func HandleGetAuthConfig(authCfg *config.AuthConfig) echo.HandlerFunc {
 
 func HandlePostLogin(authService *service.PasswordAuthService) echo.HandlerFunc {
 	return func(e echo.Context) error {
-		req := &model.LoginAuthRequest{}
+		req := &dto.LoginAuthRequest{}
 		if err := json.NewDecoder(e.Request().Body).Decode(req); err != nil {
 			return apperror.Validation("Invalid login request", err)
 		}

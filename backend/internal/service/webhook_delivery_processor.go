@@ -15,8 +15,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/webhook"
+	"github.com/ajaxe/email-ingestion/internal/worker"
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
@@ -40,7 +41,7 @@ func NewWebhookDeliveryProcessor(queries *public.Queries, storage WebhookStorage
 	}
 }
 
-func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.WebhookDeliveryPayload) error {
+func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.WebhookDeliveryPayload) error {
 	appID, err := uuid.Parse(payload.ApplicationID)
 	if err != nil {
 		return fmt.Errorf("invalid application id: %w", err)
@@ -83,13 +84,13 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *model.W
 	contentKey := fmt.Sprintf("%s/contents.json", email.S3KeyPrefix)
 	stream, err := w.storage.DownloadObject(ctx, contentKey)
 	if err != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to download parsed content: %w", err))
+		return apperror.NewRetryableError(fmt.Errorf("failed to download parsed content: %w", err))
 	}
 	defer stream.Close()
 
 	bodyBytes, err := io.ReadAll(stream)
 	if err != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to read content stream: %w", err))
+		return apperror.NewRetryableError(fmt.Errorf("failed to read content stream: %w", err))
 	}
 
 	// Wrap inside a webhook event payload

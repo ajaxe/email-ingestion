@@ -1,4 +1,4 @@
-package model
+package storage
 
 type EmailStorageContent struct {
 	Text        string                   `json:"text"`

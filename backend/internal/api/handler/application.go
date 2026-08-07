@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/dto"
+	"github.com/ajaxe/email-ingestion/internal/api/middleware"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
@@ -14,7 +15,7 @@ import (
 )
 
 func CanAccessApplication(ctx context.Context, appID uuid.UUID) error {
-	ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+	ua, ok := middleware.UserAccessFromContext(ctx)
 	if !ok {
 		slog.InfoContext(ctx, "cannot access user application from context")
 		return apperror.Forbidden("user cannot access applications")
@@ -35,7 +36,7 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 		}
 
 		ctx := c.Request().Context()
-		ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+		ua, ok := middleware.UserAccessFromContext(ctx)
 
 		if !ok {
 			return apperror.Forbidden("user cannot access applications")
@@ -53,15 +54,15 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 func HandleGetApplications(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
-		ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+		ua, ok := middleware.UserAccessFromContext(ctx)
 		if !ok {
 			return apperror.Forbidden("user cannot access applications")
 		}
 
-		d := []*model.ApplicationModelResponse{}
+		d := []*dto.ApplicationModelResponse{}
 
 		for _, a := range ua.Applications {
-			d = append(d, &model.ApplicationModelResponse{
+			d = append(d, &dto.ApplicationModelResponse{
 				ID:         a.ID,
 				Name:       a.Name,
 				WebhookURL: a.WebhookUrl,
@@ -85,7 +86,7 @@ func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 			return apperror.Validation("invalid application ID")
 		}
 
-		var req model.CreateAddressRequest
+		var req dto.CreateAddressRequest
 		if err := c.Bind(&req); err != nil {
 			return apperror.Validation("invalid request body", err)
 		}

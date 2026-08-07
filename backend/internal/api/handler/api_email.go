@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/api/middleware"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
@@ -21,7 +21,10 @@ func HandleAPIEmailByID(svc *service.EmailService) echo.HandlerFunc {
 			return apperror.Validation("Invalid email ID", err)
 		}
 
-		appID := ctx.Value(model.ApplicationIDContextKey).(uuid.UUID)
+		appID, ok := middleware.ApplicationIDFromContext(ctx)
+		if !ok {
+			return apperror.Unauthorized("Missing application context")
+		}
 
 		r, err := svc.GetEmailByID(ctx, appID, emailID)
 		if err != nil {

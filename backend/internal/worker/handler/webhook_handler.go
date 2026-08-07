@@ -7,8 +7,9 @@ import (
 	"log/slog"
 
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
-	"github.com/ajaxe/email-ingestion/internal/model"
 	"github.com/ajaxe/email-ingestion/internal/service"
+	"github.com/ajaxe/email-ingestion/internal/worker"
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
 )
 
 type WebhookDeliveryHandler struct {
@@ -29,7 +30,7 @@ func (h *WebhookDeliveryHandler) Handle(ctx context.Context, msg *redis.StreamDa
 		return nil
 	}
 
-	p := &model.WebhookDeliveryPayload{}
+	p := &worker.WebhookDeliveryPayload{}
 	err := json.Unmarshal([]byte(j), p)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to parse webhook delivery payload", "error", err)
@@ -40,7 +41,7 @@ func (h *WebhookDeliveryHandler) Handle(ctx context.Context, msg *redis.StreamDa
 	err = h.processor.Process(ctx, p)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to process webhook message", "applicationID", p.ApplicationID, "ingestedEmailID", p.IngestedEmailID, "error", err)
-		var retryErr *model.RetryableError
+		var retryErr *apperror.RetryableError
 		if errors.As(err, &retryErr) {
 			// Return error so consumer does not ack it (it will be auto-claimed and retried)
 			return err

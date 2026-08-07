@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
@@ -28,7 +28,7 @@ type EmailService struct {
 }
 
 // GetEmailByID fetches an email by its ID and application ID, retrieves the associated content from storage, and returns a combined EmailContent struct.
-func (e *EmailService) GetEmailByID(ctx context.Context, appID uuid.UUID, emailID uuid.UUID) (*model.EmailContent, error) {
+func (e *EmailService) GetEmailByID(ctx context.Context, appID uuid.UUID, emailID uuid.UUID) (*EmailContent, error) {
 	data, err := e.queries.GetIngestedEmailByID(ctx, public.GetIngestedEmailByIDParams{
 		ID:            emailID,
 		ApplicationID: appID,
@@ -44,12 +44,12 @@ func (e *EmailService) GetEmailByID(ctx context.Context, appID uuid.UUID, emailI
 	}
 	defer c.Close()
 
-	contents := model.EmailStorageContent{}
+	contents := storage.EmailStorageContent{}
 	err = json.NewDecoder(c).Decode(&contents)
 	if err != nil {
 		return nil, err
 	}
-	r := &model.EmailContent{
+	r := &EmailContent{
 		IngestedEmail:       data,
 		EmailStorageContent: contents,
 	}

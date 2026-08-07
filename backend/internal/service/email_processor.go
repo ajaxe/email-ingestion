@@ -12,8 +12,10 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/ajaxe/email-ingestion/internal/model"
+	"github.com/ajaxe/email-ingestion/internal/storage"
 	"github.com/ajaxe/email-ingestion/internal/util"
+	"github.com/ajaxe/email-ingestion/internal/worker"
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
 	"github.com/jhillyerd/enmime"
@@ -71,7 +73,7 @@ func NewEmailProcessor(repo EmailRepository, storage EmailStorage, publisher Eve
 // 3. Orchestration Method (Clean SRP)
 // ==========================================
 
-func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmailPayload) error {
+func (e *EmailProcessor) Process(ctx context.Context, payload *worker.IngestEmailPayload) error {
 	spoolID, err := uuid.Parse(payload.SpoolID)
 	if err != nil {
 		return fmt.Errorf("invalid spool ID: %w", err)
@@ -109,7 +111,7 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 	basePath := util.ProcessedEmailS3KeyPrefix(assignedEmail.ApplicationID.String(), msgID)
 	processErr = e.uploadParsedAssets(ctx, env, basePath)
 	if processErr != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to upload parsed assets: %w", processErr))
+		return apperror.NewRetryableError(fmt.Errorf("failed to upload parsed assets: %w", processErr))
 	}
 
 	// 4. Transactional Outbox (Atomic DB Insert)
@@ -123,20 +125,20 @@ func (e *EmailProcessor) Process(ctx context.Context, payload *model.IngestEmail
 		S3KeyPrefix:     basePath,
 	})
 	if processErr != nil {
-		return model.NewRetryableError(fmt.Errorf("db transaction failed: %w", processErr))
+		return apperror.NewRetryableError(fmt.Errorf("db transaction failed: %w", processErr))
 	}
 
-	j, err := util.JSON(&model.WebhookDeliveryPayload{
+	j, err := util.JSON(&worker.WebhookDeliveryPayload{
 		ApplicationID:   assignedEmail.ApplicationID.String(),
 		IngestedEmailID: ingestedEmail.ID.String(),
 	})
 	if err != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to serialize webhook payload: %w", err))
+		return apperror.NewRetryableError(fmt.Errorf("failed to serialize webhook payload: %w", err))
 	}
 	// 5. Notify downstream workers via Message Broker
 	processErr = e.publisher.Publish(ctx, e.webhookStreamName, j)
 	if processErr != nil {
-		return model.NewRetryableError(fmt.Errorf("failed to publish webhook delivery job: %w", processErr))
+		return apperror.NewRetryableError(fmt.Errorf("failed to publish webhook delivery job: %w", processErr))
 	}
 
 	// 6. Cleanup raw email from S3 (Spool DB status is updated in defer block)
@@ -157,7 +159,7 @@ func (e *EmailProcessor) finalizeSpoolStatus(ctx context.Context, spoolID uuid.U
 	if processErr != nil {
 		status = public.SpoolStatusFAILED
 		// If it's a retryable error, mark as PENDING to retry, else it's a terminal FAILED
-		if _, ok := processErr.(*model.RetryableError); ok {
+		if _, ok := processErr.(*apperror.RetryableError); ok {
 			status = public.SpoolStatusPENDING
 		}
 		errMsg = processErr.Error()
@@ -173,7 +175,7 @@ func (e *EmailProcessor) finalizeSpoolStatus(ctx context.Context, spoolID uuid.U
 func (e *EmailProcessor) fetchAndParseEmail(ctx context.Context, uploadKey string) (*enmime.Envelope, error) {
 	stream, err := e.storage.DownloadObject(ctx, uploadKey)
 	if err != nil {
-		return nil, model.NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
+		return nil, apperror.NewRetryableError(fmt.Errorf("failed to download spool object: %w", err))
 	}
 	defer stream.Close()
 
@@ -221,7 +223,7 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 	}
 
 	var err error
-	var attachments []model.EmailStorageAttachment
+	var attachments []storage.EmailStorageAttachment
 	atchPrefix := util.AttachmentStorageKeyPrefix(basePath)
 
 	for _, att := range env.Attachments {
@@ -231,7 +233,7 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 			return fmt.Errorf("failed to upload attachment %s: %w", att.FileName, err)
 		}
 		slog.DebugContext(ctx, "uploaded attachment", "attachment_key", attKey, "size", len(att.Content), "content_type", att.ContentType, "filename", att.FileName, "content-disposition", att.Disposition)
-		attachments = append(attachments, model.EmailStorageAttachment{
+		attachments = append(attachments, storage.EmailStorageAttachment{
 			AttachmentID: attKey,
 			FileName:     att.FileName,
 			ContentType:  att.ContentType,
@@ -247,7 +249,7 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 			return fmt.Errorf("failed to upload inline attachment %s: %w", in.FileName, err)
 		}
 		slog.DebugContext(ctx, "uploaded inline attachment", "attachment_key", attKey, "size", len(in.Content), "content_type", in.ContentType, "filename", in.FileName, "content-disposition", in.Disposition)
-		attachments = append(attachments, model.EmailStorageAttachment{
+		attachments = append(attachments, storage.EmailStorageAttachment{
 			AttachmentID: attKey,
 			FileName:     in.FileName,
 			ContentType:  in.ContentType,
@@ -256,7 +258,7 @@ func (e *EmailProcessor) uploadParsedAssets(ctx context.Context, env *enmime.Env
 		})
 	}
 
-	contentBody := model.EmailStorageContent{
+	contentBody := storage.EmailStorageContent{
 		Text:        env.Text,
 		HTML:        env.HTML,
 		Headers:     headerMap,
