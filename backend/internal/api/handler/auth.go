@@ -35,7 +35,7 @@ func HandlePostLogin(authService *service.PasswordAuthService) echo.HandlerFunc 
 		if err := json.NewDecoder(e.Request().Body).Decode(req); err != nil {
 			return apperror.Validation("Invalid login request", err)
 		}
-		token, err := authService.Authenticate(req.Username, req.Password)
+		token, err := authService.Authenticate(e.Request().Context(), req.Username, req.Password)
 		if err != nil {
 			return apperror.Unauthorized("Invalid username & password", err)
 		}

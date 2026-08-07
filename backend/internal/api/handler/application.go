@@ -11,7 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func HandleGetApplication(svc *service.ApplicationService) echo.HandlerFunc {
+func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
@@ -19,7 +19,7 @@ func HandleGetApplication(svc *service.ApplicationService) echo.HandlerFunc {
 			return apperror.Validation("invalid application ID")
 		}
 
-		app, err := svc.GetApplication(c.Request().Context(), appID)
+		app, err := svc.ApplicationByID(c.Request().Context(), appID)
 		if err != nil {
 			// Check if err is pgx.ErrNoRows in reality, but service might just return it
 			return apperror.NotFound("application not found", err)

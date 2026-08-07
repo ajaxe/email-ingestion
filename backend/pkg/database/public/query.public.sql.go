@@ -393,6 +393,44 @@ func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]Web
 	return items, nil
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, idp_user_sub, status, created_at, activated_at, last_login_at FROM users WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.IdpUserSub,
+		&i.Status,
+		&i.CreatedAt,
+		&i.ActivatedAt,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
+const getUserBySubject = `-- name: GetUserBySubject :one
+SELECT id, email, idp_user_sub, status, created_at, activated_at, last_login_at FROM users WHERE idp_user_sub = $1
+`
+
+func (q *Queries) GetUserBySubject(ctx context.Context, idpUserSub string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserBySubject, idpUserSub)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.IdpUserSub,
+		&i.Status,
+		&i.CreatedAt,
+		&i.ActivatedAt,
+		&i.LastLoginAt,
+	)
+	return i, err
+}
+
 const getWebhookJobByIDs = `-- name: GetWebhookJobByIDs :one
 SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1
 `
@@ -514,6 +552,34 @@ type UpdateSpooledEmailStatusParams struct {
 
 func (q *Queries) UpdateSpooledEmailStatus(ctx context.Context, arg UpdateSpooledEmailStatusParams) error {
 	_, err := q.db.Exec(ctx, updateSpooledEmailStatus, arg.ID, arg.Status, arg.LastErrorMessage)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+UPDATE users
+SET email = $1, idp_user_sub = $2, status = $3, created_at = $4, activated_at = $5, last_login_at = $6 WHERE id = $7
+`
+
+type UpdateUserParams struct {
+	Email       string    `json:"email"`
+	IdpUserSub  string    `json:"idpUserSub"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ActivatedAt time.Time `json:"activatedAt"`
+	LastLoginAt time.Time `json:"lastLoginAt"`
+	ID          uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.Email,
+		arg.IdpUserSub,
+		arg.Status,
+		arg.CreatedAt,
+		arg.ActivatedAt,
+		arg.LastLoginAt,
+		arg.ID,
+	)
 	return err
 }
 

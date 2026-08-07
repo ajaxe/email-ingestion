@@ -16,23 +16,23 @@ export async function passwordLogin(username, password) {
   const { token } = await resp.json();
 
   if (token) {
-    localStorage.setItem(authTokenKey, token);
+    sessionStorage.setItem(authTokenKey, token);
     return true;
   }
   return false;
 }
 
 export function passwordLogout() {
-  localStorage.removeItem(authTokenKey);
+  sessionStorage.removeItem(authTokenKey);
 }
 
-export function checkAuthStatus() {
-  const i = localStorage.getItem(authTokenKey);
-  return Promise.resolve(!!i);
+export async  function checkAuthStatus() {
+  const { access_token } = await fetchToken();
+  return !!access_token;
 }
 
 export function fetchToken() {
   return Promise.resolve({
-    access_token: localStorage.getItem(authTokenKey),
+    access_token: sessionStorage.getItem(authTokenKey),
   });
 }

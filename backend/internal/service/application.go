@@ -18,7 +18,7 @@ func NewApplicationService(queries *public.Queries) *ApplicationService {
 	return &ApplicationService{queries: queries}
 }
 
-func (s *ApplicationService) GetApplication(ctx context.Context, appID uuid.UUID) (public.Application, error) {
+func (s *ApplicationService) ApplicationByID(ctx context.Context, appID uuid.UUID) (public.Application, error) {
 	return s.queries.GetApplicationByID(ctx, appID)
 }
 

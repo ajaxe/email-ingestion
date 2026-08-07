@@ -44,7 +44,7 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 }
 
 func configureM2MAPI(e *echo.Echo, o *ApiInitOptions, storageService *storage.S3StorageService, apiKeyService *service.ApiKeyService) {
-	authz := service.NewAuthorizationService(o.RedisManager.Cache, apiKeyService)
+	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
 	// M2M API routes
 	m2mGroup := e.Group("/api/v1")
 	m2mGroup.Use(middleware.M2MAuth(authz))
@@ -64,14 +64,16 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
 	appService := service.NewApplicationService(o.Queries)
-	appGroup.GET("/applications/:app_id", handler.HandleGetApplication(appService))
+	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
 	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
 
 	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
 	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth))
-	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth)
+
+	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
+	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth, authz)
 
 	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
 	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))

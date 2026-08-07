@@ -78,3 +78,12 @@ SELECT * FROM api_keys WHERE key_hash = $1;
 INSERT INTO api_keys (application_id, name, key_prefix, key_hash, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
 
+-- name: GetUserBySubject :one
+SELECT * FROM users WHERE idp_user_sub = $1;
+
+-- name: GetUserByEmail :one
+SELECT * FROM users WHERE email = $1;
+
+-- name: UpdateUser :exec
+UPDATE users
+SET email = $1, idp_user_sub = $2, status = $3, created_at = $4, activated_at = $5, last_login_at = $6 WHERE id = $7;
