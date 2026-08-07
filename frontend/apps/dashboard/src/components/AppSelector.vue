@@ -1,0 +1,14 @@
+<template>
+  <v-select
+      max-width="400"
+      label="Select"
+      :items="[
+        'California',
+        'Colorado',
+        'Florida',
+        'Georgia',
+        'Texas',
+        'Wyoming',
+      ]"
+    ></v-select>
+</template>

@@ -1,5 +1,5 @@
 <template>
-  <HelloWorld />
+  <DashboardStats />
 </template>
 
 <route lang="yaml">
@@ -9,5 +9,5 @@ meta:
 </route>
 
 <script setup>
-  import HelloWorld from '@/components/HelloWorld.vue'
+  import DashboardStats from '@/components/dashboard/DashboardStats.vue'
 </script>
