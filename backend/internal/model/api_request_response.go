@@ -47,6 +47,19 @@ type UserAccessResult struct {
 	Applications []public.Application
 }
 
+func (u *UserAccessResult) ApplicationByID(id uuid.UUID) *public.Application {
+	for _, app := range u.Applications {
+		if app.ID == id {
+			return &app
+		}
+	}
+	return nil
+}
+
+func (u *UserAccessResult) CanAccessApplication(id uuid.UUID) bool {
+	return u.ApplicationByID(id) != nil
+}
+
 type ApplicationModelResponse struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,6 +13,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func CanAccessApplication(ctx context.Context, appID uuid.UUID) error {
+	ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+	if !ok {
+		slog.InfoContext(ctx, "cannot access user application from context")
+		return apperror.Forbidden("user cannot access applications")
+	}
+	if !ua.CanAccessApplication(appID) {
+		slog.InfoContext(ctx, "application not present user application list, from context")
+		return apperror.Forbidden("user cannot access applications")
+	}
+	return nil
+}
+
 func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		appIDStr := c.Param("app_id")
@@ -19,10 +34,16 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 			return apperror.Validation("invalid application ID")
 		}
 
-		app, err := svc.ApplicationByID(c.Request().Context(), appID)
-		if err != nil {
-			// Check if err is pgx.ErrNoRows in reality, but service might just return it
-			return apperror.NotFound("application not found", err)
+		ctx := c.Request().Context()
+		ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+
+		if !ok {
+			return apperror.Forbidden("user cannot access applications")
+		}
+
+		app := ua.ApplicationByID(appID)
+		if app != nil {
+			return apperror.NotFound("application not found")
 		}
 
 		return c.JSON(http.StatusOK, app)
@@ -57,6 +78,7 @@ func HandleGetApplications(svc *service.ApplicationService) echo.HandlerFunc {
 
 func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -68,7 +90,11 @@ func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 			return apperror.Validation("invalid request body", err)
 		}
 
-		assignedEmail, err := svc.CreateAddress(c.Request().Context(), appID, req.Description)
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		assignedEmail, err := svc.CreateAddress(ctx, appID, req.Description)
 		if err != nil {
 			return err
 		}
@@ -79,10 +105,15 @@ func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 
 func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
 			return apperror.Validation("invalid application ID")
+		}
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
 		}
 
 		limitStr := c.QueryParam("limit")
@@ -102,7 +133,7 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 			}
 		}
 
-		emails, err := svc.ListEmails(c.Request().Context(), appID, int32(limit), int32(offset))
+		emails, err := svc.ListEmails(ctx, appID, int32(limit), int32(offset))
 		if err != nil {
 			return err
 		}

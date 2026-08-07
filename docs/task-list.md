@@ -64,10 +64,10 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **7.2 Core Pinia Stores & API Client Integration**
 
-* [ ] Implement `useAppStore` (`src/stores/application.js`) for tenant details, API keys, and global settings (`GET /app/v1/applications/:app_id`).  
-* [ ] Implement `useAddressStore` (`src/stores/addresses.js`) for provisioning (`POST /app/v1/applications/:app_id/addresses`) and toggling active 10-character email local-part routing addresses.  
-* [ ] Implement `useEmailStore` (`src/stores/emails.js`) for paginated email logs (`GET /app/v1/applications/:app_id/emails`) and fetching S3 presigned attachment URLs (`GET /app/v1/applications/:app_id/emails/{emailId}/attachments/{attachmentId}`).  
-* [ ] Implement `useWebhookStore` (`src/stores/webhooks.js`) for endpoint challenge verification (`PUT /app/v1/applications/:app_id/webhook`), job history logs, and manual outbox re-delivery requests (`POST /app/v1/applications/:app_id/webhook/jobs/{id}/redeliver`).  
+* [x] Implement `useAppStore` (`src/stores/application.js`) for tenant details, API keys, and global settings (`GET /app/v1/applications/:app_id`).  
+* [x] Implement `useAddressStore` (`src/stores/addresses.js`) for provisioning (`POST /app/v1/applications/:app_id/addresses`) and toggling active 10-character email local-part routing addresses.  
+* [x] Implement `useEmailStore` (`src/stores/emails.js`) for paginated email logs (`GET /app/v1/applications/:app_id/emails`) and fetching S3 presigned attachment URLs (`GET /app/v1/applications/:app_id/emails/{emailId}/attachments/{attachmentId}`).  
+* [x] Implement `useWebhookStore` (`src/stores/webhooks.js`) for endpoint challenge verification (`PUT /app/v1/applications/:app_id/webhook`), job history logs, and manual outbox re-delivery requests (`POST /app/v1/applications/:app_id/webhook/jobs/{id}/redeliver`).  
 * **Verification Checkpoint**: Test store actions against backend mock/live `/app/v1/...` API endpoints and confirm reactive state updates.
 
 ### **7.3 Dashboard Navigation Shell & Global UI Layout Specs**
