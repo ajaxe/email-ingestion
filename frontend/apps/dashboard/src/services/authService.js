@@ -30,3 +30,9 @@ export function checkAuthStatus() {
   const i = localStorage.getItem(authTokenKey);
   return Promise.resolve(!!i);
 }
+
+export function fetchToken() {
+  return Promise.resolve({
+    access_token: localStorage.getItem(authTokenKey),
+  });
+}
