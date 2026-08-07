@@ -11,9 +11,12 @@ export const useAppStore = defineStore('app', {
     async fetchAppDetails(appId) {
       this.loading = true;
       try {
-        this.application = await getApplication(appId);
+        const res = await getApplication(appId);
+        this.application = res.data || res;
+        return this.application;
       } catch (err) {
         this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }

@@ -12,7 +12,12 @@ export const useWebhookStore = defineStore('webhooks', {
     async setupWebhook(appId, config) {
       this.loading = true;
       try {
-        this.config = await configureWebhook(appId, config);
+        const res = await configureWebhook(appId, config);
+        this.config = res.data || res;
+        return this.config;
+      } catch (err) {
+        this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }
@@ -20,7 +25,12 @@ export const useWebhookStore = defineStore('webhooks', {
     async fetchJobs(appId, queryParams) {
       this.loading = true;
       try {
-        this.jobs = await getWebhookJobs(appId, queryParams);
+        const res = await getWebhookJobs(appId, queryParams);
+        this.jobs = res.data || res;
+        return this.jobs;
+      } catch (err) {
+        this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }
@@ -28,7 +38,11 @@ export const useWebhookStore = defineStore('webhooks', {
     async redeliverJob(appId, jobId) {
       this.loading = true;
       try {
-        return await redeliverWebhook(appId, jobId);
+        const res = await redeliverWebhook(appId, jobId);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }

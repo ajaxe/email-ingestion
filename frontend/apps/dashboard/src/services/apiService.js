@@ -1,7 +1,7 @@
 /* eslint-disable antfu/top-level-function */
 import axios from "axios";
 // import { UserManager } from "oidc-client-ts";
-import { fetchToken} from "./authServiceauth";
+import { fetchToken } from "./authService";
 
 const apiClient = axios.create({
   baseURL: "/app/v1",
@@ -44,6 +44,8 @@ apiClient.interceptors.response.use(
 
 export const getApplication = (appId) =>
   apiClient.get(`/applications/${appId}`);
+export const getAddresses = (appId, queryParams) =>
+  apiClient.get(`/applications/${appId}/addresses`, { params: queryParams });
 export const createAddress = (appId, description) =>
   apiClient.post(`/applications/${appId}/addresses`, { description });
 export const toggleAddressStatus = (appId, addressId, status) =>

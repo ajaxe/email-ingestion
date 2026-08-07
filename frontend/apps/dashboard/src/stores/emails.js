@@ -12,7 +12,12 @@ export const useEmailStore = defineStore('emails', {
     async fetchEmails(appId, queryParams) {
       this.loading = true;
       try {
-        this.emails = await getEmailList(appId, queryParams);
+        const res = await getEmailList(appId, queryParams);
+        this.emails = res.data || res;
+        return this.emails;
+      } catch (err) {
+        this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }
@@ -20,7 +25,11 @@ export const useEmailStore = defineStore('emails', {
     async fetchAttachmentUrl(appId, emailId, attachmentId) {
       this.loading = true;
       try {
-        return await getAttachmentUrl(appId, emailId, attachmentId);
+        const res = await getAttachmentUrl(appId, emailId, attachmentId);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
       } finally {
         this.loading = false;
       }
