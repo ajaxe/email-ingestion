@@ -102,14 +102,15 @@ func HandleRedeliverWebhookJob(svc *service.WebhookService) echo.HandlerFunc {
 			return err
 		}
 
-		if err := svc.RedeliverJob(ctx, appID, jobID); err != nil {
+		newJob, err := svc.RedeliverJob(ctx, appID, jobID)
+		if err != nil {
 			return err
 		}
 
 		return c.JSON(http.StatusOK, dto.RedeliverWebhookJobResponse{
 			Message: "Webhook delivery job re-queued successfully",
-			JobID:   jobID.String(),
-			Status:  "PENDING",
+			JobID:   newJob.ID.String(),
+			Status:  string(newJob.Status),
 		})
 	}
 }

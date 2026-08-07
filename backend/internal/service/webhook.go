@@ -84,39 +84,66 @@ func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, o
 	return jobs, nil
 }
 
-func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobID uuid.UUID) error {
-	// Validate job ownership
-	_, err := s.queries.GetWebhookJobByIDAndAppID(ctx, public.GetWebhookJobByIDAndAppIDParams{
+func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobID uuid.UUID) (*public.WebhookDeliveryJob, error) {
+	// Validate job ownership & existence
+	oldJob, err := s.queries.GetWebhookJobByIDAndAppID(ctx, public.GetWebhookJobByIDAndAppIDParams{
 		ID:            jobID,
 		ApplicationID: appID,
 	})
 	if err != nil {
-		return apperror.NotFound("webhook job not found", err)
+		return nil, apperror.NotFound("webhook job not found", err)
 	}
 
-	// Reset job status
-	job, err := s.queries.ResetWebhookJobForRedelivery(ctx, public.ResetWebhookJobForRedeliveryParams{
+	// Block redelivery if the job is currently processing
+	if oldJob.Status == public.WebhookStatusPROCESSING {
+		return nil, apperror.Conflict("webhook job is currently processing")
+	}
+
+	// Cancel previous job instance if PENDING or FAILED so cron poller ignores it
+	_ = s.queries.CancelWebhookJob(ctx, public.CancelWebhookJobParams{
 		ID:            jobID,
 		ApplicationID: appID,
 	})
+
+	// Create a NEW job instance for redelivery (Approach B: Immutable Job History)
+	newJob, err := s.queries.EnqueueWebhookJob(ctx, public.EnqueueWebhookJobParams{
+		ApplicationID:   appID,
+		IngestedEmailID: oldJob.IngestedEmailID,
+	})
 	if err != nil {
-		return apperror.Internal("failed to reset webhook job", err)
+		return nil, apperror.Internal("failed to enqueue new webhook job for redelivery", err)
 	}
 
 	// Notify Redis outbox for immediate reprocessing
 	if s.publisher != nil && s.webhookStreamName != "" {
+		// Mark as PROCESSING immediately so background cron poller doesn't double-pick it
+		_ = s.queries.UpdateWebhookJobStatus(ctx, public.UpdateWebhookJobStatusParams{
+			ID:             newJob.ID,
+			Status:         public.WebhookStatusPROCESSING,
+			RetryCount:     0,
+			NextDeliveryAt: newJob.NextDeliveryAt,
+		})
+
 		payload, err := util.JSON(&worker.WebhookDeliveryPayload{
-			ApplicationID:   job.ApplicationID.String(),
-			IngestedEmailID: job.IngestedEmailID.String(),
+			ApplicationID:   newJob.ApplicationID.String(),
+			IngestedEmailID: newJob.IngestedEmailID.String(),
+			JobID:           newJob.ID.String(),
 		})
 		if err != nil {
-			return apperror.Internal("failed to serialize webhook payload", fmt.Errorf("%w", err))
+			return nil, apperror.Internal("failed to serialize webhook payload", fmt.Errorf("%w", err))
 		}
 
 		if err := s.publisher.Publish(ctx, s.webhookStreamName, payload); err != nil {
-			return apperror.Internal("failed to publish webhook delivery job for redelivery", err)
+			// Revert to PENDING if stream publishing failed
+			_ = s.queries.UpdateWebhookJobStatus(ctx, public.UpdateWebhookJobStatusParams{
+				ID:             newJob.ID,
+				Status:         public.WebhookStatusPENDING,
+				RetryCount:     0,
+				NextDeliveryAt: newJob.NextDeliveryAt,
+			})
+			return nil, apperror.Internal("failed to publish webhook delivery job for redelivery", err)
 		}
 	}
 
-	return nil
+	return &newJob, nil
 }

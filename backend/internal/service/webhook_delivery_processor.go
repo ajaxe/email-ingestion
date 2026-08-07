@@ -63,12 +63,24 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 	}
 
 	// 2. Get Job Details (To check retry count)
-	job, err := w.queries.GetWebhookJobByIDs(ctx, public.GetWebhookJobByIDsParams{
-		ApplicationID:   appID,
-		IngestedEmailID: emailID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get webhook job: %w", err)
+	var job public.WebhookDeliveryJob
+	if payload.JobID != "" {
+		if jobID, parseErr := uuid.Parse(payload.JobID); parseErr == nil {
+			job, _ = w.queries.GetWebhookJobByIDAndAppID(ctx, public.GetWebhookJobByIDAndAppIDParams{
+				ID:            jobID,
+				ApplicationID: appID,
+			})
+		}
+	}
+	if job.ID == uuid.Nil {
+		var fetchErr error
+		job, fetchErr = w.queries.GetWebhookJobByIDs(ctx, public.GetWebhookJobByIDsParams{
+			ApplicationID:   appID,
+			IngestedEmailID: emailID,
+		})
+		if fetchErr != nil {
+			return fmt.Errorf("failed to get webhook job: %w", fetchErr)
+		}
 	}
 
 	// 3. Get Ingested Email Metadata

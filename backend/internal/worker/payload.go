@@ -6,6 +6,7 @@ type IngestEmailPayload struct {
 }
 
 type WebhookDeliveryPayload struct {
-	ApplicationID   string
-	IngestedEmailID string
+	ApplicationID   string `json:"application_id"`
+	IngestedEmailID string `json:"ingested_email_id"`
+	JobID           string `json:"job_id,omitempty"`
 }

@@ -71,6 +71,7 @@ func runCron(ctx context.Context) error {
 				j, err := util.JSON(&worker.WebhookDeliveryPayload{
 					ApplicationID:   job.ApplicationID.String(),
 					IngestedEmailID: job.IngestedEmailID.String(),
+					JobID:           job.ID.String(),
 				})
 
 				if err != nil {

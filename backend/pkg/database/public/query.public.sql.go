@@ -13,6 +13,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelWebhookJob = `-- name: CancelWebhookJob :exec
+UPDATE webhook_delivery_jobs
+SET status = 'DEAD'
+WHERE id = $1 AND application_id = $2 AND status IN ('PENDING', 'FAILED')
+`
+
+type CancelWebhookJobParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) CancelWebhookJob(ctx context.Context, arg CancelWebhookJobParams) error {
+	_, err := q.db.Exec(ctx, cancelWebhookJob, arg.ID, arg.ApplicationID)
+	return err
+}
+
 const checkDuplicateWebhookJob = `-- name: CheckDuplicateWebhookJob :one
 SELECT EXISTS (
   SELECT 1 FROM webhook_delivery_jobs  
@@ -530,7 +546,7 @@ func (q *Queries) GetWebhookJobByIDAndAppID(ctx context.Context, arg GetWebhookJ
 }
 
 const getWebhookJobByIDs = `-- name: GetWebhookJobByIDs :one
-SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1
+SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 ORDER BY created_at DESC LIMIT 1
 `
 
 type GetWebhookJobByIDsParams struct {
@@ -577,6 +593,39 @@ func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobI
 			&i.IsRetry,
 			&i.DurationMs,
 			&i.ExecutedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAssignedEmailsByApplication = `-- name: ListAssignedEmailsByApplication :many
+SELECT id, application_id, local_part, description, is_active, created_at FROM assigned_emails
+WHERE application_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListAssignedEmailsByApplication(ctx context.Context, applicationID uuid.UUID) ([]AssignedEmail, error) {
+	rows, err := q.db.Query(ctx, listAssignedEmailsByApplication, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AssignedEmail
+	for rows.Next() {
+		var i AssignedEmail
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.LocalPart,
+			&i.Description,
+			&i.IsActive,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -770,6 +819,23 @@ type UpdateApplicationWebhookParams struct {
 
 func (q *Queries) UpdateApplicationWebhook(ctx context.Context, arg UpdateApplicationWebhookParams) error {
 	_, err := q.db.Exec(ctx, updateApplicationWebhook, arg.ID, arg.WebhookUrl, arg.WebhookSecret)
+	return err
+}
+
+const updateAssignedEmailStatus = `-- name: UpdateAssignedEmailStatus :exec
+UPDATE assigned_emails
+SET is_active = $2
+WHERE id = $1 AND application_id = $3
+`
+
+type UpdateAssignedEmailStatusParams struct {
+	ID            uuid.UUID `json:"id"`
+	IsActive      bool      `json:"isActive"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) UpdateAssignedEmailStatus(ctx context.Context, arg UpdateAssignedEmailStatusParams) error {
+	_, err := q.db.Exec(ctx, updateAssignedEmailStatus, arg.ID, arg.IsActive, arg.ApplicationID)
 	return err
 }
 

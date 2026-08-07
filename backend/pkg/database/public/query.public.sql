@@ -75,7 +75,25 @@ WHERE id = $1;
 SELECT * FROM ingested_emails WHERE id = $1 and application_id = $2 LIMIT 1;
 
 -- name: GetWebhookJobByIDs :one
-SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 LIMIT 1;
+SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 ORDER BY created_at DESC LIMIT 1;
+
+-- name: CancelWebhookJob :exec
+UPDATE webhook_delivery_jobs
+SET status = 'DEAD'
+WHERE id = $1 AND application_id = $2 AND status IN ('PENDING', 'FAILED');
+
+-- name: GetWebhookJobByIDAndAppID :one
+SELECT * FROM webhook_delivery_jobs
+WHERE id = $1 AND application_id = $2
+LIMIT 1;
+
+-- name: ResetWebhookJobForRedelivery :one
+UPDATE webhook_delivery_jobs
+SET status = 'PENDING',
+    retry_count = 0,
+    next_delivery_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND application_id = $2
+RETURNING *;
 -- name: ListIngestedEmailsByApplication :many
 SELECT * FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;
 
@@ -112,20 +130,19 @@ WHERE wj.application_id = $1
 ORDER BY wj.created_at DESC
 LIMIT $2 OFFSET $3;
 
--- name: GetWebhookJobByIDAndAppID :one
-SELECT * FROM webhook_delivery_jobs
-WHERE id = $1 AND application_id = $2
-LIMIT 1;
-
--- name: ResetWebhookJobForRedelivery :one
-UPDATE webhook_delivery_jobs
-SET status = 'PENDING',
-    retry_count = 0,
-    next_delivery_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND application_id = $2
-RETURNING *;
 
 -- name: GetWebhookLogsByJobID :many
 SELECT * FROM webhook_logs
 WHERE webhook_delivery_job_id = $1
 ORDER BY attempt_number DESC;
+
+-- name: ListAssignedEmailsByApplication :many
+SELECT * FROM assigned_emails
+WHERE application_id = $1
+ORDER BY created_at DESC;
+
+-- name: UpdateAssignedEmailStatus :exec
+UPDATE assigned_emails
+SET is_active = $2
+WHERE id = $1 AND application_id = $3;
+

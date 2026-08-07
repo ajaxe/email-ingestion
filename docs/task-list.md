@@ -158,7 +158,7 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 *Implement backend persistence, service layer, Echo HTTP handlers, and routing pathways for `GET /app/v1/applications/:app_id/webhook/jobs` and `POST /app/v1/applications/:app_id/webhook/jobs/:job_id/redeliver`.*
 
-* [ ] **SQL Queries & Generation (`backend/pkg/database/public/query.public.sql`)**:
+* [x] **SQL Queries & Generation (`backend/pkg/database/public/query.public.sql`)**:
   * Implement `ListWebhookJobsByApplication`:
     ```sql
     -- name: ListWebhookJobsByApplication :many
@@ -203,7 +203,7 @@ This document tracks active and upcoming development phases. Completed phases ar
     ```
   * Run database code generation in `backend/`: `cd backend && sqlc generate`.
 
-* [ ] **Service Layer Enhancements (`backend/internal/service/webhook.go`)**:
+* [x] **Service Layer Enhancements (`backend/internal/service/webhook.go`)**:
   * Implement `ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string)`:
     * Query `ListWebhookJobsByApplication` with parameters.
     * Return paginated job models with latest attempt telemetry.
@@ -212,7 +212,7 @@ This document tracks active and upcoming development phases. Completed phases ar
     * Reset job status and delivery timestamp via `ResetWebhookJobForRedelivery`.
     * Notify active Redis outbox stream to trigger immediate background worker re-processing.
 
-* [ ] **Echo HTTP Handlers (`backend/internal/api/handler/webhook.go`)**:
+* [x] **Echo HTTP Handlers (`backend/internal/api/handler/webhook.go`)**:
   * Implement `HandleListWebhookJobs(svc *service.WebhookService) echo.HandlerFunc`:
     * Route: `GET /applications/:app_id/webhook/jobs`
     * Extract URL param `:app_id` and query string parameters `limit` (default: 50), `offset` (default: 0), `status` (optional filter).
@@ -225,7 +225,7 @@ This document tracks active and upcoming development phases. Completed phases ar
     * Invoke `svc.RedeliverJob(ctx, appID, jobID)`.
     * Return `http.StatusOK` with response body `{"message": "Webhook delivery job re-queued successfully", "job_id": job_id, "status": "PENDING"}`.
 
-* [ ] **Router Registration (`backend/internal/api/router/router.go`)**:
+* [x] **Router Registration (`backend/internal/api/router/router.go`)**:
   * Under `configureAppAPI` in the `/app/v1` group:
     ```go
     appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
