@@ -154,6 +154,86 @@ This document tracks active and upcoming development phases. Completed phases ar
 * [ ] Run `pnpm lint` and `pnpm build` in `frontend/apps/dashboard` to verify zero build or linting errors.  
 * **Verification Checkpoint**: Confirm clean `pnpm build` output and zero lint errors.
 
+### **7.7 Webhook Outbox Delivery Jobs & Re-delivery API Engine**
+
+*Implement backend persistence, service layer, Echo HTTP handlers, and routing pathways for `GET /app/v1/applications/:app_id/webhook/jobs` and `POST /app/v1/applications/:app_id/webhook/jobs/:job_id/redeliver`.*
+
+* [ ] **SQL Queries & Generation (`backend/pkg/database/public/query.public.sql`)**:
+  * Implement `ListWebhookJobsByApplication`:
+    ```sql
+    -- name: ListWebhookJobsByApplication :many
+    SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
+           wl.http_status_code, wl.duration_ms, wl.attempt_number
+    FROM webhook_delivery_jobs wj
+    LEFT JOIN LATERAL (
+      SELECT http_status_code, duration_ms, attempt_number
+      FROM webhook_logs
+      WHERE webhook_delivery_job_id = wj.id
+      ORDER BY attempt_number DESC
+      LIMIT 1
+    ) wl ON TRUE
+    WHERE wj.application_id = $1
+      AND (sqlc.narg('status')::text IS NULL OR sqlc.narg('status')::text = '' OR wj.status = sqlc.narg('status')::text)
+    ORDER BY wj.created_at DESC
+    LIMIT $2 OFFSET $3;
+    ```
+  * Implement `GetWebhookJobByIDAndAppID`:
+    ```sql
+    -- name: GetWebhookJobByIDAndAppID :one
+    SELECT * FROM webhook_delivery_jobs
+    WHERE id = $1 AND application_id = $2
+    LIMIT 1;
+    ```
+  * Implement `ResetWebhookJobForRedelivery`:
+    ```sql
+    -- name: ResetWebhookJobForRedelivery :one
+    UPDATE webhook_delivery_jobs
+    SET status = 'PENDING',
+        retry_count = 0,
+        next_delivery_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND application_id = $2
+    RETURNING *;
+    ```
+  * Implement `GetWebhookLogsByJobID`:
+    ```sql
+    -- name: GetWebhookLogsByJobID :many
+    SELECT * FROM webhook_logs
+    WHERE webhook_delivery_job_id = $1
+    ORDER BY attempt_number DESC;
+    ```
+  * Run database code generation in `backend/`: `cd backend && sqlc generate`.
+
+* [ ] **Service Layer Enhancements (`backend/internal/service/webhook.go`)**:
+  * Implement `ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string)`:
+    * Query `ListWebhookJobsByApplication` with parameters.
+    * Return paginated job models with latest attempt telemetry.
+  * Implement `RedeliverJob(ctx context.Context, appID, jobID uuid.UUID)`:
+    * Validate job ownership for `appID` via `GetWebhookJobByIDAndAppID`.
+    * Reset job status and delivery timestamp via `ResetWebhookJobForRedelivery`.
+    * Notify active Redis outbox stream to trigger immediate background worker re-processing.
+
+* [ ] **Echo HTTP Handlers (`backend/internal/api/handler/webhook.go`)**:
+  * Implement `HandleListWebhookJobs(svc *service.WebhookService) echo.HandlerFunc`:
+    * Route: `GET /applications/:app_id/webhook/jobs`
+    * Extract URL param `:app_id` and query string parameters `limit` (default: 50), `offset` (default: 0), `status` (optional filter).
+    * Authorize tenant context via `CanAccessApplication(ctx, appID)`.
+    * Return `http.StatusOK` with JSON array of webhook job records.
+  * Implement `HandleRedeliverWebhookJob(svc *service.WebhookService) echo.HandlerFunc`:
+    * Route: `POST /applications/:app_id/webhook/jobs/:job_id/redeliver`
+    * Extract URL params `:app_id` and `:job_id`.
+    * Authorize tenant context via `CanAccessApplication(ctx, appID)`.
+    * Invoke `svc.RedeliverJob(ctx, appID, jobID)`.
+    * Return `http.StatusOK` with response body `{"message": "Webhook delivery job re-queued successfully", "job_id": job_id, "status": "PENDING"}`.
+
+* [ ] **Router Registration (`backend/internal/api/router/router.go`)**:
+  * Under `configureAppAPI` in the `/app/v1` group:
+    ```go
+    appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
+    appGroup.POST("/applications/:app_id/webhook/jobs/:job_id/redeliver", handler.HandleRedeliverWebhookJob(webhookService))
+    ```
+
+* **Verification Checkpoint**: Run `go test ./...` in `backend`, test `GET /app/v1/applications/:app_id/webhook/jobs` and `POST /app/v1/applications/:app_id/webhook/jobs/:job_id/redeliver` via authenticated API requests, and verify job status transitions to `PENDING` in PostgreSQL `webhook_delivery_jobs`.
+
 ---
 
 ## **Phase 8: Containerization & Infrastructure Deployment**

@@ -95,3 +95,37 @@ SELECT * FROM users WHERE email = $1;
 -- name: UpdateUser :exec
 UPDATE users
 SET email = $1, idp_user_sub = $2, status = $3, created_at = $4, activated_at = $5, last_login_at = $6 WHERE id = $7;
+
+-- name: ListWebhookJobsByApplication :many
+SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
+       wl.http_status_code, wl.duration_ms, wl.attempt_number
+FROM webhook_delivery_jobs wj
+LEFT JOIN LATERAL (
+  SELECT http_status_code, duration_ms, attempt_number
+  FROM webhook_logs
+  WHERE webhook_delivery_job_id = wj.id
+  ORDER BY attempt_number DESC
+  LIMIT 1
+) wl ON TRUE
+WHERE wj.application_id = $1
+  AND (sqlc.narg('status')::text IS NULL OR sqlc.narg('status')::text = '' OR wj.status = sqlc.narg('status')::text)
+ORDER BY wj.created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: GetWebhookJobByIDAndAppID :one
+SELECT * FROM webhook_delivery_jobs
+WHERE id = $1 AND application_id = $2
+LIMIT 1;
+
+-- name: ResetWebhookJobForRedelivery :one
+UPDATE webhook_delivery_jobs
+SET status = 'PENDING',
+    retry_count = 0,
+    next_delivery_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND application_id = $2
+RETURNING *;
+
+-- name: GetWebhookLogsByJobID :many
+SELECT * FROM webhook_logs
+WHERE webhook_delivery_job_id = $1
+ORDER BY attempt_number DESC;

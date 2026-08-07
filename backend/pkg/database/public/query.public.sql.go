@@ -70,7 +70,7 @@ type CreateAssignedEmailParams struct {
 	Description   pgtype.Text `json:"description"`
 }
 
-func (q *Queries) CreateAssignedEmail(ctx context.Context, arg CreateAssignedEmailParams) (AssignedEmail, error) {
+func (q *Queries) CreateAssignedEmail(ctx context.Context, arg CreateAssignedEmailParams) (*AssignedEmail, error) {
 	row := q.db.QueryRow(ctx, createAssignedEmail, arg.ApplicationID, arg.LocalPart, arg.Description)
 	var i AssignedEmail
 	err := row.Scan(
@@ -81,7 +81,7 @@ func (q *Queries) CreateAssignedEmail(ctx context.Context, arg CreateAssignedEma
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const createInboundSpooledEmail = `-- name: CreateInboundSpooledEmail :one
@@ -100,7 +100,7 @@ type CreateInboundSpooledEmailParams struct {
 	UpdatedAt        time.Time   `json:"updatedAt"`
 }
 
-func (q *Queries) CreateInboundSpooledEmail(ctx context.Context, arg CreateInboundSpooledEmailParams) (InboundSpoolQueue, error) {
+func (q *Queries) CreateInboundSpooledEmail(ctx context.Context, arg CreateInboundSpooledEmailParams) (*InboundSpoolQueue, error) {
 	row := q.db.QueryRow(ctx, createInboundSpooledEmail,
 		arg.ID,
 		arg.S3ObjectKey,
@@ -120,7 +120,7 @@ func (q *Queries) CreateInboundSpooledEmail(ctx context.Context, arg CreateInbou
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const createIngestedEmail = `-- name: CreateIngestedEmail :one
@@ -139,7 +139,7 @@ type CreateIngestedEmailParams struct {
 	S3KeyPrefix     string    `json:"s3KeyPrefix"`
 }
 
-func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEmailParams) (IngestedEmail, error) {
+func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEmailParams) (*IngestedEmail, error) {
 	row := q.db.QueryRow(ctx, createIngestedEmail,
 		arg.ApplicationID,
 		arg.AssignedEmailID,
@@ -161,7 +161,7 @@ func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEma
 		&i.S3KeyPrefix,
 		&i.ReceivedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const enqueueWebhookJob = `-- name: EnqueueWebhookJob :one
@@ -175,7 +175,7 @@ type EnqueueWebhookJobParams struct {
 	IngestedEmailID uuid.UUID `json:"ingestedEmailId"`
 }
 
-func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobParams) (WebhookDeliveryJob, error) {
+func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobParams) (*WebhookDeliveryJob, error) {
 	row := q.db.QueryRow(ctx, enqueueWebhookJob, arg.ApplicationID, arg.IngestedEmailID)
 	var i WebhookDeliveryJob
 	err := row.Scan(
@@ -187,20 +187,20 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 		&i.NextDeliveryAt,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getAdminApplications = `-- name: GetAdminApplications :many
 SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications
 `
 
-func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, error) {
+func (q *Queries) GetAdminApplications(ctx context.Context) ([]*Application, error) {
 	rows, err := q.db.Query(ctx, getAdminApplications)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Application
+	var items []*Application
 	for rows.Next() {
 		var i Application
 		if err := rows.Scan(
@@ -217,7 +217,7 @@ func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, erro
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ const getApiKeyByKeyHash = `-- name: GetApiKeyByKeyHash :one
 SELECT id, application_id, name, key_prefix, key_hash, created_at, expires_at, last_user_at FROM api_keys WHERE key_hash = $1
 `
 
-func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKey, error) {
+func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (*ApiKey, error) {
 	row := q.db.QueryRow(ctx, getApiKeyByKeyHash, keyHash)
 	var i ApiKey
 	err := row.Scan(
@@ -242,14 +242,14 @@ func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKe
 		&i.ExpiresAt,
 		&i.LastUserAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getApplicationByAPIKey = `-- name: GetApplicationByAPIKey :one
 SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE api_key_hash = $1 LIMIT 1
 `
 
-func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string) (Application, error) {
+func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string) (*Application, error) {
 	row := q.db.QueryRow(ctx, getApplicationByAPIKey, apiKeyHash)
 	var i Application
 	err := row.Scan(
@@ -264,14 +264,14 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string)
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getApplicationByID = `-- name: GetApplicationByID :one
 SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Application, error) {
+func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (*Application, error) {
 	row := q.db.QueryRow(ctx, getApplicationByID, id)
 	var i Application
 	err := row.Scan(
@@ -286,7 +286,7 @@ func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Applica
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getApplicationWithEmails = `-- name: GetApplicationWithEmails :many
@@ -314,13 +314,13 @@ type GetApplicationWithEmailsRow struct {
 	EmailCreatedAt *time.Time  `json:"emailCreatedAt"`
 }
 
-func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([]GetApplicationWithEmailsRow, error) {
+func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([]*GetApplicationWithEmailsRow, error) {
 	rows, err := q.db.Query(ctx, getApplicationWithEmails, id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetApplicationWithEmailsRow
+	var items []*GetApplicationWithEmailsRow
 	for rows.Next() {
 		var i GetApplicationWithEmailsRow
 		if err := rows.Scan(
@@ -342,7 +342,7 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -356,13 +356,13 @@ JOIN user_application_access ua ON ua.application_id = a.id
 WHERE ua.user_id = $1
 `
 
-func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]Application, error) {
+func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]*Application, error) {
 	rows, err := q.db.Query(ctx, getApplications, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Application
+	var items []*Application
 	for rows.Next() {
 		var i Application
 		if err := rows.Scan(
@@ -379,7 +379,7 @@ func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]Appl
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -391,7 +391,7 @@ const getAssignedEmailByLocalPart = `-- name: GetAssignedEmailByLocalPart :one
 SELECT id, application_id, local_part, description, is_active, created_at FROM assigned_emails WHERE local_part = $1 AND is_active = TRUE LIMIT 1
 `
 
-func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart string) (AssignedEmail, error) {
+func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart string) (*AssignedEmail, error) {
 	row := q.db.QueryRow(ctx, getAssignedEmailByLocalPart, localPart)
 	var i AssignedEmail
 	err := row.Scan(
@@ -402,7 +402,7 @@ func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart str
 		&i.IsActive,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getIngestedEmailByID = `-- name: GetIngestedEmailByID :one
@@ -414,7 +414,7 @@ type GetIngestedEmailByIDParams struct {
 	ApplicationID uuid.UUID `json:"applicationId"`
 }
 
-func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (IngestedEmail, error) {
+func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (*IngestedEmail, error) {
 	row := q.db.QueryRow(ctx, getIngestedEmailByID, arg.ID, arg.ApplicationID)
 	var i IngestedEmail
 	err := row.Scan(
@@ -428,7 +428,7 @@ func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmail
 		&i.S3KeyPrefix,
 		&i.ReceivedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getPendingWebhookJobs = `-- name: GetPendingWebhookJobs :many
@@ -437,13 +437,13 @@ WHERE status = 'PENDING' AND next_delivery_at <= CURRENT_TIMESTAMP
 LIMIT $1
 `
 
-func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]WebhookDeliveryJob, error) {
+func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]*WebhookDeliveryJob, error) {
 	rows, err := q.db.Query(ctx, getPendingWebhookJobs, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []WebhookDeliveryJob
+	var items []*WebhookDeliveryJob
 	for rows.Next() {
 		var i WebhookDeliveryJob
 		if err := rows.Scan(
@@ -457,7 +457,7 @@ func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]Web
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, idp_user_sub, status, created_at, activated_at, last_login_at FROM users WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
@@ -481,14 +481,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ActivatedAt,
 		&i.LastLoginAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getUserBySubject = `-- name: GetUserBySubject :one
 SELECT id, email, idp_user_sub, status, created_at, activated_at, last_login_at FROM users WHERE idp_user_sub = $1
 `
 
-func (q *Queries) GetUserBySubject(ctx context.Context, idpUserSub string) (User, error) {
+func (q *Queries) GetUserBySubject(ctx context.Context, idpUserSub string) (*User, error) {
 	row := q.db.QueryRow(ctx, getUserBySubject, idpUserSub)
 	var i User
 	err := row.Scan(
@@ -500,7 +500,33 @@ func (q *Queries) GetUserBySubject(ctx context.Context, idpUserSub string) (User
 		&i.ActivatedAt,
 		&i.LastLoginAt,
 	)
-	return i, err
+	return &i, err
+}
+
+const getWebhookJobByIDAndAppID = `-- name: GetWebhookJobByIDAndAppID :one
+SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs
+WHERE id = $1 AND application_id = $2
+LIMIT 1
+`
+
+type GetWebhookJobByIDAndAppIDParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) GetWebhookJobByIDAndAppID(ctx context.Context, arg GetWebhookJobByIDAndAppIDParams) (*WebhookDeliveryJob, error) {
+	row := q.db.QueryRow(ctx, getWebhookJobByIDAndAppID, arg.ID, arg.ApplicationID)
+	var i WebhookDeliveryJob
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.IngestedEmailID,
+		&i.Status,
+		&i.RetryCount,
+		&i.NextDeliveryAt,
+		&i.CreatedAt,
+	)
+	return &i, err
 }
 
 const getWebhookJobByIDs = `-- name: GetWebhookJobByIDs :one
@@ -512,7 +538,7 @@ type GetWebhookJobByIDsParams struct {
 	IngestedEmailID uuid.UUID `json:"ingestedEmailId"`
 }
 
-func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDsParams) (WebhookDeliveryJob, error) {
+func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDsParams) (*WebhookDeliveryJob, error) {
 	row := q.db.QueryRow(ctx, getWebhookJobByIDs, arg.ApplicationID, arg.IngestedEmailID)
 	var i WebhookDeliveryJob
 	err := row.Scan(
@@ -524,7 +550,42 @@ func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDs
 		&i.NextDeliveryAt,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
+}
+
+const getWebhookLogsByJobID = `-- name: GetWebhookLogsByJobID :many
+SELECT id, webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms, executed_at FROM webhook_logs
+WHERE webhook_delivery_job_id = $1
+ORDER BY attempt_number DESC
+`
+
+func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobID uuid.UUID) ([]*WebhookLog, error) {
+	rows, err := q.db.Query(ctx, getWebhookLogsByJobID, webhookDeliveryJobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*WebhookLog
+	for rows.Next() {
+		var i WebhookLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.WebhookDeliveryJobID,
+			&i.AttemptNumber,
+			&i.HttpStatusCode,
+			&i.ResponseBody,
+			&i.IsRetry,
+			&i.DurationMs,
+			&i.ExecutedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listIngestedEmailsByApplication = `-- name: ListIngestedEmailsByApplication :many
@@ -537,13 +598,13 @@ type ListIngestedEmailsByApplicationParams struct {
 	Offset        int32     `json:"offset"`
 }
 
-func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]IngestedEmail, error) {
+func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]*IngestedEmail, error) {
 	rows, err := q.db.Query(ctx, listIngestedEmailsByApplication, arg.ApplicationID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []IngestedEmail
+	var items []*IngestedEmail
 	for rows.Next() {
 		var i IngestedEmail
 		if err := rows.Scan(
@@ -559,7 +620,80 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWebhookJobsByApplication = `-- name: ListWebhookJobsByApplication :many
+SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
+       wl.http_status_code, wl.duration_ms, wl.attempt_number
+FROM webhook_delivery_jobs wj
+LEFT JOIN LATERAL (
+  SELECT http_status_code, duration_ms, attempt_number
+  FROM webhook_logs
+  WHERE webhook_delivery_job_id = wj.id
+  ORDER BY attempt_number DESC
+  LIMIT 1
+) wl ON TRUE
+WHERE wj.application_id = $1
+  AND ($4::text IS NULL OR $4::text = '' OR wj.status = $4::text)
+ORDER BY wj.created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListWebhookJobsByApplicationParams struct {
+	ApplicationID uuid.UUID   `json:"applicationId"`
+	Limit         int32       `json:"limit"`
+	Offset        int32       `json:"offset"`
+	Status        pgtype.Text `json:"status"`
+}
+
+type ListWebhookJobsByApplicationRow struct {
+	ID              uuid.UUID     `json:"id"`
+	ApplicationID   uuid.UUID     `json:"applicationId"`
+	IngestedEmailID uuid.UUID     `json:"ingestedEmailId"`
+	Status          WebhookStatus `json:"status"`
+	RetryCount      int32         `json:"retryCount"`
+	NextDeliveryAt  time.Time     `json:"nextDeliveryAt"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	HttpStatusCode  int32         `json:"httpStatusCode"`
+	DurationMs      int32         `json:"durationMs"`
+	AttemptNumber   int32         `json:"attemptNumber"`
+}
+
+func (q *Queries) ListWebhookJobsByApplication(ctx context.Context, arg ListWebhookJobsByApplicationParams) ([]*ListWebhookJobsByApplicationRow, error) {
+	rows, err := q.db.Query(ctx, listWebhookJobsByApplication,
+		arg.ApplicationID,
+		arg.Limit,
+		arg.Offset,
+		arg.Status,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListWebhookJobsByApplicationRow
+	for rows.Next() {
+		var i ListWebhookJobsByApplicationRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.IngestedEmailID,
+			&i.Status,
+			&i.RetryCount,
+			&i.NextDeliveryAt,
+			&i.CreatedAt,
+			&i.HttpStatusCode,
+			&i.DurationMs,
+			&i.AttemptNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -591,6 +725,35 @@ func (q *Queries) LogWebhookAttempt(ctx context.Context, arg LogWebhookAttemptPa
 		arg.DurationMs,
 	)
 	return err
+}
+
+const resetWebhookJobForRedelivery = `-- name: ResetWebhookJobForRedelivery :one
+UPDATE webhook_delivery_jobs
+SET status = 'PENDING',
+    retry_count = 0,
+    next_delivery_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND application_id = $2
+RETURNING id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at
+`
+
+type ResetWebhookJobForRedeliveryParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) ResetWebhookJobForRedelivery(ctx context.Context, arg ResetWebhookJobForRedeliveryParams) (*WebhookDeliveryJob, error) {
+	row := q.db.QueryRow(ctx, resetWebhookJobForRedelivery, arg.ID, arg.ApplicationID)
+	var i WebhookDeliveryJob
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.IngestedEmailID,
+		&i.Status,
+		&i.RetryCount,
+		&i.NextDeliveryAt,
+		&i.CreatedAt,
+	)
+	return &i, err
 }
 
 const updateApplicationWebhook = `-- name: UpdateApplicationWebhook :exec
