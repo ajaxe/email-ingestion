@@ -8,6 +8,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/internal/storage"
+	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
@@ -58,7 +59,12 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	// Application API
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
-	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
+	webhookStreamName := util.WebhookStreamName(cfg.Environment)
+	var publisher service.EventPublisher
+	if o.RedisManager != nil {
+		publisher = o.RedisManager.Stream
+	}
+	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook, publisher, webhookStreamName)
 	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
 	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth, service.NewAppPasswordAuthRepository(o.Queries, authz))
 
@@ -66,13 +72,19 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup := e.Group(prefix)
 	appGroup.Use(middleware.AppAuth(pwdAuthService))
 	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
+	appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
+	appGroup.POST("/applications/:app_id/webhook/jobs/:job_id/redeliver", handler.HandleRedeliverWebhookJob(webhookService))
 
 	appService := service.NewApplicationService(o.Queries)
 	appGroup.GET("/applications", handler.HandleGetApplications(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
+	appGroup.GET("/applications/:app_id/addresses", handler.HandleListAddresses(appService))
 	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
+	appGroup.PATCH("/applications/:app_id/addresses/:address_id", handler.HandleToggleAddressStatus(appService))
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
+	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(appService))
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
+
 
 	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
 	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth))

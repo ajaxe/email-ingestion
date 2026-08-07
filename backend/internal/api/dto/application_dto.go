@@ -19,3 +19,14 @@ type ApplicationModelResponse struct {
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
+
+type ToggleAddressStatusRequest struct {
+	Status string `json:"status"`
+}
+
+type AttachmentURLResponse struct {
+	AttachmentID string    `json:"attachmentId"`
+	DownloadURL  string    `json:"downloadUrl"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
+

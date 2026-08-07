@@ -13,10 +13,17 @@ type RegisterWebhookResponse struct {
 
 type WebhookJobSummary struct {
 	ID             string    `json:"id"`
-	ApplicationID  string    `json:"application_id"`
+	ApplicationID  string    `json:"applicationId"`
 	Status         string    `json:"status"`
-	HTTPStatusCode *int32    `json:"http_status_code,omitempty"`
-	DurationMS     *int32    `json:"duration_ms,omitempty"`
-	AttemptNumber  *int32    `json:"attempt_number,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
+	HTTPStatusCode *int32    `json:"httpStatusCode,omitempty"`
+	DurationMS     *int32    `json:"durationMs,omitempty"`
+	AttemptNumber  *int32    `json:"attemptNumber,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
+
+type RedeliverWebhookJobResponse struct {
+	Message string `json:"message"`
+	JobID   string `json:"job_id"`
+	Status  string `json:"status"`
+}
+

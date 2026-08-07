@@ -4,8 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 
+	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/internal/webhook"
+	"github.com/ajaxe/email-ingestion/internal/worker"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/crypto"
@@ -15,14 +18,18 @@ import (
 )
 
 type WebhookService struct {
-	queries *public.Queries
-	cfg     *config.WebhookConfig
+	queries           *public.Queries
+	cfg               *config.WebhookConfig
+	publisher         EventPublisher
+	webhookStreamName string
 }
 
-func NewWebhookService(queries *public.Queries, cfg *config.WebhookConfig) *WebhookService {
+func NewWebhookService(queries *public.Queries, cfg *config.WebhookConfig, publisher EventPublisher, webhookStreamName string) *WebhookService {
 	return &WebhookService{
-		queries: queries,
-		cfg:     cfg,
+		queries:           queries,
+		cfg:               cfg,
+		publisher:         publisher,
+		webhookStreamName: webhookStreamName,
 	}
 }
 
@@ -88,7 +95,7 @@ func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobI
 	}
 
 	// Reset job status
-	_, err = s.queries.ResetWebhookJobForRedelivery(ctx, public.ResetWebhookJobForRedeliveryParams{
+	job, err := s.queries.ResetWebhookJobForRedelivery(ctx, public.ResetWebhookJobForRedeliveryParams{
 		ID:            jobID,
 		ApplicationID: appID,
 	})
@@ -97,5 +104,19 @@ func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobI
 	}
 
 	// Notify Redis outbox for immediate reprocessing
+	if s.publisher != nil && s.webhookStreamName != "" {
+		payload, err := util.JSON(&worker.WebhookDeliveryPayload{
+			ApplicationID:   job.ApplicationID.String(),
+			IngestedEmailID: job.IngestedEmailID.String(),
+		})
+		if err != nil {
+			return apperror.Internal("failed to serialize webhook payload", fmt.Errorf("%w", err))
+		}
+
+		if err := s.publisher.Publish(ctx, s.webhookStreamName, payload); err != nil {
+			return apperror.Internal("failed to publish webhook delivery job for redelivery", err)
+		}
+	}
+
 	return nil
 }

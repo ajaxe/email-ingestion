@@ -49,3 +49,16 @@ func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, li
 		Offset:        offset,
 	})
 }
+
+func (s *ApplicationService) ListAddresses(ctx context.Context, appID uuid.UUID) ([]public.AssignedEmail, error) {
+	return s.queries.ListAssignedEmailsByApplication(ctx, appID)
+}
+
+func (s *ApplicationService) ToggleAddressStatus(ctx context.Context, appID uuid.UUID, addressID uuid.UUID, isActive bool) error {
+	return s.queries.UpdateAssignedEmailStatus(ctx, public.UpdateAssignedEmailStatusParams{
+		ID:            addressID,
+		IsActive:      isActive,
+		ApplicationID: appID,
+	})
+}
+
