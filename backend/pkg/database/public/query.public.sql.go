@@ -190,6 +190,41 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 	return i, err
 }
 
+const getAdminApplications = `-- name: GetAdminApplications :many
+SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications
+`
+
+func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, error) {
+	rows, err := q.db.Query(ctx, getAdminApplications)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Application
+	for rows.Next() {
+		var i Application
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ApiKeyHash,
+			&i.WebhookUrl,
+			&i.WebhookSecret,
+			&i.AwsIamRoleArn,
+			&i.MaxRetries,
+			&i.IsTrusted,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getApiKeyByKeyHash = `-- name: GetApiKeyByKeyHash :one
 SELECT id, application_id, name, key_prefix, key_hash, created_at, expires_at, last_user_at FROM api_keys WHERE key_hash = $1
 `
@@ -304,6 +339,43 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 			&i.Description,
 			&i.IsActive,
 			&i.EmailCreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getApplications = `-- name: GetApplications :many
+SELECT a.id, a.name, a.api_key_hash, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at FROM applications a
+JOIN user_application_access ua ON ua.application_id = a.id
+WHERE ua.user_id = $1
+`
+
+func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]Application, error) {
+	rows, err := q.db.Query(ctx, getApplications, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Application
+	for rows.Next() {
+		var i Application
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ApiKeyHash,
+			&i.WebhookUrl,
+			&i.WebhookSecret,
+			&i.AwsIamRoleArn,
+			&i.MaxRetries,
+			&i.IsTrusted,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

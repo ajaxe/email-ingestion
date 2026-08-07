@@ -29,6 +29,32 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 	}
 }
 
+func HandleGetApplications(svc *service.ApplicationService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		ua, ok := ctx.Value(model.UserAccessContextKey).(*model.UserAccessResult)
+		if !ok {
+			return apperror.Forbidden("user cannot access applications")
+		}
+
+		d := []*model.ApplicationModelResponse{}
+
+		for _, a := range ua.Applications {
+			d = append(d, &model.ApplicationModelResponse{
+				ID:         a.ID,
+				Name:       a.Name,
+				WebhookURL: a.WebhookUrl,
+				MaxRetries: int(a.MaxRetries),
+				IsTrusted:  a.IsTrusted,
+				CreatedAt:  a.CreatedAt,
+				UpdatedAt:  a.UpdatedAt,
+			})
+		}
+
+		return c.JSON(http.StatusOK, d)
+	}
+}
+
 func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		appIDStr := c.Param("app_id")

@@ -58,6 +58,14 @@ WHERE id = $1;
 -- name: GetApplicationByID :one
 SELECT * FROM applications WHERE id = $1 LIMIT 1;
 
+-- name: GetAdminApplications :many
+SELECT * FROM applications;
+
+-- name: GetApplications :many
+SELECT a.* FROM applications a
+JOIN user_application_access ua ON ua.application_id = a.id
+WHERE ua.user_id = $1;
+
 -- name: UpdateApplicationWebhook :exec
 UPDATE applications
 SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()

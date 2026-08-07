@@ -67,55 +67,55 @@ func (a *AuthorizationService) ValidateApiKey(ctx context.Context, apiKey string
 	return valid, key.ApplicationID, nil
 }
 
-func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *model.UserProvisionData) error {
+func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *model.UserProvisionData) (*public.User, error) {
 	if userData == nil {
-		return fmt.Errorf("user data is nil")
+		return nil, fmt.Errorf("user data is nil")
 	}
 	if userData.Email == "" {
-		return fmt.Errorf("user data - email is nil")
+		return nil, fmt.Errorf("user data - email is nil")
 	}
 	if userData.Subject == "" {
-		return fmt.Errorf("user data - subject is nil")
+		return nil, fmt.Errorf("user data - subject is nil")
 	}
 
 	// try provisioning using user Subject ID first, if status already "active" then no update is needed.
-	ok, err := a.provisionBySubject(ctx, userData)
+	user, ok, err := a.provisionBySubject(ctx, userData)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !ok {
 		// try provisioning using user Email
 		slog.InfoContext(ctx, "user provision - could not locate user by subject")
-		ok, err = a.provisionByEmail(ctx, userData)
+		user, ok, err = a.provisionByEmail(ctx, userData)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if !ok {
-		return fmt.Errorf("failed to provision user by subject or email, missing partial user data")
+		return nil, fmt.Errorf("failed to provision user by subject or email, missing partial user data")
 	}
 
-	return nil
+	return user, nil
 }
 
-func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData *model.UserProvisionData) (ok bool, err error) {
+func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData *model.UserProvisionData) (*public.User, bool, error) {
 	u, err := a.queries.GetUserBySubject(ctx, userData.Subject)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return nil, false, nil
 		}
-		return false, err
+		return nil, false, err
 	}
 
 	if u.Status == "active" {
-		return true, nil
+		return &u, true, nil
 	}
 
-	err = a.queries.UpdateUser(ctx, public.UpdateUserParams{
+	args := public.UpdateUserParams{
 		ID:          u.ID,
 		Email:       userData.Email,
 		IdpUserSub:  userData.Subject,
@@ -123,25 +123,31 @@ func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData 
 		CreatedAt:   u.CreatedAt,
 		ActivatedAt: time.Now(),
 		LastLoginAt: time.Now(),
-	})
+	}
+	err = a.queries.UpdateUser(ctx, args)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	slog.InfoContext(ctx, "provisioned user by subject", "subject", userData.Subject)
 
-	return true, nil
+	u.Email = args.Email
+	u.Status = args.Status
+	u.ActivatedAt = args.ActivatedAt
+	u.LastLoginAt = args.LastLoginAt
+
+	return &u, true, nil
 }
 
-func (a *AuthorizationService) provisionByEmail(ctx context.Context, userData *model.UserProvisionData) (ok bool, err error) {
+func (a *AuthorizationService) provisionByEmail(ctx context.Context, userData *model.UserProvisionData) (*public.User, bool, error) {
 	u, err := a.queries.GetUserByEmail(ctx, userData.Email)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return nil, false, nil
 		}
-		return false, err
+		return nil, false, err
 	}
-	err = a.queries.UpdateUser(ctx, public.UpdateUserParams{
+	args := public.UpdateUserParams{
 		ID:          u.ID,
 		Email:       userData.Email,
 		IdpUserSub:  userData.Subject,
@@ -149,13 +155,19 @@ func (a *AuthorizationService) provisionByEmail(ctx context.Context, userData *m
 		CreatedAt:   u.CreatedAt,
 		ActivatedAt: time.Now(),
 		LastLoginAt: time.Now(),
-	})
+	}
+	err = a.queries.UpdateUser(ctx, args)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	slog.InfoContext(ctx, "provisioned user by email", "subject", userData.Subject, "userID", u.ID)
 
-	return true, nil
+	u.IdpUserSub = args.IdpUserSub
+	u.Status = args.Status
+	u.ActivatedAt = args.ActivatedAt
+	u.LastLoginAt = args.LastLoginAt
+
+	return &u, true, nil
 }
 
 func authCacheKey(apiKey string) string {

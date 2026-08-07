@@ -59,11 +59,16 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
 	webhookService := service.NewWebhookService(o.Queries, &cfg.Webhook)
+	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
+	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth, service.NewAppPasswordAuthRepository(o.Queries, authz))
+
 	prefix := "/app/v1"
 	appGroup := e.Group(prefix)
+	appGroup.Use(middleware.AppAuth(pwdAuthService))
 	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 
 	appService := service.NewApplicationService(o.Queries)
+	appGroup.GET("/applications", handler.HandleGetApplications(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
 	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
@@ -71,9 +76,6 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 
 	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
 	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth))
-
-	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
-	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth, authz)
 
 	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
 	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))
