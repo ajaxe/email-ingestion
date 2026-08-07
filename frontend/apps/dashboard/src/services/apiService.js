@@ -42,23 +42,33 @@ apiClient.interceptors.response.use(
   },
 );
 
-export const getApplication = (appId) =>
+export const getApplicationById = (appId) =>
   apiClient.get(`/applications/${appId}`);
+
+export const getApplications = () => apiClient.get(`/applications`);
+
 export const getAddresses = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/addresses`, { params: queryParams });
+
 export const createAddress = (appId, description) =>
   apiClient.post(`/applications/${appId}/addresses`, { description });
+
 export const toggleAddressStatus = (appId, addressId, status) =>
   apiClient.patch(`/applications/${appId}/addresses/${addressId}`, { status });
+
 export const getEmailList = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/emails`, { params: queryParams });
+
 export const getAttachmentUrl = (appId, emailId, attachmentId) =>
   apiClient.get(
     `/applications/${appId}/emails/${emailId}/attachments/${attachmentId}`,
   );
+
 export const configureWebhook = (appId, config) =>
   apiClient.put(`/applications/${appId}/webhook`, config);
+
 export const getWebhookJobs = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/webhook/jobs`, { params: queryParams });
+
 export const redeliverWebhook = (appId, jobId) =>
   apiClient.post(`/applications/${appId}/webhook/jobs/${jobId}/redeliver`);

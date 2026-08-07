@@ -1,38 +1,41 @@
 <template>
+  <v-divider />
 
-  <v-divider></v-divider>
-
-  <v-list density="compact" nav class="me-auto">
+  <v-list density="compact" nav class="py-2">
     <v-list-item
       prepend-icon="mdi-view-dashboard-outline"
-      title="Dashboard"
+      title="Dashboard Overview"
       to="/"
-      exact-path
-    ></v-list-item>
+      exact
+      color="primary"
+    />
 
     <v-list-item
       prepend-icon="mdi-email-multiple-outline"
       title="Routing Addresses"
       to="/addresses"
-      exact-path
-    ></v-list-item>
+      color="primary"
+    />
 
     <v-list-item
       prepend-icon="mdi-table-clock"
       title="Ingestion Logs"
       to="/emails"
-    ></v-list-item>
+      color="primary"
+    />
 
     <v-list-item
       prepend-icon="mdi-webhook"
       title="Webhook Console"
       to="/webhooks"
-    ></v-list-item>
+      color="primary"
+    />
 
     <v-list-item
       prepend-icon="mdi-key-chain"
       title="API Keys & Security"
       to="/settings"
-    ></v-list-item>
+      color="primary"
+    />
   </v-list>
 </template>

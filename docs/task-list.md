@@ -72,18 +72,22 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **7.3 Dashboard Navigation Shell & Global UI Layout Specs**
 
-* [ ] **App Layout Frame (`src/App.vue`)**:
-  * `v-app`: Root container wrapper.  
-  * `v-navigation-drawer`: Left-hand vertical navigation drawer (collapsible, fixed). Contains application selector (`v-select` for switching active tenant `app_id`) and nav items (`v-list-item`) with icons:
-    * Dashboard Overview (`mdi-view-dashboard-outline` → `/`)  
-    * Routing Addresses (`mdi-email-multiple-outline` → `/addresses`)  
-    * Ingestion Logs (`mdi-table-clock` → `/emails`)  
-    * Webhook Console (`mdi-webhook` → `/webhooks`)  
-    * API Keys & Security (`mdi-key-chain` → `/settings`)  
-  * `v-app-bar`: Top header bar containing branding title ("Email Ingestion Gateway"), active tenant badge (`v-chip`), dark/light theme switcher (`v-btn` icon `mdi-theme-light-dark`), and user avatar menu (`v-menu` with user name/email & Logout action).  
-  * `v-main` + `v-container fluid`: Dynamic content area rendering `<router-view />`.  
-  * `v-snackbar`: Global toast notification bar for API response feedback (success/error).  
-* [ ] **Shared Component Primitives (`src/components/`)**:
+* [x] **App Layout Frame (`src/Main.vue` & `src/layouts/DashboardLayout.vue`)**:
+  * `v-layout`: Root container wrapper (`DashboardLayout.vue`).
+  * `v-navigation-drawer`: Left-hand vertical navigation drawer (collapsible, fixed):
+    * Top section: Gateway branding ("Email Ingestion Gateway" with `mdi-email-multiple` icon).
+    * Navigation links (`NavigationLinks.vue`):
+      * Dashboard Overview (`mdi-view-dashboard-outline` → `/`)
+      * Routing Addresses (`mdi-email-multiple-outline` → `/addresses`)
+      * Ingestion Logs (`mdi-table-clock` → `/emails`)
+      * Webhook Console (`mdi-webhook` → `/webhooks`)
+      * API Keys & Security (`mdi-key-chain` → `/settings`)
+    * Bottom section (`NavigationAddOns.vue`): Dark/light theme switcher (`mdi-theme-light-dark`) and user avatar profile with logout menu (`v-menu`).
+  * `v-main` + `v-container fluid`: Dynamic content workspace area:
+    * Top tenant selector header (`AppSelector.vue`): `v-select` bound to `useAppStore` for switching active `app_id` with active tenant status badge (`v-chip`).
+    * Router view slot (`<slot />` / `<router-view />`) wrapped inside content sheet.
+  * `v-snackbar`: Global toast notification bar in layout frame for API response feedback (success/error) managed via central notification store.
+* [x] **Shared Component Primitives (`src/components/`)**:
   * `StatusChip.vue`: Standardized status badge component using `v-chip` (Green for `ACTIVE`/`SUCCESS`, Red for `DEAD`/`FAILED`, Yellow for `PENDING`/`PROCESSING`, Grey for `INACTIVE`).  
   * `ConfirmDialog.vue`: Reusable `v-dialog` confirmation modal for key regeneration or deletion actions.  
   * `CodePreview.vue`: Syntax-highlighted code block component (`v-card` wrapper) for JSON bodies and headers.  

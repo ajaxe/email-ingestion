@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-this-outside-of-class */
 import { defineStore } from "pinia";
 import {
   passwordLogin,

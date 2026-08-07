@@ -5,7 +5,6 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
-  layout: DashboardLayout
 </route>
 
 <script setup>

@@ -45,7 +45,7 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 		}
 
 		app := ua.ApplicationByID(appID)
-		if app != nil {
+		if app == nil {
 			return apperror.NotFound("application not found")
 		}
 
@@ -239,4 +239,3 @@ func HandleGetAttachmentURL(svc *service.ApplicationService) echo.HandlerFunc {
 		})
 	}
 }
-
