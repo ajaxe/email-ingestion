@@ -75,7 +75,7 @@ func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, o
 		ApplicationID: appID,
 		Limit:         limit,
 		Offset:        offset,
-		Status:        pgtype.Text{String: status, Valid: true},
+		Status:        pgtype.Text{String: status, Valid: status != ""},
 	})
 
 	if err != nil {

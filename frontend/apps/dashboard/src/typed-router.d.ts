@@ -38,16 +38,51 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/[...path]': RouteRecordInfo<
-      '/[...path]',
-      '/:path(.*)',
-      { path: ParamValue<true> },
-      { path: ParamValue<false> },
+    '/[...all]': RouteRecordInfo<
+      '/[...all]',
+      '/:all(.*)',
+      { all: ParamValue<true> },
+      { all: ParamValue<false> },
+      | never
+    >,
+    '/addresses/': RouteRecordInfo<
+      '/addresses/',
+      '/addresses',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/emails/': RouteRecordInfo<
+      '/emails/',
+      '/emails',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/emails/[id]': RouteRecordInfo<
+      '/emails/[id]',
+      '/emails/:id',
+      { id: ParamValue<true> },
+      { id: ParamValue<false> },
       | never
     >,
     '/login/': RouteRecordInfo<
       '/login/',
       '/login',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/settings/': RouteRecordInfo<
+      '/settings/',
+      '/settings',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/webhooks/': RouteRecordInfo<
+      '/webhooks/',
+      '/webhooks',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -73,17 +108,57 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | never
     }
-    'src/pages/[...path].vue': {
+    'src/pages/[...all].vue': {
       routes:
-        | '/[...path]'
+        | '/[...all]'
       views:
         | never
       pathParamNames:
-        | 'path'
+        | 'all'
+    }
+    'src/pages/addresses/index.vue': {
+      routes:
+        | '/addresses/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/emails/index.vue': {
+      routes:
+        | '/emails/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/emails/[id].vue': {
+      routes:
+        | '/emails/[id]'
+      views:
+        | never
+      pathParamNames:
+        | 'id'
     }
     'src/pages/login/index.vue': {
       routes:
         | '/login/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/settings/index.vue': {
+      routes:
+        | '/settings/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/webhooks/index.vue': {
+      routes:
+        | '/webhooks/'
       views:
         | never
       pathParamNames:

@@ -102,6 +102,9 @@ create table if not exists public.webhook_delivery_jobs (
   foreign key (ingested_email_id) references public.ingested_emails(id) on delete cascade
 );
 
+create index if not exists idx_webhook_jobs_app_id_lookup 
+  on public.webhook_delivery_jobs(application_id, status);
+
 create index if not exists idx_webhook_jobs_scheduled 
   on public.webhook_delivery_jobs(status, next_delivery_at)
   where status in ('PENDING', 'PROCESSING');

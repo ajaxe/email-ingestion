@@ -96,7 +96,7 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **7.4 Vue 3 File-Based Page Routes & Detailed Screen Specifications (`src/pages/`)**
 
-* [ ] `src/pages/index.vue`: **Dashboard Overview Screen**
+* [x] `src/pages/index.vue`: **Dashboard Overview Screen**
   * **Top Metrics Grid (`v-row`)**: 4 equal-width `v-col` cards (`StatsWidget.vue`):
     1. Total Ingested Emails (`mdi-email-outline`, stat number, +X% trend).  
     2. Active Routing Addresses (`mdi-at`, active/total count).  
@@ -106,18 +106,18 @@ This document tracks active and upcoming development phases. Completed phases ar
     * Left Column (8 cols): **Recent Ingestion Stream (`v-card`)** — Compact `v-data-table` listing 5 most recent emails (`Received At`, `From`, `Subject`, `Local Part`), with a "View All Logs" link button.  
     * Right Column (4 cols): **Quick Actions & Gateway Status (`v-card`)** — Quick action buttons ("Provision Address", "Test Webhook"), active AWS IAM Role ARN badge, and system health status.  
 
-* [ ] `src/pages/addresses/index.vue`: **Address Management Panel**
+* [x] `src/pages/addresses/index.vue`: **Address Management Panel**
   * **Header Toolbar (`v-row`)**: Screen title ("Assigned Email Addresses"), search text field (`v-text-field` `mdi-magnify`), status filter (`v-btn-toggle` All/Active/Inactive), and primary button ("Provision New Address" `v-btn` color="primary" `mdi-plus`).  
   * **Data Table (`v-card`)**: `v-data-table-server` displaying:
     * Columns: `Local Part` (font-monospace), `Email Address` (`[local_part]@ingest.domain.com` with copy button), `Description`, `Status` (`StatusChip.vue`), `Created At`, `Actions` (Active toggle `v-switch`).  
   * **Provision Modal (`v-dialog`)**: Form with Description field (`v-text-field`), info alert explaining 10-char system generation, and "Generate Address" submit button.  
 
-* [ ] `src/pages/emails/index.vue`: **Ingested Email Log Analyzer**
+* [x] `src/pages/emails/index.vue`: **Ingested Email Log Analyzer**
   * **Filter Toolbar (`v-card`)**: Search field (`From`/`Subject`), Local Part filter (`v-select`), Date picker, and Auto-refresh toggle switch (`v-switch`).  
   * **Data Table (`v-card`)**: `v-data-table-server` displaying:
     * Columns: `Received At` (formatted timestamp), `Local Part` (`StatusChip.vue`), `From`, `Subject` (truncated with tooltip), `Ref Token` (`v-chip`), `Attachments` (badge count), `Actions` (`v-btn` icon `mdi-eye` navigating to `/emails/[id]`).  
 
-* [ ] `src/pages/emails/[id].vue`: **Email Detail & Attachment Downloader**
+* [x] `src/pages/emails/[id].vue`: **Email Detail & Attachment Downloader**
   * **Header Bar**: Back button (`v-btn` `mdi-arrow-left`), Subject title, Message-ID chip (`v-chip` font-monospace), Received timestamp.  
   * **Split Layout (`v-row`)**:
     * Left Column (4 cols): **Metadata Card (`v-card`)** — `From` address, Envelope `To`, `Reference Token`, S3 Key Prefix path, Ingestion UUID.  
@@ -126,7 +126,7 @@ This document tracks active and upcoming development phases. Completed phases ar
       * Tab items (`v-window-item`): Sanitized HTML body iframe, Text body block (`CodePreview.vue`), JSON contents block (`CodePreview.vue`).  
       * **Attachments Section (`v-divider` + list)**: Attachment cards displaying filename, mime type (`contentType`), byte size, and a primary button ("Download Attachment" `v-btn` `mdi-download`) that calls `GET /app/v1/applications/:app_id/emails/:id/attachments/:attachment_id` to acquire the STS presigned S3 link and open the secure download.  
 
-* [ ] `src/pages/webhooks/index.vue`: **Webhook Config & Delivery Sandbox Console**
+* [x] `src/pages/webhooks/index.vue`: **Webhook Config & Delivery Sandbox Console**
   * **Top Card: Webhook Endpoint & Secret Settings (`v-card`)**:
     * Endpoint URL input (`v-text-field`), Max Retries slider (`v-slider` 1-10), Webhook Secret field (`whsec_...` masked with reveal/copy button).  
     * Actions: "Save Configuration" (`v-btn` color="primary"), "Test & Verify Endpoint" (`v-btn` color="secondary" `mdi-lightning-bolt` triggering `PUT /app/v1/applications/:app_id/webhook` challenge handshake).  
@@ -136,11 +136,11 @@ This document tracks active and upcoming development phases. Completed phases ar
     * Data Table (`v-data-table-server`): Columns `Job ID`, `Attempt #`, `HTTP Status` (`StatusChip.vue`), `Duration` (`ms`), `Executed At`, `Is Retry` (boolean chip), `Actions`: "View Payload" modal button, and "Re-deliver Webhook" button (`v-btn` icon `mdi-refresh` calling `POST /app/v1/applications/:app_id/webhook/jobs/:id/redeliver`).  
     * **Payload & Response Modal (`v-dialog`)**: Side-by-side or tabbed request JSON payload and client HTTP response body inside `CodePreview.vue`.  
 
-* [ ] `src/pages/settings/index.vue`: **API Keys & Security Settings**
+* [x] `src/pages/settings/index.vue`: **API Keys & Security Settings**
   * **API Key Card (`v-card`)**: Active API key (`eg_live_a1b2...` masked with reveal/copy toggle), "Regenerate API Key" button (`v-btn` color="error" opening `ConfirmDialog.vue` to call `POST /app/v1/applications/:app_id/api-keys`).  
   * **AWS S3 & IAM Security Card (`v-card`)**: Mapped AWS IAM Role ARN (`arn:aws:iam::...`), S3 Storage Bucket Prefix path (`s3://bucket/apps/{app_id}/`), STS presigned URL TTL duration (15 minutes).  
 
-* [ ] `src/pages/[...all].vue`: **404 Not Found View**
+* [x] `src/pages/[...all].vue`: **404 Not Found View**
   * Centered card (`v-card`), 404 error icon (`mdi-alert-octagon-outline`), error message, and "Back to Dashboard" button (`v-btn` color="primary" `to="/"`).  
 
 * **Verification Checkpoint**: Navigate between all generated routes, verify route parameters, dynamic paths (`/emails/:id`), and automatic typed route generation in `src/typed-router.d.ts`.

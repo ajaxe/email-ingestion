@@ -689,7 +689,7 @@ LEFT JOIN LATERAL (
   LIMIT 1
 ) wl ON TRUE
 WHERE wj.application_id = $1
-  AND ($4::text IS NULL OR $4::text = '' OR wj.status = $4::text)
+  AND ($4::text IS NULL OR $4::text = '' OR wj.status = $4::webhook_status)
 ORDER BY wj.created_at DESC
 LIMIT $2 OFFSET $3
 `

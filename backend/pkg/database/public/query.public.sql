@@ -126,7 +126,7 @@ LEFT JOIN LATERAL (
   LIMIT 1
 ) wl ON TRUE
 WHERE wj.application_id = $1
-  AND (sqlc.narg('status')::text IS NULL OR sqlc.narg('status')::text = '' OR wj.status = sqlc.narg('status')::text)
+  AND (sqlc.narg('status')::text IS NULL OR sqlc.narg('status')::text = '' OR wj.status = sqlc.narg('status')::webhook_status)
 ORDER BY wj.created_at DESC
 LIMIT $2 OFFSET $3;
 

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getApplicationById, getApplications } from '@/services/apiService';
+import { getApplicationById, getApplications, createApiKey } from '@/services/apiService';
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -8,6 +8,7 @@ export const useAppStore = defineStore('app', {
     application: null,
     loading: false,
     error: null,
+    latestApiKey: '',
   }),
   getters: {
     activeApp(state) {
@@ -55,6 +56,22 @@ export const useAppStore = defineStore('app', {
       } finally {
         this.loading = false
       }
-    }
+    },
+
+    async generateApiKey(appId, name = 'Dashboard Key') {
+      const targetId = appId || this.activeAppId;
+      this.loading = true;
+      try {
+        const res = await createApiKey(targetId, name);
+        const apiKeyData = res.data || res;
+        this.latestApiKey = apiKeyData.api_key || apiKeyData.APIKey || apiKeyData.key || '';
+        return apiKeyData;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 });

@@ -72,3 +72,7 @@ export const getWebhookJobs = (appId, queryParams) =>
 
 export const redeliverWebhook = (appId, jobId) =>
   apiClient.post(`/applications/${appId}/webhook/jobs/${jobId}/redeliver`);
+
+export const createApiKey = (appId, name = "Default API Key") =>
+  apiClient.post(`/applications/${appId}/api-keys`, { name });
+
