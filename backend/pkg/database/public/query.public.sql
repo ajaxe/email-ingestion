@@ -97,6 +97,9 @@ RETURNING *;
 -- name: ListIngestedEmailsByApplication :many
 SELECT * FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;
 
+-- name: CountIngestedEmailsByApplication :one
+SELECT count(*) FROM ingested_emails WHERE application_id = $1;
+
 -- name: GetApiKeyByKeyHash :one
 SELECT * FROM api_keys WHERE key_hash = $1;
 
@@ -130,6 +133,14 @@ WHERE wj.application_id = $1
 ORDER BY wj.created_at DESC
 LIMIT $2 OFFSET $3;
 
+-- name: GetWebhookDeliveryStatsByApplication :one
+    SELECT
+        COUNT(*)::bigint AS total,
+        COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint AS success,
+        COUNT(*) FILTER (WHERE status IN ('FAILED', 'DEAD'))::bigint AS failures,
+        COUNT(*) FILTER (WHERE status IN ('PENDING', 'PROCESSING'))::bigint AS pending_or_processing
+    FROM public.webhook_delivery_jobs
+    WHERE application_id = $1;
 
 -- name: GetWebhookLogsByJobID :many
 SELECT * FROM webhook_logs

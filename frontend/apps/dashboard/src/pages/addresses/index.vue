@@ -10,7 +10,11 @@
           </div>
         </v-col>
 
-        <v-col cols="12" md="8" class="pa-0 mt-3 mt-md-0 d-flex flex-wrap align-center justify-md-end gap-3">
+        <v-col
+          cols="12"
+          md="8"
+          class="pa-0 mt-3 mt-md-0 d-flex flex-wrap align-center justify-md-end gap-3"
+        >
           <v-text-field
             v-model="searchQuery"
             prepend-inner-icon="mdi-magnify"
@@ -71,47 +75,61 @@
               color="grey"
               @click="copyToClipboard(getFullAddress(item))"
             >
-              <v-tooltip activator="parent" location="top">Copy Email</v-tooltip>
+              <v-tooltip activator="parent" location="top"
+                >Copy Email</v-tooltip
+              >
             </v-btn>
           </div>
         </template>
 
         <template #item.description="{ item }">
           <span class="text-body-2">
-            {{ item.description || 'No description provided' }}
+            {{ item.description || "No description provided" }}
           </span>
         </template>
 
         <template #item.status="{ item }">
-          <StatusChip :status="item.status || (item.is_active ? 'ACTIVE' : 'INACTIVE')" />
+          <StatusChip
+            :status="item.isActive ? 'ACTIVE' : 'INACTIVE'"
+          />
         </template>
 
         <template #item.created_at="{ item }">
           <span class="text-caption font-mono">
-            {{ formatDate(item.created_at || item.createdAt) }}
+            {{ formatDate(item.createdAt) }}
           </span>
         </template>
 
         <template #item.actions="{ item }">
-          <v-switch
-            :model-value="isAddressActive(item)"
-            color="success"
-            hide-details
-            density="compact"
-            @update:model-value="handleToggleStatus(item)"
-          >
-            <v-tooltip activator="parent" location="top">
-              {{ isAddressActive(item) ? 'Deactivate' : 'Activate' }} Address
-            </v-tooltip>
-          </v-switch>
+          <div class="d-flex justify-end">
+            <v-switch
+              :model-value="isAddressActive(item)"
+              color="success"
+              hide-details
+              density="compact"
+              @update:model-value="handleToggleStatus(item)"
+            >
+              <v-tooltip activator="parent" location="top">
+                {{ isAddressActive(item) ? "Deactivate" : "Activate" }} Address
+              </v-tooltip>
+            </v-switch>
+          </div>
         </template>
 
         <template #no-data>
           <div class="text-center py-8 text-medium-emphasis">
             <v-icon icon="mdi-email-outline" size="48" class="mb-2" />
             <div class="text-h6">No addresses found</div>
-            <div class="text-caption mb-4">Provision a 10-character address to start receiving inbound emails.</div>
-            <v-btn color="primary" size="small" prepend-icon="mdi-plus" @click="showProvisionModal = true">
+            <div class="text-caption mb-4">
+              Provision a 10-character address to start receiving inbound
+              emails.
+            </div>
+            <v-btn
+              color="primary"
+              size="small"
+              prepend-icon="mdi-plus"
+              @click="showProvisionModal = true"
+            >
               Provision Address Now
             </v-btn>
           </div>
@@ -122,9 +140,16 @@
     <!-- Provision Modal Dialog -->
     <v-dialog v-model="showProvisionModal" max-width="520px">
       <v-card rounded="lg">
-        <v-card-title class="d-flex align-center justify-space-between pa-4 bg-surface-variant">
+        <v-card-title
+          class="d-flex align-center justify-space-between pa-4 bg-surface-variant"
+        >
           <span class="text-h6 font-weight-bold">Provision New Address</span>
-          <v-btn icon="mdi-close" variant="text" size="small" @click="showProvisionModal = false" />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            @click="showProvisionModal = false"
+          />
         </v-card-title>
 
         <v-card-text class="pa-4">
@@ -135,7 +160,9 @@
             class="mb-4"
             density="compact"
           >
-            Addresses use a system-generated 10-character random routing path (e.g. <code>a1b2c3d4e5@domain.com</code>) for maximum security and uniqueness.
+            Addresses use a system-generated 10-character random routing path
+            (e.g. <code>a1b2c3d4e5@domain.com</code>) for maximum security and
+            uniqueness.
           </v-alert>
 
           <v-form ref="formRef" @submit.prevent="handleProvision">
@@ -156,7 +183,11 @@
 
         <v-card-actions class="pa-4">
           <v-spacer />
-          <v-btn variant="outlined" color="grey" @click="showProvisionModal = false">
+          <v-btn
+            variant="outlined"
+            color="grey"
+            @click="showProvisionModal = false"
+          >
             Cancel
           </v-btn>
           <v-btn
@@ -179,46 +210,46 @@ meta:
 </route>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
-import StatusChip from '@/components/StatusChip.vue';
-import { useAppStore } from '@/stores/application';
-import { useAddressStore } from '@/stores/addresses';
-import { useNotificationStore } from '@/stores/notification';
+import { computed, onMounted, ref, watch } from "vue";
+import StatusChip from "@/components/StatusChip.vue";
+import { useAppStore } from "@/stores/application";
+import { useAddressStore } from "@/stores/addresses";
+import { useNotificationStore } from "@/stores/notification";
 
 const appStore = useAppStore();
 const addressStore = useAddressStore();
 const notificationStore = useNotificationStore();
 
-const searchQuery = ref('');
-const statusFilter = ref('ALL');
+const searchQuery = ref("");
+const statusFilter = ref("ALL");
 const showProvisionModal = ref(false);
-const newDescription = ref('');
+const newDescription = ref("");
 const provisioning = ref(false);
 
 const headers = [
-  { title: 'Local Part', key: 'local_part', sortable: true },
-  { title: 'Full Address', key: 'email_address', sortable: false },
-  { title: 'Description', key: 'description', sortable: true },
-  { title: 'Status', key: 'status', sortable: true },
-  { title: 'Created At', key: 'created_at', sortable: true },
-  { title: 'Toggle Active', key: 'actions', align: 'end', sortable: false },
+  { title: "Local Part", key: "local_part", sortable: true },
+  { title: "Full Address", key: "email_address", sortable: false },
+  { title: "Description", key: "description", sortable: true },
+  { title: "Status", key: "status", sortable: true },
+  { title: "Created At", key: "created_at", sortable: true },
+  { title: "Toggle Active", key: "actions", align: "end", sortable: false },
 ];
 
 const filteredAddresses = computed(() => {
   let list = addressStore.addresses || [];
 
-  if (statusFilter.value !== 'ALL') {
+  if (statusFilter.value !== "ALL") {
     list = list.filter((item) => {
       const isAct = isAddressActive(item);
-      return statusFilter.value === 'ACTIVE' ? isAct : !isAct;
+      return statusFilter.value === "ACTIVE" ? isAct : !isAct;
     });
   }
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim();
     list = list.filter((item) => {
-      const local = (item.local_part || item.localPart || '').toLowerCase();
-      const desc = (item.description || '').toLowerCase();
+      const local = (item.local_part || item.localPart || "").toLowerCase();
+      const desc = (item.description || "").toLowerCase();
       return local.includes(q) || desc.includes(q);
     });
   }
@@ -228,19 +259,19 @@ const filteredAddresses = computed(() => {
 
 function isAddressActive(item) {
   if (item.status) {
-    return item.status.toUpperCase() === 'ACTIVE';
+    return item.status.toUpperCase() === "ACTIVE";
   }
   return Boolean(item.is_active || item.isActive);
 }
 
 function getFullAddress(item) {
-  const local = item.local_part || item.localPart || '';
-  const domain = import.meta.env.VITE_INGEST_DOMAIN || 'ingest.gateway.dev';
+  const local = item.localPart || "";
+  const domain = window.APP_CONFIG.INGEST_DOMAIN;
   return `${local}@${domain}`;
 }
 
 function formatDate(val) {
-  if (!val) return '—';
+  if (!val) return "—";
   try {
     return new Date(val).toLocaleString();
   } catch {
@@ -253,24 +284,31 @@ async function copyToClipboard(text) {
     await navigator.clipboard.writeText(text);
     notificationStore.success(`Copied ${text} to clipboard!`);
   } catch {
-    notificationStore.error('Failed to copy text');
+    notificationStore.error("Failed to copy text");
   }
 }
 
 async function handleProvision() {
   if (!appStore.activeAppId) {
-    notificationStore.error('Please select an active application scope first.');
+    notificationStore.error("Please select an active application scope first.");
     return;
   }
   provisioning.value = true;
   try {
-    await addressStore.provisionAddress(appStore.activeAppId, newDescription.value);
-    notificationStore.success('Successfully provisioned new 10-character email address!');
+    await addressStore.provisionAddress(
+      appStore.activeAppId,
+      newDescription.value,
+    );
+    notificationStore.success(
+      "Successfully provisioned new 10-character email address!",
+    );
     showProvisionModal.value = false;
-    newDescription.value = '';
+    newDescription.value = "";
     await addressStore.fetchAddresses(appStore.activeAppId);
   } catch (err) {
-    notificationStore.error(err.response?.data?.message || 'Failed to provision address');
+    notificationStore.error(
+      err.response?.data?.message || "Failed to provision address",
+    );
   } finally {
     provisioning.value = false;
   }
@@ -278,14 +316,20 @@ async function handleProvision() {
 
 async function handleToggleStatus(item) {
   const currentStatus = isAddressActive(item);
-  const nextStatus = currentStatus ? 'INACTIVE' : 'ACTIVE';
+  const nextStatus = currentStatus ? "INACTIVE" : "ACTIVE";
   const addressId = item.id || item.address_id;
   try {
-    await addressStore.toggleAddress(appStore.activeAppId, addressId, nextStatus);
+    await addressStore.toggleAddress(
+      appStore.activeAppId,
+      addressId,
+      nextStatus,
+    );
     notificationStore.success(`Address updated to ${nextStatus}`);
     await addressStore.fetchAddresses(appStore.activeAppId);
   } catch (err) {
-    notificationStore.error(err.response?.data?.message || 'Failed to toggle address status');
+    notificationStore.error(
+      err.response?.data?.message || "Failed to toggle address status",
+    );
   }
 }
 
@@ -299,9 +343,12 @@ onMounted(() => {
   loadAddresses();
 });
 
-watch(() => appStore.activeAppId, () => {
-  loadAddresses();
-});
+watch(
+  () => appStore.activeAppId,
+  () => {
+    loadAddresses();
+  },
+);
 </script>
 
 <style scoped>
@@ -312,6 +359,6 @@ watch(() => appStore.activeAppId, () => {
   gap: 12px;
 }
 .font-mono {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 </style>

@@ -18,17 +18,6 @@
       <v-divider class="my-2" />
 
       <v-list-item class="px-0">
-        <v-list-item-title class="text-caption text-medium-emphasis mb-1">
-          AWS IAM Role ARN
-        </v-list-item-title>
-        <div class="text-caption font-mono bg-surface-variant pa-2 rounded text-truncate">
-          {{ activeRoleArn }}
-        </div>
-      </v-list-item>
-
-      <v-divider class="my-2" />
-
-      <v-list-item class="px-0">
         <v-list-item-title class="text-caption text-medium-emphasis">
           Active Tenant App ID
         </v-list-item-title>
@@ -47,14 +36,6 @@ import { useAppStore } from '@/stores/application';
 
 const appStore = useAppStore();
 
-const activeRoleArn = computed(() => {
-  const app = appStore.activeApp;
-  if (app && (app.aws_iam_role_arn || app.awsIamRoleArn)) {
-    return app.aws_iam_role_arn || app.awsIamRoleArn;
-  }
-  const appId = appStore.activeAppId || 'default';
-  return `arn:aws:iam::123456789012:role/gateway-tenant-${appId.slice(0, 8)}`;
-});
 </script>
 
 <style scoped>

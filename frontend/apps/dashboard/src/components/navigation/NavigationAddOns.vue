@@ -4,11 +4,11 @@
       <span class="text-caption text-medium-emphasis font-weight-medium">Theme</span>
       <v-btn
         variant="text"
-        size="small"
-        icon="mdi-theme-light-dark"
+        icon
         :color="theme.global.current.value.dark ? 'amber' : 'primary'"
         @click="toggleTheme"
       >
+        <v-icon icon="mdi-theme-light-dark" />
         <v-tooltip activator="parent" location="top">
           Switch to {{ theme.global.current.value.dark ? 'Light' : 'Dark' }} Mode
         </v-tooltip>

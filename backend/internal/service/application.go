@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 
+	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -62,3 +63,43 @@ func (s *ApplicationService) ToggleAddressStatus(ctx context.Context, appID uuid
 	})
 }
 
+func (s *ApplicationService) GetApplicationStats(ctx context.Context, appID uuid.UUID) (stats ApplicationStats, err error) {
+
+	defer func() {
+		if err != nil {
+			stats = ApplicationStats{}
+			err = apperror.Internal("failed to get application statistics", err)
+			return
+		}
+	}()
+
+	emailCount, err := s.queries.CountIngestedEmailsByApplication(ctx, appID)
+	if err != nil {
+		return
+	}
+	addr, err := s.queries.ListAssignedEmailsByApplication(ctx, appID)
+	if err != nil {
+		return
+	}
+	activeAddr := 0
+	for _, a := range addr {
+		if a.IsActive {
+			activeAddr++
+		}
+	}
+
+	webhookStats, err := s.queries.GetWebhookDeliveryStatsByApplication(ctx, appID)
+	if err != nil {
+		return
+	}
+
+	stats = ApplicationStats{
+		TotalEmails:         emailCount,
+		TotalAddresses:      int64(len(addr)),
+		ActiveAddresses:     int64(activeAddr),
+		WebhookSuccessRate:  float32(webhookStats.Success) / float32(webhookStats.Total),
+		FailWebhookJobCount: webhookStats.Failures,
+	}
+
+	return
+}

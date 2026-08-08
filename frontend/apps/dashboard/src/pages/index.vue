@@ -8,7 +8,7 @@
           :value="totalEmails"
           icon="mdi-email-outline"
           color="primary"
-          trend="+12.5%"
+          trend="0"
           subtitle="All time inbound stream"
         />
       </v-col>
@@ -73,51 +73,43 @@ import QuickActions from '@/components/dashboard/QuickActions.vue';
 import GatewayStatus from '@/components/dashboard/GatewayStatus.vue';
 import { useAppStore } from '@/stores/application';
 import { useEmailStore } from '@/stores/emails';
-import { useAddressStore } from '@/stores/addresses';
-import { useWebhookStore } from '@/stores/webhooks';
 
 const appStore = useAppStore();
 const emailStore = useEmailStore();
-const addressStore = useAddressStore();
-const webhookStore = useWebhookStore();
 
 const totalEmails = computed(() => {
-  return emailStore.emails ? emailStore.emails.length : 0;
+  return appStore.stats.totalEmails;
 });
 
 const activeAddressesRatio = computed(() => {
-  const total = addressStore.addresses ? addressStore.addresses.length : 0;
-  const active = addressStore.activeAddresses ? addressStore.activeAddresses.length : 0;
+  const total = appStore.stats.totalAddresses
+  const active = appStore.stats.activeAddresses
+  if (total === 0) return '0%';
   return `${active} / ${total}`;
 });
 
 const webhookSuccessRate = computed(() => {
-  const jobs = webhookStore.jobs || [];
-  if (jobs.length === 0) return '100%';
-  const success = jobs.filter(j => (j.status || j.Status) === 'SUCCESS').length;
-  return `${((success / jobs.length) * 100).toFixed(1)}%`;
+  return `${((appStore.stats.webhookSuccessRate) * 100).toFixed(1)}%`;
 });
 
 const failedJobsCount = computed(() => {
-  const jobs = webhookStore.jobs || [];
-  return jobs.filter(j => ['FAILED', 'DEAD'].includes(j.status || j.Status)).length;
+  return appStore.stats.failWebhookJobCount;
 });
 
 async function loadDashboardData() {
   if (!appStore.activeAppId) return;
   await Promise.allSettled([
     emailStore.fetchEmails(appStore.activeAppId, { limit: 10 }),
-    addressStore.fetchAddresses(appStore.activeAppId),
-    webhookStore.fetchJobs(appStore.activeAppId, { limit: 20 }),
+    appStore.fetchStatistics(appStore.activeAppId),
   ]);
 }
 
 onMounted(() => {
-  loadDashboardData();
+  void loadDashboardData();
 });
 
 watch(() => appStore.activeAppId, () => {
-  loadDashboardData();
+  void loadDashboardData();
 });
 </script>
 

@@ -48,6 +48,17 @@ func (q *Queries) CheckDuplicateWebhookJob(ctx context.Context, arg CheckDuplica
 	return exists, err
 }
 
+const countIngestedEmailsByApplication = `-- name: CountIngestedEmailsByApplication :one
+SELECT count(*) FROM ingested_emails WHERE application_id = $1
+`
+
+func (q *Queries) CountIngestedEmailsByApplication(ctx context.Context, applicationID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countIngestedEmailsByApplication, applicationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createApiKey = `-- name: CreateApiKey :exec
 INSERT INTO api_keys (application_id, name, key_prefix, key_hash, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -515,6 +526,35 @@ func (q *Queries) GetUserBySubject(ctx context.Context, idpUserSub string) (User
 		&i.CreatedAt,
 		&i.ActivatedAt,
 		&i.LastLoginAt,
+	)
+	return i, err
+}
+
+const getWebhookDeliveryStatsByApplication = `-- name: GetWebhookDeliveryStatsByApplication :one
+    SELECT
+        COUNT(*)::bigint AS total,
+        COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint AS success,
+        COUNT(*) FILTER (WHERE status IN ('FAILED', 'DEAD'))::bigint AS failures,
+        COUNT(*) FILTER (WHERE status IN ('PENDING', 'PROCESSING'))::bigint AS pending_or_processing
+    FROM public.webhook_delivery_jobs
+    WHERE application_id = $1
+`
+
+type GetWebhookDeliveryStatsByApplicationRow struct {
+	Total               int64 `json:"total"`
+	Success             int64 `json:"success"`
+	Failures            int64 `json:"failures"`
+	PendingOrProcessing int64 `json:"pendingOrProcessing"`
+}
+
+func (q *Queries) GetWebhookDeliveryStatsByApplication(ctx context.Context, applicationID uuid.UUID) (GetWebhookDeliveryStatsByApplicationRow, error) {
+	row := q.db.QueryRow(ctx, getWebhookDeliveryStatsByApplication, applicationID)
+	var i GetWebhookDeliveryStatsByApplicationRow
+	err := row.Scan(
+		&i.Total,
+		&i.Success,
+		&i.Failures,
+		&i.PendingOrProcessing,
 	)
 	return i, err
 }

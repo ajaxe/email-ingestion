@@ -76,3 +76,4 @@ export const redeliverWebhook = (appId, jobId) =>
 export const createApiKey = (appId, name = "Default API Key") =>
   apiClient.post(`/applications/${appId}/api-keys`, { name });
 
+export const getApplicationStats = (appId) => apiClient.get(`/applications/${appId}/stats`);

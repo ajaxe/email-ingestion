@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getApplicationById, getApplications, createApiKey } from '@/services/apiService';
+import { getApplicationById, getApplications, createApiKey, getApplicationStats } from '@/services/apiService';
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -9,6 +9,13 @@ export const useAppStore = defineStore('app', {
     loading: false,
     error: null,
     latestApiKey: '',
+    stats: {
+      totalEmails: 0,
+      totalAddresses: 0,
+      activeAddresses: 0,
+      webhookSuccessRate: 0,
+      failWebhookJobCount: 0,
+    }
   }),
   getters: {
     activeApp(state) {
@@ -73,5 +80,20 @@ export const useAppStore = defineStore('app', {
         this.loading = false;
       }
     },
+
+    async fetchStatistics(appId) {
+      const targetId = appId || this.activeAppId;
+      this.loading = true;
+      try {
+        const res = await getApplicationStats(targetId);
+        this.stats = res.data
+        return res.data;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    }
   },
 });

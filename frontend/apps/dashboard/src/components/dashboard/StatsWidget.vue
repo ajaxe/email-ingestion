@@ -13,6 +13,7 @@
       <span class="text-h4 font-weight-bold me-2">
         {{ value }}
       </span>
+      <!--
       <div v-if="trend !== undefined && trend !== null" class="d-flex align-center">
         <v-chip
           :color="computedTrendColor"
@@ -29,7 +30,7 @@
           />
           {{ formattedTrend }}
         </v-chip>
-      </div>
+      </div> -->
     </div>
 
     <div v-if="caption || subtitle" class="text-caption text-medium-emphasis mt-2">

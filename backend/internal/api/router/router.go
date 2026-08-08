@@ -71,23 +71,28 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	prefix := "/app/v1"
 	appGroup := e.Group(prefix)
 	appGroup.Use(middleware.AppAuth(pwdAuthService))
-	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
-	appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
-	appGroup.POST("/applications/:app_id/webhook/jobs/:job_id/redeliver", handler.HandleRedeliverWebhookJob(webhookService))
 
 	appService := service.NewApplicationService(o.Queries)
 	appGroup.GET("/applications", handler.HandleGetApplications(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
+
+	appGroup.GET("/applications/:app_id/stats", handler.HandleGetApplicationStats(appService))
+
 	appGroup.GET("/applications/:app_id/addresses", handler.HandleListAddresses(appService))
 	appGroup.POST("/applications/:app_id/addresses", handler.HandleCreateAddress(appService))
 	appGroup.PATCH("/applications/:app_id/addresses/:address_id", handler.HandleToggleAddressStatus(appService))
+
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
 	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(appService))
+
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
 
+	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
+	appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
+	appGroup.POST("/applications/:app_id/webhook/jobs/:job_id/redeliver", handler.HandleRedeliverWebhookJob(webhookService))
 
 	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
-	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth))
+	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth, cfg.Smtp.Domain))
 
 	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
 	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))

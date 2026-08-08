@@ -38,6 +38,11 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 		}
 
 		ctx := c.Request().Context()
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
 		ua, ok := middleware.UserAccessFromContext(ctx)
 
 		if !ok {
@@ -50,6 +55,29 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 		}
 
 		return c.JSON(http.StatusOK, app)
+	}
+}
+
+func HandleGetApplicationStats(svc *service.ApplicationService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		appIDStr := c.Param("app_id")
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		ctx := c.Request().Context()
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		stats, err := svc.GetApplicationStats(ctx, appID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, stats)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 )
 
 const authConfigTemplate = `window.APP_CONFIG = {
+  INGEST_DOMAIN: '{{ .IngestDomain }}',
   AUTH_PROVIDER: '{{ .Provider }}',{{if eq .Provider "oidc"}}
   OIDC_AUTHORITY: '{{ .OIDC.Authority }}',
   OIDC_CLIENT_ID: '{{ .OIDC.ClientID }}',{{end}}
@@ -20,12 +21,21 @@ const authConfigTemplate = `window.APP_CONFIG = {
 
 var tmpl = template.Must(template.New("auth_config").Parse(authConfigTemplate))
 
-func HandleGetAuthConfig(authCfg *config.AuthConfig) echo.HandlerFunc {
+type templateData struct {
+	*config.AuthConfig
+	IngestDomain string
+}
+
+func HandleGetAuthConfig(authCfg *config.AuthConfig, ingestDomain string) echo.HandlerFunc {
 	return func(e echo.Context) error {
+		d := templateData{
+			AuthConfig:   authCfg,
+			IngestDomain: ingestDomain,
+		}
 		e.Response().Header().Set("Cache-Control", "public, max-age=3600")
 		e.Response().Header().Set(echo.HeaderContentType, "application/javascript; charset=utf-8")
 		e.Response().WriteHeader(http.StatusOK)
-		return tmpl.Execute(e.Response(), authCfg)
+		return tmpl.Execute(e.Response(), d)
 	}
 }
 
