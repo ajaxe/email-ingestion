@@ -37,7 +37,7 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 
 	configureInternalAPI(e, cfg, o, storageService)
 
-	configureAppAPI(e, cfg, o, apiKeyService)
+	configureAppAPI(e, cfg, o, apiKeyService, storageService)
 
 	configureM2MAPI(e, o, storageService, apiKeyService)
 
@@ -55,7 +55,7 @@ func configureM2MAPI(e *echo.Echo, o *ApiInitOptions, storageService *storage.S3
 	m2mGroup.GET("/emails/:email_id", handler.HandleAPIEmailByID(emailService))
 }
 
-func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, apiKeyService *service.ApiKeyService) {
+func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, apiKeyService *service.ApiKeyService, storageService *storage.S3StorageService) {
 	// Application API
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
@@ -73,6 +73,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.Use(middleware.AppAuth(pwdAuthService))
 
 	appService := service.NewApplicationService(o.Queries)
+	emailService := service.NewEmailService(o.Queries, storageService)
 	appGroup.GET("/applications", handler.HandleGetApplications(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
 
@@ -83,6 +84,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.PATCH("/applications/:app_id/addresses/:address_id", handler.HandleToggleAddressStatus(appService))
 
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
+	appGroup.GET("/applications/:app_id/emails/:email_id", handler.HandleGetEmailByID(emailService))
 	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(appService))
 
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))

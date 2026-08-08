@@ -3,26 +3,29 @@
     <!-- Header Bar -->
     <v-card rounded="lg" variant="elevated" class="pa-4 mb-4">
       <div class="d-flex align-center flex-wrap gap-3">
-        <v-btn
-          icon="mdi-arrow-left"
-          variant="tonal"
-          color="primary"
-          to="/emails"
-          size="small"
-        >
+        <v-btn icon variant="tonal" color="primary" size="small" to="/emails">
+          <v-icon icon="mdi-arrow-left" />
           <v-tooltip activator="parent" location="top">Back to Logs</v-tooltip>
         </v-btn>
 
         <div class="flex-grow-1 min-w-0">
           <div class="text-h6 font-weight-bold text-truncate">
-            {{ emailDetail?.subject || 'Email Details' }}
+            {{ emailDetail?.subject || "Email Details" }}
           </div>
           <div class="d-flex align-center gap-2 mt-1">
-            <v-chip size="x-small" color="primary" variant="outlined" class="font-mono">
-              {{ emailDetail?.message_id || emailDetail?.id || route.params.id }}
+            <v-chip
+              size="x-small"
+              color="primary"
+              variant="outlined"
+              class="font-mono"
+            >
+              {{ emailDetail?.id }}
             </v-chip>
             <span class="text-caption text-medium-emphasis">
-              Received {{ formatDate(emailDetail?.created_at || emailDetail?.received_at) }}
+              Received
+              {{
+                formatDate(emailDetail?.receivedAt)
+              }}
             </span>
           </div>
         </div>
@@ -44,27 +47,38 @@
 
           <v-list density="compact" class="pa-0 bg-transparent">
             <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis">Sender (From)</v-list-item-title>
+              <v-list-item-title class="text-caption text-medium-emphasis"
+                >Sender (From)</v-list-item-title
+              >
               <div class="text-body-2 font-weight-medium text-break">
-                {{ emailDetail.from_address || emailDetail.sender || '—' }}
+                {{ emailDetail.fromAddress || "—" }}
               </div>
             </v-list-item>
 
             <v-divider class="my-2" />
 
             <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis">Recipient (To)</v-list-item-title>
+              <v-list-item-title class="text-caption text-medium-emphasis"
+                >Recipient (To)</v-list-item-title
+              >
               <div class="text-body-2 font-weight-medium text-break">
-                {{ emailDetail.to_address || emailDetail.recipient || `${emailDetail.local_part}@domain.com` }}
+                {{ emailDetail.localPart + '@' + ingestDomain }}
               </div>
             </v-list-item>
 
             <v-divider class="my-2" />
 
             <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis">Reference Token</v-list-item-title>
-              <v-chip size="small" color="info" variant="tonal" class="font-mono mt-1">
-                {{ emailDetail.reference_token || emailDetail.ref_token || 'N/A' }}
+              <v-list-item-title class="text-caption text-medium-emphasis"
+                >Reference Token</v-list-item-title
+              >
+              <v-chip
+                size="small"
+                color="info"
+                variant="tonal"
+                class="font-mono mt-1"
+              >
+                {{ emailDetail.referenceToken || "N/A" }}
               </v-chip>
             </v-list-item>
 
@@ -74,7 +88,9 @@
               <v-list-item-title class="text-caption text-medium-emphasis mb-1">
                 S3 Storage Key Prefix
               </v-list-item-title>
-              <div class="text-caption font-mono bg-surface-variant pa-2 rounded text-break">
+              <div
+                class="text-caption font-mono bg-surface-variant pa-2 rounded text-break"
+              >
                 {{ s3KeyPrefix }}
               </div>
             </v-list-item>
@@ -82,9 +98,13 @@
             <v-divider class="my-2" />
 
             <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis">Ingestion UUID</v-list-item-title>
-              <div class="text-caption font-mono text-medium-emphasis text-break">
-                {{ emailDetail.id || route.params.id }}
+              <v-list-item-title class="text-caption text-medium-emphasis"
+                >Ingestion UUID</v-list-item-title
+              >
+              <div
+                class="text-caption font-mono text-medium-emphasis text-break"
+              >
+                {{ emailDetail?.id }}
               </div>
             </v-list-item>
           </v-list>
@@ -97,17 +117,22 @@
           <v-tabs v-model="activeTab" color="primary" class="mb-4">
             <v-tab value="html" prepend-icon="mdi-code-tags">HTML Body</v-tab>
             <v-tab value="text" prepend-icon="mdi-text-short">Text Body</v-tab>
-            <v-tab value="json" prepend-icon="mdi-code-json">Raw JSON (contents.json)</v-tab>
+            <v-tab value="json" prepend-icon="mdi-code-json"
+              >Email Headers</v-tab
+            >
           </v-tabs>
 
           <v-window v-model="activeTab">
             <v-window-item value="html">
-              <div v-if="emailDetail.html_body" class="iframe-wrapper border rounded">
+              <div
+                v-if="emailDetail.html"
+                class="iframe-wrapper border rounded"
+              >
                 <iframe
-                  :srcdoc="emailDetail.html_body"
+                  :srcdoc="emailDetail.html"
                   sandbox="allow-same-origin"
                   class="w-100 border-0"
-                  style="height: 380px;"
+                  style="height: 380px"
                 />
               </div>
               <div v-else class="text-center py-8 text-medium-emphasis">
@@ -118,7 +143,7 @@
 
             <v-window-item value="text">
               <CodePreview
-                :code="emailDetail.text_body || '(No plain text body)'"
+                :code="emailDetail.text || '(No plain text body)'"
                 language="text"
                 title="Plain Text Content"
                 max-height="380px"
@@ -129,7 +154,7 @@
               <CodePreview
                 :code="rawJson"
                 language="json"
-                title="contents.json Metadata"
+                title="Email Headers"
                 max-height="380px"
               />
             </v-window-item>
@@ -157,17 +182,31 @@
               rounded="lg"
               class="pa-3"
             >
-              <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+              <div
+                class="d-flex align-center justify-space-between flex-wrap gap-2"
+              >
                 <div class="d-flex align-center gap-3">
-                  <v-avatar color="primary" variant="tonal" size="40" rounded="md">
+                  <v-avatar
+                    color="primary"
+                    variant="tonal"
+                    size="40"
+                    rounded="md"
+                  >
                     <v-icon icon="mdi-file-document-outline" size="22" />
                   </v-avatar>
                   <div>
                     <div class="text-subtitle-2 font-weight-bold">
-                      {{ att.filename || att.fileName || `attachment_${idx + 1}` }}
+                      {{
+                        att.filename || att.fileName || `attachment_${idx + 1}`
+                      }}
                     </div>
                     <div class="text-caption text-medium-emphasis font-mono">
-                      {{ att.content_type || att.contentType || 'application/octet-stream' }} • {{ formatBytes(att.size || att.byte_size || 0) }}
+                      {{
+                        att.content_type ||
+                        att.contentType ||
+                        "application/octet-stream"
+                      }}
+                      • {{ formatBytes(att.size || att.byte_size || 0) }}
                     </div>
                   </div>
                 </div>
@@ -177,8 +216,15 @@
                   variant="flat"
                   size="small"
                   prepend-icon="mdi-download"
-                  :loading="downloadingId === (att.id || att.attachment_id || String(idx))"
-                  @click="downloadAttachment(att.id || att.attachment_id || String(idx))"
+                  :loading="
+                    downloadingId ===
+                    (att.id || att.attachment_id || String(idx))
+                  "
+                  @click="
+                    downloadAttachment(
+                      att.id || att.attachment_id || String(idx),
+                    )
+                  "
                 >
                   Download Attachment
                 </v-btn>
@@ -196,9 +242,17 @@
 
     <!-- Not Found State -->
     <v-card v-else rounded="lg" class="pa-8 text-center">
-      <v-icon icon="mdi-email-search-outline" size="48" color="warning" class="mb-2" />
+      <v-icon
+        icon="mdi-email-search-outline"
+        size="48"
+        color="warning"
+        class="mb-2"
+      />
       <div class="text-h6">Email Record Not Found</div>
-      <div class="text-caption mb-4">Could not find email ID {{ route.params.id }} for the current tenant scope.</div>
+      <div class="text-caption mb-4">
+        Could not find email ID {{ route.params.id }} for the current tenant
+        scope.
+      </div>
       <v-btn color="primary" to="/emails">Return to Ingestion Logs</v-btn>
     </v-card>
   </div>
@@ -210,30 +264,27 @@ meta:
 </route>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
-import CodePreview from '@/components/CodePreview.vue';
-import { useAppStore } from '@/stores/application';
-import { useEmailStore } from '@/stores/emails';
-import { useNotificationStore } from '@/stores/notification';
+import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
+import CodePreview from "@/components/CodePreview.vue";
+import { useAppStore } from "@/stores/application";
+import { useEmailStore } from "@/stores/emails";
+import { useNotificationStore } from "@/stores/notification";
 
 const route = useRoute();
 const appStore = useAppStore();
 const emailStore = useEmailStore();
 const notificationStore = useNotificationStore();
 
-const activeTab = ref('html');
+const activeTab = ref("html");
 const loading = ref(true);
-const downloadingId = ref('');
+const downloadingId = ref("");
 
-const emailDetail = computed(() => {
-  const targetId = route.params.id;
-  const list = emailStore.emails || [];
-  return list.find((item) => String(item.id) === String(targetId) || String(item.email_id) === String(targetId)) || null;
-});
+const ingestDomain = window.APP_CONFIG.INGEST_DOMAIN;
+const emailDetail = ref({});
 
 const s3KeyPrefix = computed(() => {
-  const appId = appStore.activeAppId || 'app-uuid';
+  const appId = appStore.activeAppId || "app-uuid";
   const emailId = route.params.id;
   return `s3://email-ingestion-spool/apps/${appId}/emails/${emailId}/`;
 });
@@ -248,22 +299,11 @@ const attachments = computed(() => {
 
 const rawJson = computed(() => {
   if (!emailDetail.value) return {};
-  return {
-    id: emailDetail.value.id || route.params.id,
-    application_id: appStore.activeAppId,
-    received_at: emailDetail.value.created_at || emailDetail.value.received_at,
-    from: emailDetail.value.from_address || emailDetail.value.sender,
-    to: emailDetail.value.to_address || emailDetail.value.recipient,
-    subject: emailDetail.value.subject,
-    local_part: emailDetail.value.local_part,
-    reference_token: emailDetail.value.reference_token,
-    attachments_count: attachments.value.length,
-    s3_key: s3KeyPrefix.value,
-  };
+  return emailDetail.value.headers;
 });
 
 function formatDate(val) {
-  if (!val) return '—';
+  if (!val) return "—";
   try {
     return new Date(val).toLocaleString();
   } catch {
@@ -272,9 +312,9 @@ function formatDate(val) {
 }
 
 function formatBytes(bytes) {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
@@ -284,25 +324,35 @@ async function downloadAttachment(attachmentId) {
   const emailId = route.params.id;
 
   if (!appId || !emailId) {
-    notificationStore.error('Missing application ID or email ID scope.');
+    notificationStore.error("Missing application ID or email ID scope.");
     return;
   }
 
   downloadingId.value = attachmentId;
   try {
-    const res = await emailStore.fetchAttachmentUrl(appId, emailId, attachmentId);
+    const res = await emailStore.fetchAttachmentUrl(
+      appId,
+      emailId,
+      attachmentId,
+    );
     const downloadUrl = res.download_url || res.downloadUrl || res.DownloadURL;
 
     if (downloadUrl) {
-      notificationStore.success('Generated STS Presigned URL. Opening download link...');
-      window.open(downloadUrl, '_blank');
+      notificationStore.success(
+        "Generated STS Presigned URL. Opening download link...",
+      );
+      window.open(downloadUrl, "_blank");
     } else {
-      notificationStore.error('No download URL returned by STS broker service.');
+      notificationStore.error(
+        "No download URL returned by STS broker service.",
+      );
     }
   } catch (err) {
-    notificationStore.error(err.response?.data?.message || 'Failed to acquire presigned download URL');
+    notificationStore.error(
+      err.response?.data?.message || "Failed to acquire presigned download URL",
+    );
   } finally {
-    downloadingId.value = '';
+    downloadingId.value = "";
   }
 }
 
@@ -310,7 +360,10 @@ onMounted(async () => {
   loading.value = true;
   try {
     if (appStore.activeAppId) {
-      await emailStore.fetchEmails(appStore.activeAppId);
+      emailDetail.value = await emailStore.fetchEmailById(
+        appStore.activeAppId,
+        route.params.id,
+      );
     }
   } finally {
     loading.value = false;
@@ -326,7 +379,7 @@ onMounted(async () => {
   gap: 12px;
 }
 .font-mono {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 .iframe-wrapper {
   background-color: #ffffff;

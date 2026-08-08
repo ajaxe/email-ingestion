@@ -59,6 +59,9 @@ export const toggleAddressStatus = (appId, addressId, status) =>
 export const getEmailList = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/emails`, { params: queryParams });
 
+export const getEmailById = (appId, emailId) =>
+  apiClient.get(`/applications/${appId}/emails/${emailId}`);
+
 export const getAttachmentUrl = (appId, emailId, attachmentId) =>
   apiClient.get(
     `/applications/${appId}/emails/${emailId}/attachments/${attachmentId}`,

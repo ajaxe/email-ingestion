@@ -32,15 +32,21 @@
         </span>
       </template>
 
+      <template #item.to_address="{ item }">
+        <span class="text-body-2 text-truncate max-w-200">
+          {{ item.localPart }}
+        </span>
+      </template>
+
       <template #item.from_address="{ item }">
         <span class="text-body-2 text-truncate max-w-200">
-          {{ item.fromAddress}}
+          {{ item.fromAddress }}
         </span>
       </template>
 
       <template #item.subject="{ item }">
         <span class="text-body-2 text-truncate font-weight-medium">
-          {{ item.subject || '(No Subject)' }}
+          {{ item.subject || "(No Subject)" }}
         </span>
       </template>
 
@@ -68,16 +74,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useEmailStore } from '@/stores/emails';
+import { computed } from "vue";
+import { useEmailStore } from "@/stores/emails";
 
 const emailStore = useEmailStore();
 
 const headers = [
-  { title: 'Received At', key: 'received_at', sortable: false },
-  { title: 'From', key: 'from_address', sortable: false },
-  { title: 'Subject', key: 'subject', sortable: false },
-  { title: 'Actions', key: 'actions', align: 'end', sortable: false },
+  { title: "Received At", key: "received_at", sortable: false },
+  { title: "Recipient (To)", key: "to_address", sortable: false },
+  { title: "From", key: "from_address", sortable: false },
+  { title: "Subject", key: "subject", sortable: false },
+  { title: "Actions", key: "actions", align: "end", sortable: false },
 ];
 
 const recentEmails = computed(() => {
@@ -86,7 +93,7 @@ const recentEmails = computed(() => {
 });
 
 function formatDate(val) {
-  if (!val) return '—';
+  if (!val) return "—";
   try {
     return new Date(val).toLocaleString();
   } catch {
@@ -97,7 +104,7 @@ function formatDate(val) {
 
 <style scoped>
 .font-mono {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 .max-w-200 {
   max-width: 200px;

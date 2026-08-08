@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getEmailList, getAttachmentUrl } from '@/services/apiService';
+import { getEmailList, getAttachmentUrl, getEmailById } from '@/services/apiService';
 
 export const useEmailStore = defineStore('emails', {
   state: () => ({
@@ -22,6 +22,20 @@ export const useEmailStore = defineStore('emails', {
         this.loading = false;
       }
     },
+
+    async fetchEmailById(appId, emailId) {
+      this.loading = true;
+      try {
+        const res = await getEmailById(appId, emailId);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async fetchAttachmentUrl(appId, emailId, attachmentId) {
       this.loading = true;
       try {

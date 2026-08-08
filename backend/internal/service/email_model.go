@@ -6,6 +6,6 @@ import (
 )
 
 type EmailContent struct {
-	public.IngestedEmail
+	public.GetIngestedEmailByIDRow
 	storage.EmailStorageContent
 }

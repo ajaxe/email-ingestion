@@ -1,17 +1,17 @@
 <template>
   <v-layout class="fill-height">
     <!-- Left Navigation Drawer -->
-    <v-navigation-drawer v-model="drawer" permanent elevation="1" width="280">
+    <v-navigation-drawer v-model="drawer" permanent elevation="1" width="280" :rail="keepOpen" :expand-on-hover="keepOpen">
       <!-- Top Branding Section -->
       <template #prepend>
-        <v-list class="py-3 px-2">
+        <v-list class="py-3">
           <v-list-item
             title="Email Ingestion"
             subtitle="Gateway Console"
-            class="brand-title"
+            class="brand-title px-2"
           >
             <template #prepend>
-              <v-avatar color="primary" variant="flat" size="36" class="me-3">
+              <v-avatar color="primary" variant="flat" size="36">
                 <v-icon icon="mdi-email-multiple" size="20" color="white" />
               </v-avatar>
             </template>
@@ -83,6 +83,8 @@ import { useAppStore } from "@/stores/application";
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
+
+const keepOpen = ref(false)
 
 onMounted(() => {
   void appStore.fetchApplications();

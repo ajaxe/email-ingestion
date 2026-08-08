@@ -72,7 +72,10 @@ SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
 WHERE id = $1;
 
 -- name: GetIngestedEmailByID :one
-SELECT * FROM ingested_emails WHERE id = $1 and application_id = $2 LIMIT 1;
+SELECT i.*, a.local_part
+FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.id = $1 and i.application_id = $2 LIMIT 1;
 
 -- name: GetWebhookJobByIDs :one
 SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 ORDER BY created_at DESC LIMIT 1;
@@ -95,7 +98,9 @@ SET status = 'PENDING',
 WHERE id = $1 AND application_id = $2
 RETURNING *;
 -- name: ListIngestedEmailsByApplication :many
-SELECT * FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;
+SELECT i.*, a.local_part FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;
 
 -- name: CountIngestedEmailsByApplication :one
 SELECT count(*) FROM ingested_emails WHERE application_id = $1;

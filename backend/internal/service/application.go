@@ -43,7 +43,7 @@ func (s *ApplicationService) CreateAddress(ctx context.Context, appID uuid.UUID,
 	})
 }
 
-func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, limit, offset int32) ([]public.IngestedEmail, error) {
+func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, limit, offset int32) ([]public.ListIngestedEmailsByApplicationRow, error) {
 	return s.queries.ListIngestedEmailsByApplication(ctx, public.ListIngestedEmailsByApplicationParams{
 		ApplicationID: appID,
 		Limit:         limit,

@@ -1,7 +1,9 @@
 <template>
   <div class="pa-2">
     <div class="d-flex align-center justify-space-between mb-2 px-2">
-      <span class="text-caption text-medium-emphasis font-weight-medium">Theme</span>
+      <span class="text-caption text-medium-emphasis font-weight-medium"
+        >Theme</span
+      >
       <v-btn
         variant="text"
         icon
@@ -10,8 +12,12 @@
       >
         <v-icon icon="mdi-theme-light-dark" />
         <v-tooltip activator="parent" location="top">
-          Switch to {{ theme.global.current.value.dark ? 'Light' : 'Dark' }} Mode
+          Switch to
+          {{ theme.global.current.value.dark ? "Light" : "Dark" }} Mode
         </v-tooltip>
+      </v-btn>
+      <v-btn variant="text" icon>
+        <v-icon icon="mdi-pin-outline" />
       </v-btn>
     </div>
 
@@ -68,21 +74,21 @@
 </template>
 
 <script setup>
-import { useTheme } from 'vuetify';
-import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
+import { useTheme } from "vuetify";
+import { useAuthStore } from "@/stores/auth";
+import { useRouter } from "vue-router";
 
 const theme = useTheme();
 const authStore = useAuthStore();
 const router = useRouter();
 
 function toggleTheme() {
-  theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark';
+  theme.global.name.value = theme.global.current.value.dark ? "light" : "dark";
 }
 
 function handleLogout() {
   authStore.logout();
-  router.push('/login');
+  router.push("/login");
 }
 </script>
 

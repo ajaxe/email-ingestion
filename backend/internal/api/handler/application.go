@@ -173,6 +173,35 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 	}
 }
 
+func HandleGetEmailByID(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		appIDStr := c.Param("app_id")
+		emailIDStr := c.Param("email_id")
+
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		emailID, err := uuid.Parse(emailIDStr)
+		if err != nil {
+			return apperror.Validation("invalid email ID")
+		}
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		email, err := svc.GetEmailByID(ctx, appID, emailID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, email)
+	}
+}
+
 func HandleListAddresses(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()

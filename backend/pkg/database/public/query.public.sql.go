@@ -433,7 +433,10 @@ func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart str
 }
 
 const getIngestedEmailByID = `-- name: GetIngestedEmailByID :one
-SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE id = $1 and application_id = $2 LIMIT 1
+SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, a.local_part
+FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.id = $1 and i.application_id = $2 LIMIT 1
 `
 
 type GetIngestedEmailByIDParams struct {
@@ -441,9 +444,22 @@ type GetIngestedEmailByIDParams struct {
 	ApplicationID uuid.UUID `json:"applicationId"`
 }
 
-func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (IngestedEmail, error) {
+type GetIngestedEmailByIDRow struct {
+	ID              uuid.UUID `json:"id"`
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
+	ReferenceToken  string    `json:"referenceToken"`
+	FromAddress     string    `json:"fromAddress"`
+	Subject         string    `json:"subject"`
+	MessageID       string    `json:"messageId"`
+	S3KeyPrefix     string    `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time `json:"receivedAt"`
+	LocalPart       string    `json:"localPart"`
+}
+
+func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (GetIngestedEmailByIDRow, error) {
 	row := q.db.QueryRow(ctx, getIngestedEmailByID, arg.ID, arg.ApplicationID)
-	var i IngestedEmail
+	var i GetIngestedEmailByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.ApplicationID,
@@ -454,6 +470,7 @@ func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmail
 		&i.MessageID,
 		&i.S3KeyPrefix,
 		&i.ReceivedAt,
+		&i.LocalPart,
 	)
 	return i, err
 }
@@ -678,7 +695,9 @@ func (q *Queries) ListAssignedEmailsByApplication(ctx context.Context, applicati
 }
 
 const listIngestedEmailsByApplication = `-- name: ListIngestedEmailsByApplication :many
-SELECT id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at FROM ingested_emails WHERE application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3
+SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, a.local_part FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListIngestedEmailsByApplicationParams struct {
@@ -687,15 +706,28 @@ type ListIngestedEmailsByApplicationParams struct {
 	Offset        int32     `json:"offset"`
 }
 
-func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]IngestedEmail, error) {
+type ListIngestedEmailsByApplicationRow struct {
+	ID              uuid.UUID `json:"id"`
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
+	ReferenceToken  string    `json:"referenceToken"`
+	FromAddress     string    `json:"fromAddress"`
+	Subject         string    `json:"subject"`
+	MessageID       string    `json:"messageId"`
+	S3KeyPrefix     string    `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time `json:"receivedAt"`
+	LocalPart       string    `json:"localPart"`
+}
+
+func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]ListIngestedEmailsByApplicationRow, error) {
 	rows, err := q.db.Query(ctx, listIngestedEmailsByApplication, arg.ApplicationID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []IngestedEmail
+	var items []ListIngestedEmailsByApplicationRow
 	for rows.Next() {
-		var i IngestedEmail
+		var i ListIngestedEmailsByApplicationRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ApplicationID,
@@ -706,6 +738,7 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 			&i.MessageID,
 			&i.S3KeyPrefix,
 			&i.ReceivedAt,
+			&i.LocalPart,
 		); err != nil {
 			return nil, err
 		}

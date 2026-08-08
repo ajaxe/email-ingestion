@@ -50,8 +50,8 @@ func (e *EmailService) GetEmailByID(ctx context.Context, appID uuid.UUID, emailI
 		return nil, err
 	}
 	r := &EmailContent{
-		IngestedEmail:       data,
-		EmailStorageContent: contents,
+		GetIngestedEmailByIDRow: data,
+		EmailStorageContent:     contents,
 	}
 	return r, nil
 }

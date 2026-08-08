@@ -42,13 +42,14 @@
           />
 
           <v-btn
-            icon="mdi-refresh"
+            icon
             variant="outlined"
             density="compact"
             color="primary"
             :loading="emailStore.loading"
             @click="refreshLogs"
           >
+            <v-icon icon="mdi-refresh" />
             <v-tooltip activator="parent" location="top">Manual Refresh</v-tooltip>
           </v-btn>
         </v-col>
@@ -66,19 +67,19 @@
       >
         <template #item.created_at="{ item }">
           <span class="font-mono text-caption">
-            {{ formatDate(item.created_at || item.received_at) }}
+            {{ formatDate(item.receivedAt) }}
           </span>
         </template>
 
         <template #item.local_part="{ item }">
           <v-chip size="small" color="primary" variant="tonal" class="font-mono font-weight-medium">
-            {{ item.local_part }}
+            {{ item.localPart }}
           </v-chip>
         </template>
 
         <template #item.from_address="{ item }">
           <span class="text-body-2 font-weight-medium text-truncate max-w-180">
-            {{ item.from_address || item.sender }}
+            {{ item.fromAddress }}
           </span>
         </template>
 
@@ -93,7 +94,7 @@
 
         <template #item.reference_token="{ item }">
           <v-chip size="x-small" color="info" variant="outlined" class="font-mono">
-            {{ item.reference_token || item.ref_token || 'N/A' }}
+            {{ item.referenceToken || 'N/A' }}
           </v-chip>
         </template>
 
@@ -111,12 +112,12 @@
 
         <template #item.actions="{ item }">
           <v-btn
-            icon="mdi-eye"
-            size="small"
+            icon
             variant="text"
             color="primary"
             :to="`/emails/${item.id}`"
           >
+            <v-icon icon="mdi-eye" size="16" />
             <v-tooltip activator="parent" location="top">Inspect Details</v-tooltip>
           </v-btn>
         </template>
