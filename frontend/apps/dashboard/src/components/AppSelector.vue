@@ -16,6 +16,16 @@
       <template #prepend-inner>
         <v-icon icon="mdi-domain" color="primary" class="me-1" />
       </template>
+
+      <template #append-item>
+        <v-divider class="my-1" />
+        <v-list-item
+          title="Create New Application"
+          prepend-icon="mdi-plus"
+          class="text-primary font-weight-medium"
+          @click="emit('open-create-modal')"
+        />
+      </template>
     </v-select>
 
     <StatusChip
@@ -30,6 +40,7 @@ import { onMounted } from 'vue';
 import { useAppStore } from '@/stores/application';
 import StatusChip from '@/components/StatusChip.vue';
 
+const emit = defineEmits(['open-create-modal']);
 const appStore = useAppStore();
 
 async function onAppChange(appId) {

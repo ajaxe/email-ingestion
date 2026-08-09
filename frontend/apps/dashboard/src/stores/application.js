@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { getApplicationById, getApplications, getApiKeys, createApiKey, revokeApiKey, getApplicationStats } from '@/services/apiService';
+import { getApplicationById, getApplications, createApplication, getApiKeys, createApiKey, revokeApiKey, getApplicationStats } from '@/services/apiService';
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -11,11 +11,11 @@ export const useAppStore = defineStore('app', {
     error: null,
     latestApiKey: '',
     stats: {
-      totalEmails: 0,
-      totalAddresses: 0,
-      activeAddresses: 0,
-      webhookSuccessRate: 0,
-      failWebhookJobCount: 0,
+      totalEmails: -1,
+      totalAddresses: -1,
+      activeAddresses: -1,
+      webhookSuccessRate: -1,
+      failWebhookJobCount: -1,
     }
   }),
   getters: {
@@ -27,6 +27,30 @@ export const useAppStore = defineStore('app', {
     },
   },
   actions: {
+    async createApp(name) {
+      this.loading = true;
+      try {
+        const res = await createApplication(name);
+        const created = res.data;
+        await this.fetchApplications();
+        if (created && created.id) {
+          await this.selectApp(created.id);
+        } else if (this.applications.length > 0) {
+          const targetName = typeof name === 'string' ? name : name.name;
+          const match = this.applications.find(a => a.name === targetName) || this.applications[this.applications.length - 1];
+          if (match) {
+            await this.selectApp(match.id);
+          }
+        }
+        return created;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async selectApp(appId) {
       this.activeAppId = appId;
       await this.fetchAppDetails(appId);

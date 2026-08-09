@@ -31,14 +31,13 @@ var apiCmd = &cobra.Command{
 		dbPool := database.NewDbPool(cfg)
 		defer dbPool.Close()
 
-		queries := public.New(dbPool)
-
 		rdsManager := redis.NewManager(cfg)
 		defer rdsManager.Close()
 
 		e := router.New(cfg, &router.ApiInitOptions{
-			Queries:      queries,
+			Queries:      public.New(dbPool),
 			RedisManager: rdsManager,
+			DBPool:       dbPool,
 		})
 
 		go func() {

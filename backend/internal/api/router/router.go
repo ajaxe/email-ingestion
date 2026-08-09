@@ -12,6 +12,7 @@ import (
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 	slogecho "github.com/samber/slog-echo"
@@ -21,6 +22,7 @@ type ApiInitOptions struct {
 	// Add any initialization options here
 	Queries      *public.Queries
 	RedisManager *redis.Manager
+	DBPool       *pgxpool.Pool
 }
 
 func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
@@ -72,9 +74,10 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup := e.Group(prefix)
 	appGroup.Use(middleware.AppAuth(pwdAuthService))
 
-	appService := service.NewApplicationService(o.Queries)
+	appService := service.NewApplicationService(service.NewPgxApplicationRepository(o.DBPool))
 	emailService := service.NewEmailService(o.Queries, storageService)
 	appGroup.GET("/applications", handler.HandleGetApplications(appService))
+	appGroup.POST("/applications", handler.HandleCreateApplication(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
 
 	appGroup.GET("/applications/:app_id/stats", handler.HandleGetApplicationStats(appService))

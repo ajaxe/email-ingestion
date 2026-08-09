@@ -1,5 +1,7 @@
 -- name: GetApplicationByAPIKey :one  
-SELECT * FROM applications WHERE api_key_hash = $1 LIMIT 1;
+SELECT * FROM applications a
+JOIN api_keys ak ON ak.application_id = a.id
+WHERE key_hash = $1 LIMIT 1;
 
 -- name: GetApplicationWithEmails :many  
 SELECT a.*, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
@@ -173,3 +175,11 @@ UPDATE assigned_emails
 SET is_active = $2
 WHERE id = $1 AND application_id = $3;
 
+-- name: InsertApplication :one
+INSERT INTO applications (name, webhook_url, webhook_secret, aws_iam_role_arn)
+VALUES ($1, '', '', '')
+RETURNING *;
+
+-- name: InsertUserApplication :exec
+INSERT INTO user_application_access (user_id, application_id)
+VALUES ($1, $2);

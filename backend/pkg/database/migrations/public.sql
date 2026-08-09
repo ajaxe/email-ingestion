@@ -34,7 +34,6 @@ end $$;*/
 create table if not exists public.applications (
   id               uuid                        primary key default uuid_generate_v4(),
   name             varchar(255)                not null,
-  api_key_hash     varchar(64)                 not null unique, -- sha256 hash of api key
   webhook_url      varchar(2048)               not null,
   webhook_secret   varchar(255)                not null,        -- key used to sign hmac payloads
   aws_iam_role_arn varchar(2048)               not null,        -- dedicated iam role mapped at registration

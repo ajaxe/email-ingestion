@@ -148,6 +148,11 @@ func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, o
 	if err != nil {
 		return nil, apperror.Internal("failed to list webhook jobs", err)
 	}
+
+	if len(jobs) == 0 {
+		jobs = []public.ListWebhookJobsByApplicationRow{}
+	}
+
 	return jobs, nil
 }
 

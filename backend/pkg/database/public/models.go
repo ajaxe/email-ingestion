@@ -117,7 +117,6 @@ type ApiKey struct {
 type Application struct {
 	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`
-	ApiKeyHash    string    `json:"apiKeyHash"`
 	WebhookUrl    string    `json:"webhookUrl"`
 	WebhookSecret string    `json:"webhookSecret"`
 	AwsIamRoleArn string    `json:"awsIamRoleArn"`

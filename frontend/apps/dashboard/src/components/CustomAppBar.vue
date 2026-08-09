@@ -1,8 +1,18 @@
 <template>
-  <!-- Header Bar with Tenant App Selector -->
+  <!-- Header Bar with Tenant App Selector & Add Application Action -->
   <div class="d-flex align-center justify-space-between mb-6 pb-4 border-b">
     <div class="d-flex align-center gap-3">
-      <AppSelector />
+      <AppSelector @open-create-modal="showCreateModal = true" />
+      <v-btn
+        color="primary"
+        variant="tonal"
+        size="small"
+        prepend-icon="mdi-plus-circle"
+        class="font-weight-medium ms-2"
+        @click="showCreateModal = true"
+      >
+        Add Application
+      </v-btn>
     </div>
     <div class="d-flex align-center gap-2">
       <v-chip color="info" variant="outlined" size="small">
@@ -11,10 +21,25 @@
       </v-chip>
     </div>
   </div>
+
+  <!-- Modal for Creating New Application Tenant -->
+  <CreateAppModal
+    v-model="showCreateModal"
+    @created="onAppCreated"
+  />
 </template>
 <script setup>
 import { ref } from "vue";
 import AppSelector from "@/components/AppSelector.vue";
-const { AUTH_PROVIDER } = window.APP_CONFIG;
+import CreateAppModal from "@/components/CreateAppModal.vue";
+import { useNotificationStore } from "@/stores/notification";
+
+const { AUTH_PROVIDER } = window.APP_CONFIG || {};
 const idp = ref(AUTH_PROVIDER === "oidc" ? "OIDC" : "Admin Password");
+const showCreateModal = ref(false);
+const notificationStore = useNotificationStore();
+
+function onAppCreated(app) {
+  notificationStore.success(`Application "${app?.name || 'New App'}" created successfully!`);
+}
 </script>

@@ -30,3 +30,6 @@ type AttachmentURLResponse struct {
 	ExpiresAt    time.Time `json:"expiresAt"`
 }
 
+type AppCreateRequest struct {
+	Name string `json:"name" validate:"required,min=3,max=255"`
+}

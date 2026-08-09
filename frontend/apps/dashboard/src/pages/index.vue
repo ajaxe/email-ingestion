@@ -1,5 +1,10 @@
 <template>
   <div>
+    <!-- Configuration Next Steps Banner (Shown when tenant requires setup) -->
+    <div v-if="needsConfiguration" class="mb-6">
+      <NextStepsGuide />
+    </div>
+
     <!-- Top Metrics Grid -->
     <v-row class="mb-4">
       <v-col cols="12" sm="6" md="3">
@@ -71,11 +76,19 @@ import StatsWidget from '@/components/dashboard/StatsWidget.vue';
 import RecentIgestionStream from '@/components/dashboard/RecentIgestionStream.vue';
 import QuickActions from '@/components/dashboard/QuickActions.vue';
 import GatewayStatus from '@/components/dashboard/GatewayStatus.vue';
+import NextStepsGuide from '@/components/NextStepsGuide.vue';
 import { useAppStore } from '@/stores/application';
 import { useEmailStore } from '@/stores/emails';
 
 const appStore = useAppStore();
 const emailStore = useEmailStore();
+
+const needsConfiguration = computed(() => {
+  if (!appStore.activeAppId) return false;
+  const noAddresses = appStore.stats.totalAddresses === 0;
+  const noWebhook = !appStore.activeApp?.webhookUrl;
+  return (noAddresses || noWebhook) && !!appStore.activeApp;
+});
 
 const totalEmails = computed(() => {
   return appStore.stats.totalEmails;

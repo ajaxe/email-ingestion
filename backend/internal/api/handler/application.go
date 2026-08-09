@@ -29,6 +29,41 @@ func CanAccessApplication(ctx context.Context, appID uuid.UUID) error {
 	return nil
 }
 
+func HandleCreateApplication(svc *service.ApplicationService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		req := dto.AppCreateRequest{}
+		if err := c.Bind(&req); err != nil {
+			return apperror.Validation("invalid request body", err)
+		}
+
+		d, ok := middleware.UserAccessFromContext(ctx)
+		if !ok {
+			return apperror.Internal("failed to get user from context")
+		}
+		uid, err := uuid.Parse(d.UserProfile.UserID)
+		if err != nil {
+			return apperror.Internal("failed to get user from context", err)
+		}
+
+		app, err := svc.CreateApplication(ctx, uid, req.Name)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusCreated, dto.ApplicationModelResponse{
+			ID:         app.ID,
+			Name:       app.Name,
+			WebhookURL: app.WebhookUrl,
+			MaxRetries: int(app.MaxRetries),
+			IsTrusted:  app.IsTrusted,
+			CreatedAt:  app.CreatedAt,
+			UpdatedAt:  app.UpdatedAt,
+		})
+	}
+}
+
 func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		appIDStr := c.Param("app_id")

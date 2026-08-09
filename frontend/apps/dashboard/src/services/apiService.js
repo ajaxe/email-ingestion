@@ -47,6 +47,9 @@ export const getApplicationById = (appId) =>
 
 export const getApplications = () => apiClient.get(`/applications`);
 
+export const createApplication = (payload) =>
+  apiClient.post(`/applications`, typeof payload === 'string' ? { name: payload } : payload);
+
 export const getAddresses = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/addresses`, { params: queryParams });
 

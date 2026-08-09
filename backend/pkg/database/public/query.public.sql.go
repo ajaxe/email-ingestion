@@ -233,7 +233,7 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 }
 
 const getAdminApplications = `-- name: GetAdminApplications :many
-SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications
+SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications
 `
 
 func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, error) {
@@ -248,7 +248,6 @@ func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, erro
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.ApiKeyHash,
 			&i.WebhookUrl,
 			&i.WebhookSecret,
 			&i.AwsIamRoleArn,
@@ -288,16 +287,37 @@ func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKe
 }
 
 const getApplicationByAPIKey = `-- name: GetApplicationByAPIKey :one
-SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE api_key_hash = $1 LIMIT 1
+SELECT a.id, a.name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, a.created_at, updated_at, ak.id, application_id, ak.name, key_prefix, key_hash, ak.created_at, expires_at, last_used_at FROM applications a
+JOIN api_keys ak ON ak.application_id = a.id
+WHERE key_hash = $1 LIMIT 1
 `
 
-func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string) (Application, error) {
-	row := q.db.QueryRow(ctx, getApplicationByAPIKey, apiKeyHash)
-	var i Application
+type GetApplicationByAPIKeyRow struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	WebhookUrl    string    `json:"webhookUrl"`
+	WebhookSecret string    `json:"webhookSecret"`
+	AwsIamRoleArn string    `json:"awsIamRoleArn"`
+	MaxRetries    int32     `json:"maxRetries"`
+	IsTrusted     bool      `json:"isTrusted"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	ID_2          uuid.UUID `json:"id2"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+	Name_2        string    `json:"name2"`
+	KeyPrefix     string    `json:"keyPrefix"`
+	KeyHash       string    `json:"keyHash"`
+	CreatedAt_2   time.Time `json:"createdAt2"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+	LastUsedAt    time.Time `json:"lastUsedAt"`
+}
+
+func (q *Queries) GetApplicationByAPIKey(ctx context.Context, keyHash string) (GetApplicationByAPIKeyRow, error) {
+	row := q.db.QueryRow(ctx, getApplicationByAPIKey, keyHash)
+	var i GetApplicationByAPIKeyRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.ApiKeyHash,
 		&i.WebhookUrl,
 		&i.WebhookSecret,
 		&i.AwsIamRoleArn,
@@ -305,12 +325,20 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, apiKeyHash string)
 		&i.IsTrusted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ID_2,
+		&i.ApplicationID,
+		&i.Name_2,
+		&i.KeyPrefix,
+		&i.KeyHash,
+		&i.CreatedAt_2,
+		&i.ExpiresAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }
 
 const getApplicationByID = `-- name: GetApplicationByID :one
-SELECT id, name, api_key_hash, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE id = $1 LIMIT 1
+SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Application, error) {
@@ -319,7 +347,6 @@ func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Applica
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.ApiKeyHash,
 		&i.WebhookUrl,
 		&i.WebhookSecret,
 		&i.AwsIamRoleArn,
@@ -332,7 +359,7 @@ func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Applica
 }
 
 const getApplicationWithEmails = `-- name: GetApplicationWithEmails :many
-SELECT a.id, a.name, a.api_key_hash, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
+SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
 FROM applications a  
 LEFT JOIN assigned_emails e ON a.id = e.application_id  
 WHERE a.id = $1
@@ -341,7 +368,6 @@ WHERE a.id = $1
 type GetApplicationWithEmailsRow struct {
 	ID             uuid.UUID   `json:"id"`
 	Name           string      `json:"name"`
-	ApiKeyHash     string      `json:"apiKeyHash"`
 	WebhookUrl     string      `json:"webhookUrl"`
 	WebhookSecret  string      `json:"webhookSecret"`
 	AwsIamRoleArn  string      `json:"awsIamRoleArn"`
@@ -368,7 +394,6 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.ApiKeyHash,
 			&i.WebhookUrl,
 			&i.WebhookSecret,
 			&i.AwsIamRoleArn,
@@ -393,7 +418,7 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 }
 
 const getApplications = `-- name: GetApplications :many
-SELECT a.id, a.name, a.api_key_hash, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at FROM applications a
+SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at FROM applications a
 JOIN user_application_access ua ON ua.application_id = a.id
 WHERE ua.user_id = $1
 `
@@ -410,7 +435,6 @@ func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]Appl
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.ApiKeyHash,
 			&i.WebhookUrl,
 			&i.WebhookSecret,
 			&i.AwsIamRoleArn,
@@ -674,6 +698,44 @@ func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobI
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertApplication = `-- name: InsertApplication :one
+INSERT INTO applications (name, webhook_url, webhook_secret, aws_iam_role_arn)
+VALUES ($1, '', '', '')
+RETURNING id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at
+`
+
+func (q *Queries) InsertApplication(ctx context.Context, name string) (Application, error) {
+	row := q.db.QueryRow(ctx, insertApplication, name)
+	var i Application
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.WebhookUrl,
+		&i.WebhookSecret,
+		&i.AwsIamRoleArn,
+		&i.MaxRetries,
+		&i.IsTrusted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertUserApplication = `-- name: InsertUserApplication :exec
+INSERT INTO user_application_access (user_id, application_id)
+VALUES ($1, $2)
+`
+
+type InsertUserApplicationParams struct {
+	UserID        uuid.UUID `json:"userId"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) InsertUserApplication(ctx context.Context, arg InsertUserApplicationParams) error {
+	_, err := q.db.Exec(ctx, insertUserApplication, arg.UserID, arg.ApplicationID)
+	return err
 }
 
 const listApiKeysByApplication = `-- name: ListApiKeysByApplication :many
