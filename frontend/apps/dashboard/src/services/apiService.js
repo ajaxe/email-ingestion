@@ -81,7 +81,13 @@ export const getWebhookJobs = (appId, queryParams) =>
 export const redeliverWebhook = (appId, jobId) =>
   apiClient.post(`/applications/${appId}/webhook/jobs/${jobId}/redeliver`);
 
-export const createApiKey = (appId, name = "Default API Key") =>
-  apiClient.post(`/applications/${appId}/api-keys`, { name });
+export const getApiKeys = (appId) =>
+  apiClient.get(`/applications/${appId}/api-keys`);
+
+export const createApiKey = (appId, payload) =>
+  apiClient.post(`/applications/${appId}/api-keys`, typeof payload === 'string' ? { name: payload } : payload);
+
+export const revokeApiKey = (appId, keyId) =>
+  apiClient.delete(`/applications/${appId}/api-keys/${keyId}`);
 
 export const getApplicationStats = (appId) => apiClient.get(`/applications/${appId}/stats`);

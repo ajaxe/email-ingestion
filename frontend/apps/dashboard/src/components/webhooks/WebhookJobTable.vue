@@ -84,7 +84,7 @@
 
       <template #item.duration_ms="{ item }">
         <span class="font-mono text-caption">
-          {{ itemitem.durationMs ? `${item.durationMs} ms` : "—" }}
+          {{ item.durationMs ? `${item.durationMs} ms` : "—" }}
         </span>
       </template>
 

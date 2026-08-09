@@ -106,3 +106,4 @@ config.yaml
 # prevent accidental exposure of private test data.
 test_email.eml
 .env.dev
+__debug_bin.*

@@ -111,7 +111,7 @@ type ApiKey struct {
 	KeyHash       string    `json:"keyHash"`
 	CreatedAt     time.Time `json:"createdAt"`
 	ExpiresAt     time.Time `json:"expiresAt"`
-	LastUserAt    time.Time `json:"lastUserAt"`
+	LastUsedAt    time.Time `json:"lastUsedAt"`
 }
 
 type Application struct {

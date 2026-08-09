@@ -191,6 +191,21 @@ func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEma
 	return i, err
 }
 
+const deleteApiKey = `-- name: DeleteApiKey :exec
+DELETE FROM api_keys
+WHERE id = $1 AND application_id = $2
+`
+
+type DeleteApiKeyParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) DeleteApiKey(ctx context.Context, arg DeleteApiKeyParams) error {
+	_, err := q.db.Exec(ctx, deleteApiKey, arg.ID, arg.ApplicationID)
+	return err
+}
+
 const enqueueWebhookJob = `-- name: EnqueueWebhookJob :one
 INSERT INTO webhook_delivery_jobs (application_id, ingested_email_id, next_delivery_at)  
 VALUES ($1, $2, CURRENT_TIMESTAMP)  
@@ -253,7 +268,7 @@ func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, erro
 }
 
 const getApiKeyByKeyHash = `-- name: GetApiKeyByKeyHash :one
-SELECT id, application_id, name, key_prefix, key_hash, created_at, expires_at, last_user_at FROM api_keys WHERE key_hash = $1
+SELECT id, application_id, name, key_prefix, key_hash, created_at, expires_at, last_used_at FROM api_keys WHERE key_hash = $1
 `
 
 func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKey, error) {
@@ -267,7 +282,7 @@ func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKe
 		&i.KeyHash,
 		&i.CreatedAt,
 		&i.ExpiresAt,
-		&i.LastUserAt,
+		&i.LastUsedAt,
 	)
 	return i, err
 }
@@ -650,6 +665,51 @@ func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobI
 			&i.IsRetry,
 			&i.DurationMs,
 			&i.ExecutedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listApiKeysByApplication = `-- name: ListApiKeysByApplication :many
+SELECT id, application_id, name, key_prefix, created_at, expires_at, last_used_at
+FROM api_keys
+WHERE application_id = $1
+ORDER BY created_at DESC
+`
+
+type ListApiKeysByApplicationRow struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+	Name          string    `json:"name"`
+	KeyPrefix     string    `json:"keyPrefix"`
+	CreatedAt     time.Time `json:"createdAt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+	LastUsedAt    time.Time `json:"lastUsedAt"`
+}
+
+func (q *Queries) ListApiKeysByApplication(ctx context.Context, applicationID uuid.UUID) ([]ListApiKeysByApplicationRow, error) {
+	rows, err := q.db.Query(ctx, listApiKeysByApplication, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListApiKeysByApplicationRow
+	for rows.Next() {
+		var i ListApiKeysByApplicationRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.Name,
+			&i.KeyPrefix,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.LastUsedAt,
 		); err != nil {
 			return nil, err
 		}

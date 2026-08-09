@@ -168,7 +168,7 @@ create table if not exists public.api_keys (
   key_hash       text                        not null unique, -- sha256 hash of api key
   created_at     timestamp with time zone    not null default current_timestamp,
   expires_at     timestamp with time zone    not null default current_timestamp + interval '365 days',
-  last_user_at   timestamp with time zone    not null default current_timestamp
+  last_used_at   timestamp with time zone    not null default current_timestamp
 );
 
 create index if not exists idx_api_keys_hash on api_keys(key_hash);

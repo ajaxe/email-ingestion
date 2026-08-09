@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { getApplicationById, getApplications, createApiKey, getApplicationStats } from '@/services/apiService';
+import { getApplicationById, getApplications, getApiKeys, createApiKey, revokeApiKey, getApplicationStats } from '@/services/apiService';
 
 export const useAppStore = defineStore('app', {
   state: () => ({
     applications: [],
     activeAppId: '',
     application: null,
+    apiKeys: [],
     loading: false,
     error: null,
     latestApiKey: '',
@@ -29,6 +30,7 @@ export const useAppStore = defineStore('app', {
     async selectApp(appId) {
       this.activeAppId = appId;
       await this.fetchAppDetails(appId);
+      await this.fetchApiKeys(appId);
     },
     async fetchAppDetails(appId) {
       const targetId = appId || this.activeAppId;
@@ -39,7 +41,6 @@ export const useAppStore = defineStore('app', {
         return this.application;
       } catch (err) {
         this.error = err;
-        // Fallback to local item if backend request fails (e.g., in dev/mock)
         const local = this.applications.find(a => a.id === targetId);
         if (local) {
           this.application = { ...local };
@@ -51,28 +52,60 @@ export const useAppStore = defineStore('app', {
     },
 
     async fetchApplications() {
-      this.loading = true
+      this.loading = true;
       try {
         const res = await getApplications();
-        this.applications = res.data
+        this.applications = res.data;
         if(!this.activeAppId && this.applications.length > 0) {
-          this.activeAppId = this.applications[0].id
+          this.activeAppId = this.applications[0].id;
         }
       } catch (err) {
         this.error = err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
-    async generateApiKey(appId, name = 'Dashboard Key') {
+    async fetchApiKeys(appId) {
+      const targetId = appId || this.activeAppId;
+      if (!targetId) return [];
+      this.loading = true;
+      try {
+        const res = await getApiKeys(targetId);
+        this.apiKeys = res.data || [];
+        return this.apiKeys;
+      } catch (err) {
+        this.error = err;
+        return [];
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async generateApiKey(appId, payload) {
+      const targetId = appId || this.activeAppId;
+      const body = payload || { name: 'Dashboard Key' };
+      this.loading = true;
+      try {
+        const res = await createApiKey(targetId, body);
+        const apiKeyData = res.data || res;
+        this.latestApiKey = apiKeyData.apiKey || apiKeyData.api_key || apiKeyData.APIKey || apiKeyData.key || '';
+        await this.fetchApiKeys(targetId);
+        return apiKeyData;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async revokeApiKey(appId, keyId) {
       const targetId = appId || this.activeAppId;
       this.loading = true;
       try {
-        const res = await createApiKey(targetId, name);
-        const apiKeyData = res.data || res;
-        this.latestApiKey = apiKeyData.api_key || apiKeyData.APIKey || apiKeyData.key || '';
-        return apiKeyData;
+        await revokeApiKey(targetId, keyId);
+        await this.fetchApiKeys(targetId);
       } catch (err) {
         this.error = err;
         throw err;
@@ -86,7 +119,7 @@ export const useAppStore = defineStore('app', {
       this.loading = true;
       try {
         const res = await getApplicationStats(targetId);
-        this.stats = res.data
+        this.stats = res.data;
         return res.data;
       } catch (err) {
         this.error = err;

@@ -87,7 +87,9 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.GET("/applications/:app_id/emails/:email_id", handler.HandleGetEmailByID(emailService))
 	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(appService))
 
+	appGroup.GET("/applications/:app_id/api-keys", handler.HandleListAPIKeys(apiKeyService))
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
+	appGroup.DELETE("/applications/:app_id/api-keys/:key_id", handler.HandleRevokeAPIKey(apiKeyService))
 
 	appGroup.POST("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
 	appGroup.PUT("/applications/:app_id/webhook", handler.HandlePutUpdateWebhook(webhookService))

@@ -108,9 +108,20 @@ SELECT count(*) FROM ingested_emails WHERE application_id = $1;
 -- name: GetApiKeyByKeyHash :one
 SELECT * FROM api_keys WHERE key_hash = $1;
 
+-- name: ListApiKeysByApplication :many
+SELECT id, application_id, name, key_prefix, created_at, expires_at, last_used_at
+FROM api_keys
+WHERE application_id = $1
+ORDER BY created_at DESC;
+
 -- name: CreateApiKey :exec
 INSERT INTO api_keys (application_id, name, key_prefix, key_hash, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: DeleteApiKey :exec
+DELETE FROM api_keys
+WHERE id = $1 AND application_id = $2;
+
 
 -- name: GetUserBySubject :one
 SELECT * FROM users WHERE idp_user_sub = $1;
