@@ -89,7 +89,8 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))
 
-	appGroup.PUT("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
+	appGroup.POST("/applications/:app_id/webhook", handler.HandleRegisterWebhook(webhookService))
+	appGroup.PUT("/applications/:app_id/webhook", handler.HandlePutUpdateWebhook(webhookService))
 	appGroup.GET("/applications/:app_id/webhook/jobs", handler.HandleListWebhookJobs(webhookService))
 	appGroup.POST("/applications/:app_id/webhook/jobs/:job_id/redeliver", handler.HandleRedeliverWebhookJob(webhookService))
 

@@ -33,7 +33,7 @@ func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 			return apperror.Validation("webhook_url is required")
 		}
 
-		secret, err := svc.RegisterWebhook(ctx, appID, req.WebhookURL)
+		secret, err := svc.RegisterWebhook(ctx, appID, req.WebhookURL, req.MaxRetries)
 		if err != nil {
 			return err
 		}
@@ -41,6 +41,46 @@ func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, dto.RegisterWebhookResponse{
 			Message:       "Webhook registered and verified successfully",
 			WebhookSecret: secret,
+		})
+	}
+}
+
+func HandlePutUpdateWebhook(svc *service.WebhookService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		appIDStr := c.Param("app_id")
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		ctx := c.Request().Context()
+		if err := CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		var req dto.UpdateWebhookRequest
+		if err := c.Bind(&req); err != nil {
+			return apperror.Validation("invalid request body", err)
+		}
+
+		if req.WebhookURL == "" {
+			return apperror.Validation("webhookUrl is required")
+		}
+
+		if req.VerifyOnly {
+			if err := svc.Verify(ctx, appID, req.WebhookURL); err != nil {
+				return err
+			}
+			return c.JSON(http.StatusOK, map[string]string{
+				"message": "Webhook configuration verified successfully",
+			})
+		}
+		if err := svc.UpdateWebhook(ctx, appID, req.WebhookURL, req.MaxRetries); err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "Webhook configuration updated successfully",
 		})
 	}
 }
@@ -114,4 +154,3 @@ func HandleRedeliverWebhookJob(svc *service.WebhookService) echo.HandlerFunc {
 		})
 	}
 }
-

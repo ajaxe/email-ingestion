@@ -752,7 +752,7 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 
 const listWebhookJobsByApplication = `-- name: ListWebhookJobsByApplication :many
 SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
-       wl.http_status_code, wl.duration_ms, wl.attempt_number
+       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0)
 FROM webhook_delivery_jobs wj
 LEFT JOIN LATERAL (
   SELECT http_status_code, duration_ms, attempt_number
@@ -880,7 +880,7 @@ func (q *Queries) ResetWebhookJobForRedelivery(ctx context.Context, arg ResetWeb
 
 const updateApplicationWebhook = `-- name: UpdateApplicationWebhook :exec
 UPDATE applications
-SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
+SET webhook_url = $2, webhook_secret = $3, max_retries = $4, updated_at = NOW()
 WHERE id = $1
 `
 
@@ -888,10 +888,16 @@ type UpdateApplicationWebhookParams struct {
 	ID            uuid.UUID `json:"id"`
 	WebhookUrl    string    `json:"webhookUrl"`
 	WebhookSecret string    `json:"webhookSecret"`
+	MaxRetries    int32     `json:"maxRetries"`
 }
 
 func (q *Queries) UpdateApplicationWebhook(ctx context.Context, arg UpdateApplicationWebhookParams) error {
-	_, err := q.db.Exec(ctx, updateApplicationWebhook, arg.ID, arg.WebhookUrl, arg.WebhookSecret)
+	_, err := q.db.Exec(ctx, updateApplicationWebhook,
+		arg.ID,
+		arg.WebhookUrl,
+		arg.WebhookSecret,
+		arg.MaxRetries,
+	)
 	return err
 }
 

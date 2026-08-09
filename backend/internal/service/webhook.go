@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 
 	"github.com/ajaxe/email-ingestion/internal/util"
 	"github.com/ajaxe/email-ingestion/internal/webhook"
@@ -33,7 +34,7 @@ func NewWebhookService(queries *public.Queries, cfg *config.WebhookConfig, publi
 	}
 }
 
-func (s *WebhookService) RegisterWebhook(ctx context.Context, appID uuid.UUID, webhookURL string) (string, error) {
+func (s *WebhookService) RegisterWebhook(ctx context.Context, appID uuid.UUID, webhookURL string, maxRetries int) (string, error) {
 	app, err := s.queries.GetApplicationByID(ctx, appID)
 	if err != nil {
 		return "", apperror.NotFound("application not found", err)
@@ -68,6 +69,72 @@ func (s *WebhookService) RegisterWebhook(ctx context.Context, appID uuid.UUID, w
 		return "", apperror.Internal("failed to save webhook configuration", err)
 	}
 	return webhookSecret, nil
+}
+
+// UpdateWebhook updates the existing webhook URL and Max retries for the application.
+// Preserves the existing signing secret if one already exists.
+func (s *WebhookService) UpdateWebhook(ctx context.Context, appID uuid.UUID, webhookURL string, maxRetries int) error {
+	app, err := s.queries.GetApplicationByID(ctx, appID)
+	if err != nil {
+		return apperror.NotFound("application not found", err)
+	}
+	same, err := util.CompareURLs(app.WebhookUrl, webhookURL)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to compare URLs", "dbURL", app.WebhookUrl, "inputURL", webhookURL, "error", err)
+		return apperror.Internal("failed to compare URLs", err)
+	}
+	if !same {
+		// Perform SSRF Challenge Handshake
+		if err := s.verify(ctx, app, webhookURL); err != nil {
+			return apperror.UnprocessableEntity("webhook verification failed", err.Error(), err)
+		}
+	}
+
+	webhookSecret := app.WebhookSecret
+	if webhookSecret == "" {
+		// Generate a new secret only if one doesn't exist yet
+		secretBytes := make([]byte, 32)
+		if _, err := rand.Read(secretBytes); err != nil {
+			return apperror.Internal("failed to generate webhook secret", err)
+		}
+		rawSecret := hex.EncodeToString(secretBytes)
+		encryptedSecret, err := crypto.Encrypt(rawSecret, s.cfg.EncryptionKey)
+		if err != nil {
+			return apperror.Internal("failed to encrypt webhook secret", err)
+		}
+		webhookSecret = encryptedSecret
+	}
+
+	// Save the webhook config to the application
+	err = s.queries.UpdateApplicationWebhook(ctx, public.UpdateApplicationWebhookParams{
+		ID:            appID,
+		WebhookUrl:    webhookURL,
+		WebhookSecret: webhookSecret,
+		MaxRetries:    int32(maxRetries),
+	})
+	if err != nil {
+		return apperror.Internal("failed to save webhook configuration", err)
+	}
+	return nil
+}
+
+func (s *WebhookService) Verify(ctx context.Context, appID uuid.UUID, webhookURL string) error {
+	app, err := s.queries.GetApplicationByID(ctx, appID)
+	if err != nil {
+		return apperror.NotFound("application not found", err)
+	}
+	// Perform SSRF Challenge Handshake
+	return s.verify(ctx, app, webhookURL)
+}
+
+func (s *WebhookService) verify(ctx context.Context, app public.Application, webhookURL string) error {
+
+	// Perform SSRF Challenge Handshake
+	client := webhook.NewSSRFProtectedClient(s.cfg, app.IsTrusted)
+	if err := webhook.PerformChallengeHandshake(ctx, client, webhookURL); err != nil {
+		return apperror.UnprocessableEntity("webhook verification failed", err.Error(), err)
+	}
+	return nil
 }
 
 func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string) ([]public.ListWebhookJobsByApplicationRow, error) {

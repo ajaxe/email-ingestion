@@ -4,6 +4,12 @@ import "time"
 
 type RegisterWebhookRequest struct {
 	WebhookURL string `json:"webhookUrl"`
+	MaxRetries int    `json:"maxRetries"`
+}
+
+type UpdateWebhookRequest struct {
+	RegisterWebhookRequest
+	VerifyOnly bool `json:"verifyOnly"`
 }
 
 type RegisterWebhookResponse struct {
@@ -26,4 +32,3 @@ type RedeliverWebhookJobResponse struct {
 	JobID   string `json:"job_id"`
 	Status  string `json:"status"`
 }
-

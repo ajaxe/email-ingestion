@@ -33,9 +33,10 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 * **Database Queries:** All Postgres access must be managed via **`sqlc`**. Write pure SQL in `pkg/database/public/query.public.sql` (or `query.sql`) and generate Go models.
 * **Naming Conventions:** Use standard Go conventions (`camelCase` for internal, `PascalCase` for exported) and `snake_case` for all PostgreSQL schemas and tables.
 * **API Responses & Error Handling:** The REST API expects JSON request payloads and returns **unified JSON error responses**. Authentication is managed via `Authorization: Bearer <JWT_Token>`.
-* **Tenant Isolation Implementation:** Validate OIDC JWT locally via JWKS, map the `client_id` to `application_id`, fetch the `aws_iam_role_arn`, and generate transient **S3 Presigned URLs** via STS.
+* **Frontend Component Modularity:** Decompose pages into single-responsibility Vue components. Logical UI/UX elements (e.g., config forms, data tables, modal dialogs) must be extracted into dedicated components in `src/components/` rather than monolithic page files.
 
 ## 6. Hard Constraints & Anti-Patterns
+* **DO NOT** write monolithic Vue pages containing multiple distinct UI sections or inline dialogs. Extract them into smaller, single-responsibility components.
 * **DO NOT** use the standard library `net/mail` for MIME parsing. You **MUST** use **`enmime`**.
 * **DO NOT** use Bloom Filters for address validation, as false positives violate SMTP reliability. Use the designated **Hybrid Caching Strategy**.
 * **DO NOT** store or manage custom application/tenant claims in the IdP. The IdP should remain decoupled from service logic.

@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
       error.config.headers.Authorization = `Bearer ${token}`;
       return apiClient(error.config);
     }
-    return error;
+    throw error;
   },
 );
 
@@ -67,8 +67,13 @@ export const getAttachmentUrl = (appId, emailId, attachmentId) =>
     `/applications/${appId}/emails/${emailId}/attachments/${attachmentId}`,
   );
 
-export const configureWebhook = (appId, config) =>
+export const registerWebhook = (appId, config) =>
+  apiClient.post(`/applications/${appId}/webhook`, config);
+
+export const updateWebhook = (appId, config) =>
   apiClient.put(`/applications/${appId}/webhook`, config);
+
+export const configureWebhook = updateWebhook;
 
 export const getWebhookJobs = (appId, queryParams) =>
   apiClient.get(`/applications/${appId}/webhook/jobs`, { params: queryParams });

@@ -1,7 +1,12 @@
-import { defineStore } from 'pinia';
-import { configureWebhook, getWebhookJobs, redeliverWebhook } from '@/services/apiService';
+import { defineStore } from "pinia";
+import {
+  registerWebhook,
+  updateWebhook,
+  getWebhookJobs,
+  redeliverWebhook,
+} from "@/services/apiService";
 
-export const useWebhookStore = defineStore('webhooks', {
+export const useWebhookStore = defineStore("webhooks", {
   state: () => ({
     config: null,
     jobs: [],
@@ -9,10 +14,10 @@ export const useWebhookStore = defineStore('webhooks', {
     error: null,
   }),
   actions: {
-    async setupWebhook(appId, config) {
+    async registerWebhook(appId, config) {
       this.loading = true;
       try {
-        const res = await configureWebhook(appId, config);
+        const res = await registerWebhook(appId, config);
         this.config = res.data || res;
         return this.config;
       } catch (err) {
@@ -22,6 +27,38 @@ export const useWebhookStore = defineStore('webhooks', {
         this.loading = false;
       }
     },
+    async updateWebhook(appId, config) {
+      this.loading = true;
+      try {
+        const res = await updateWebhook(appId, config);
+        this.config = res.data || res;
+        return this.config;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    async verifyWebhook(appId, config) {
+      this.loading = true;
+      try {
+        const res = await updateWebhook(appId, config);
+        this.config = res.data || res;
+        return this.config;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async setupWebhook(appId, config) {
+      return this.updateWebhook(appId, config);
+    },
+
     async fetchJobs(appId, queryParams) {
       this.loading = true;
       try {

@@ -68,7 +68,7 @@ WHERE ua.user_id = $1;
 
 -- name: UpdateApplicationWebhook :exec
 UPDATE applications
-SET webhook_url = $2, webhook_secret = $3, updated_at = NOW()
+SET webhook_url = $2, webhook_secret = $3, max_retries = $4, updated_at = NOW()
 WHERE id = $1;
 
 -- name: GetIngestedEmailByID :one
@@ -124,7 +124,7 @@ SET email = $1, idp_user_sub = $2, status = $3, created_at = $4, activated_at = 
 
 -- name: ListWebhookJobsByApplication :many
 SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
-       wl.http_status_code, wl.duration_ms, wl.attempt_number
+       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0)
 FROM webhook_delivery_jobs wj
 LEFT JOIN LATERAL (
   SELECT http_status_code, duration_ms, attempt_number
