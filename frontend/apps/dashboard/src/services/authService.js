@@ -3,8 +3,8 @@ import { jwtDecode } from "jwt-decode";
 
 const authTokenKey = "authToken";
 
-const loginCallbackUrl = "/auth/callback";
-const logoutCallbackUrl = "/auth/logout";
+const loginCallbackUrl = `${location.origin}/auth/callback`;
+const logoutCallbackUrl = `${location.origin}/auth/logout`;
 
 /**
  * @type {import('oidc-client-ts').UserManagerSettings}
@@ -77,10 +77,30 @@ export async function getUser() {
       err = error;
     }
   } else if(window.APP_CONFIG.AUTH_PROVIDER === "oidc") {
-    return await userManager.getUser()
+    const u = await userManager.getUser()
+    console.log("oidc user",u)
+    return u
   }
   if (!err) {
     err = new Error("un-supported auth provider");
   }
   throw err;
+}
+
+export async function signoutRedirectCallback()  {
+  return await userManager.signoutRedirectCallback();
+}
+
+export function signinRedirect() {
+  return userManager.signinRedirect();
+}
+
+export async function signinRedirectCallback() {
+  const u = await userManager.signinRedirectCallback();
+  return {
+    name: u.profile?.name,
+    email: u.profile?.email,
+    profileImage: u.profile?.picture,
+    access_token: u.access_token,
+  };
 }

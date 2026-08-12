@@ -1,6 +1,6 @@
 <template>
   <v-card class="mx-auto pa-12 pb-8" elevation="3" width="448" rounded="lg">
-    <v-form ref="form">
+    <v-form ref="form" v-if="usePassword">
       <div class="text-body-large text-medium-emphasis">Account</div>
 
       <span class="text-red" v-if="loginErr">Invalid username or password</span>
@@ -45,6 +45,22 @@
         Log In
       </v-btn>
     </v-form>
+
+    <v-btn
+      v-if="!usePassword"
+      class="mb-8 mt-4"
+      color="blue"
+      size="large"
+      variant="tonal"
+      block
+      :loading="loading"
+      @click="login"
+    >
+      <template #append>
+        <v-icon icon="mdi-open-in-new" />
+      </template>
+      Log In using Idp
+    </v-btn>
   </v-card>
 </template>
 
@@ -63,18 +79,25 @@ const password = ref("");
 const disabled = computed(() => !username.value || !password.value);
 const store = useAuthStore();
 const router = useRouter();
+const usePassword = ref(store.isPasswordProvider);
 
 async function login() {
   loading.value = true;
-  const { valid } = await form.value.validate();
 
   try {
-    if (valid) {
-      const success = await store.login(username.value, password.value);
-      loginErr.value = !success;
-      if (success) {
-        router.push({ name: "/" });
+    let success = false;
+
+    if (usePassword.value) {
+      const { valid } = await form.value.validate();
+      if (valid) {
+        success = await store.login(username.value, password.value);
       }
+    } else {
+      success = await store.login();
+    }
+    loginErr.value = !success;
+    if (success) {
+      router.push({ name: "/" });
     }
   } catch {
     loginErr.value = true;
