@@ -172,3 +172,26 @@ create table if not exists public.api_keys (
 
 create index if not exists idx_api_keys_hash on api_keys(key_hash);
 create index if not exists idx_api_keys_app_id on api_keys(application_id);
+
+-- ==========================================
+-- organizations (grouping container)
+-- ==========================================
+create table if not exists public.organizations (
+  id            uuid                        primary key default uuid_generate_v4(),
+  name          varchar(255)                not null,
+  owner_user_id uuid                        not null references public.users(id) on delete cascade,
+  is_personal   boolean                     not null default true,
+  created_at    timestamp with time zone    not null default current_timestamp
+);
+
+create unique index if not exists idx_organizations_personal_owner
+  on public.organizations(owner_user_id)
+  where is_personal = true;
+
+-- link applications to organization
+alter table public.applications
+  add column if not exists organization_id uuid references public.organizations(id) on delete restrict;
+
+create index if not exists idx_applications_organization_id 
+  on public.applications(organization_id);
+

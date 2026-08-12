@@ -175,11 +175,28 @@ UPDATE assigned_emails
 SET is_active = $2
 WHERE id = $1 AND application_id = $3;
 
+-- name: CreatePersonalOrganization :one
+INSERT INTO organizations (name, owner_user_id, is_personal)
+VALUES ($1, $2, true)
+ON CONFLICT (owner_user_id) WHERE is_personal = true
+DO UPDATE SET name = organizations.name
+RETURNING *;
+
+-- name: GetPersonalOrganizationByUserID :one
+SELECT * FROM organizations
+WHERE owner_user_id = $1 AND is_personal = true
+LIMIT 1;
+
+-- name: GetOrganizationByID :one
+SELECT * FROM organizations
+WHERE id = $1 LIMIT 1;
+
 -- name: InsertApplication :one
-INSERT INTO applications (name, webhook_url, webhook_secret, aws_iam_role_arn)
-VALUES ($1, '', '', '')
+INSERT INTO applications (name, organization_id, webhook_url, webhook_secret, aws_iam_role_arn)
+VALUES ($1, $2, '', '', '')
 RETURNING *;
 
 -- name: InsertUserApplication :exec
 INSERT INTO user_application_access (user_id, application_id)
 VALUES ($1, $2);
+

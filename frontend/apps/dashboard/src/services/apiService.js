@@ -1,7 +1,6 @@
 /* eslint-disable antfu/top-level-function */
 import axios from "axios";
-// import { UserManager } from "oidc-client-ts";
-import { getUser } from "./authService";
+import { getUser, userManager } from "./authService";
 
 const apiClient = axios.create({
   baseURL: "/app/v1",
@@ -9,10 +8,10 @@ const apiClient = axios.create({
 
 async function oidcTokenProvider(silentSignin = false) {
   if (silentSignin) {
-    await UserManager.signinSilent();
+    await userManager.signinSilent();
   }
-  const user = await UserManager.getUser();
-  return user.access_token;
+  const user = await userManager.getUser();
+  return user?.access_token;
 }
 
 async function passwordTokenProvider() {

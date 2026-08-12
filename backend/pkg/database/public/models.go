@@ -115,15 +115,16 @@ type ApiKey struct {
 }
 
 type Application struct {
-	ID            uuid.UUID `json:"id"`
-	Name          string    `json:"name"`
-	WebhookUrl    string    `json:"webhookUrl"`
-	WebhookSecret string    `json:"webhookSecret"`
-	AwsIamRoleArn string    `json:"awsIamRoleArn"`
-	MaxRetries    int32     `json:"maxRetries"`
-	IsTrusted     bool      `json:"isTrusted"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID             uuid.UUID   `json:"id"`
+	Name           string      `json:"name"`
+	WebhookUrl     string      `json:"webhookUrl"`
+	WebhookSecret  string      `json:"webhookSecret"`
+	AwsIamRoleArn  string      `json:"awsIamRoleArn"`
+	MaxRetries     int32       `json:"maxRetries"`
+	IsTrusted      bool        `json:"isTrusted"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	UpdatedAt      time.Time   `json:"updatedAt"`
+	OrganizationID pgtype.UUID `json:"organizationId"`
 }
 
 type AssignedEmail struct {
@@ -155,6 +156,14 @@ type IngestedEmail struct {
 	MessageID       string    `json:"messageId"`
 	S3KeyPrefix     string    `json:"s3KeyPrefix"`
 	ReceivedAt      time.Time `json:"receivedAt"`
+}
+
+type Organization struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	OwnerUserID uuid.UUID `json:"ownerUserId"`
+	IsPersonal  bool      `json:"isPersonal"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type User struct {

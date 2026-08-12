@@ -38,7 +38,7 @@ export const useAppStore = defineStore('app', {
           await this.selectApp(created.id);
         } else if (this.applications.length > 0) {
           const targetName = typeof name === 'string' ? name : name.name;
-          const match = this.applications.find(a => a.name === targetName) || this.applications[this.applications.length - 1];
+          const match = this.applications.find(a => a.name === targetName) || this.applications.at(-1);
           if (match) {
             await this.selectApp(match.id);
           }

@@ -191,6 +191,32 @@ func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEma
 	return i, err
 }
 
+const createPersonalOrganization = `-- name: CreatePersonalOrganization :one
+INSERT INTO organizations (name, owner_user_id, is_personal)
+VALUES ($1, $2, true)
+ON CONFLICT (owner_user_id) WHERE is_personal = true
+DO UPDATE SET name = organizations.name
+RETURNING id, name, owner_user_id, is_personal, created_at
+`
+
+type CreatePersonalOrganizationParams struct {
+	Name        string    `json:"name"`
+	OwnerUserID uuid.UUID `json:"ownerUserId"`
+}
+
+func (q *Queries) CreatePersonalOrganization(ctx context.Context, arg CreatePersonalOrganizationParams) (Organization, error) {
+	row := q.db.QueryRow(ctx, createPersonalOrganization, arg.Name, arg.OwnerUserID)
+	var i Organization
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OwnerUserID,
+		&i.IsPersonal,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteApiKey = `-- name: DeleteApiKey :exec
 DELETE FROM api_keys
 WHERE id = $1 AND application_id = $2
@@ -233,7 +259,7 @@ func (q *Queries) EnqueueWebhookJob(ctx context.Context, arg EnqueueWebhookJobPa
 }
 
 const getAdminApplications = `-- name: GetAdminApplications :many
-SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications
+SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at, organization_id FROM applications
 `
 
 func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, error) {
@@ -255,6 +281,7 @@ func (q *Queries) GetAdminApplications(ctx context.Context) ([]Application, erro
 			&i.IsTrusted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -287,29 +314,30 @@ func (q *Queries) GetApiKeyByKeyHash(ctx context.Context, keyHash string) (ApiKe
 }
 
 const getApplicationByAPIKey = `-- name: GetApplicationByAPIKey :one
-SELECT a.id, a.name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, a.created_at, updated_at, ak.id, application_id, ak.name, key_prefix, key_hash, ak.created_at, expires_at, last_used_at FROM applications a
+SELECT a.id, a.name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, a.created_at, updated_at, organization_id, ak.id, application_id, ak.name, key_prefix, key_hash, ak.created_at, expires_at, last_used_at FROM applications a
 JOIN api_keys ak ON ak.application_id = a.id
 WHERE key_hash = $1 LIMIT 1
 `
 
 type GetApplicationByAPIKeyRow struct {
-	ID            uuid.UUID `json:"id"`
-	Name          string    `json:"name"`
-	WebhookUrl    string    `json:"webhookUrl"`
-	WebhookSecret string    `json:"webhookSecret"`
-	AwsIamRoleArn string    `json:"awsIamRoleArn"`
-	MaxRetries    int32     `json:"maxRetries"`
-	IsTrusted     bool      `json:"isTrusted"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
-	ID_2          uuid.UUID `json:"id2"`
-	ApplicationID uuid.UUID `json:"applicationId"`
-	Name_2        string    `json:"name2"`
-	KeyPrefix     string    `json:"keyPrefix"`
-	KeyHash       string    `json:"keyHash"`
-	CreatedAt_2   time.Time `json:"createdAt2"`
-	ExpiresAt     time.Time `json:"expiresAt"`
-	LastUsedAt    time.Time `json:"lastUsedAt"`
+	ID             uuid.UUID   `json:"id"`
+	Name           string      `json:"name"`
+	WebhookUrl     string      `json:"webhookUrl"`
+	WebhookSecret  string      `json:"webhookSecret"`
+	AwsIamRoleArn  string      `json:"awsIamRoleArn"`
+	MaxRetries     int32       `json:"maxRetries"`
+	IsTrusted      bool        `json:"isTrusted"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	UpdatedAt      time.Time   `json:"updatedAt"`
+	OrganizationID pgtype.UUID `json:"organizationId"`
+	ID_2           uuid.UUID   `json:"id2"`
+	ApplicationID  uuid.UUID   `json:"applicationId"`
+	Name_2         string      `json:"name2"`
+	KeyPrefix      string      `json:"keyPrefix"`
+	KeyHash        string      `json:"keyHash"`
+	CreatedAt_2    time.Time   `json:"createdAt2"`
+	ExpiresAt      time.Time   `json:"expiresAt"`
+	LastUsedAt     time.Time   `json:"lastUsedAt"`
 }
 
 func (q *Queries) GetApplicationByAPIKey(ctx context.Context, keyHash string) (GetApplicationByAPIKeyRow, error) {
@@ -325,6 +353,7 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, keyHash string) (G
 		&i.IsTrusted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizationID,
 		&i.ID_2,
 		&i.ApplicationID,
 		&i.Name_2,
@@ -338,7 +367,7 @@ func (q *Queries) GetApplicationByAPIKey(ctx context.Context, keyHash string) (G
 }
 
 const getApplicationByID = `-- name: GetApplicationByID :one
-SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at FROM applications WHERE id = $1 LIMIT 1
+SELECT id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at, organization_id FROM applications WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Application, error) {
@@ -354,12 +383,13 @@ func (q *Queries) GetApplicationByID(ctx context.Context, id uuid.UUID) (Applica
 		&i.IsTrusted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizationID,
 	)
 	return i, err
 }
 
 const getApplicationWithEmails = `-- name: GetApplicationWithEmails :many
-SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
+SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, a.organization_id, e.id AS email_id, e.local_part, e.description, e.is_active, e.created_at AS email_created_at  
 FROM applications a  
 LEFT JOIN assigned_emails e ON a.id = e.application_id  
 WHERE a.id = $1
@@ -375,6 +405,7 @@ type GetApplicationWithEmailsRow struct {
 	IsTrusted      bool        `json:"isTrusted"`
 	CreatedAt      time.Time   `json:"createdAt"`
 	UpdatedAt      time.Time   `json:"updatedAt"`
+	OrganizationID pgtype.UUID `json:"organizationId"`
 	EmailID        pgtype.UUID `json:"emailId"`
 	LocalPart      pgtype.Text `json:"localPart"`
 	Description    pgtype.Text `json:"description"`
@@ -401,6 +432,7 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 			&i.IsTrusted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrganizationID,
 			&i.EmailID,
 			&i.LocalPart,
 			&i.Description,
@@ -418,7 +450,7 @@ func (q *Queries) GetApplicationWithEmails(ctx context.Context, id uuid.UUID) ([
 }
 
 const getApplications = `-- name: GetApplications :many
-SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at FROM applications a
+SELECT a.id, a.name, a.webhook_url, a.webhook_secret, a.aws_iam_role_arn, a.max_retries, a.is_trusted, a.created_at, a.updated_at, a.organization_id FROM applications a
 JOIN user_application_access ua ON ua.application_id = a.id
 WHERE ua.user_id = $1
 `
@@ -442,6 +474,7 @@ func (q *Queries) GetApplications(ctx context.Context, userID uuid.UUID) ([]Appl
 			&i.IsTrusted,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -514,6 +547,24 @@ func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmail
 	return i, err
 }
 
+const getOrganizationByID = `-- name: GetOrganizationByID :one
+SELECT id, name, owner_user_id, is_personal, created_at FROM organizations
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetOrganizationByID(ctx context.Context, id uuid.UUID) (Organization, error) {
+	row := q.db.QueryRow(ctx, getOrganizationByID, id)
+	var i Organization
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OwnerUserID,
+		&i.IsPersonal,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getPendingWebhookJobs = `-- name: GetPendingWebhookJobs :many
 SELECT id, application_id, ingested_email_id, status, retry_count, next_delivery_at, created_at FROM webhook_delivery_jobs  
 WHERE status = 'PENDING' AND next_delivery_at <= CURRENT_TIMESTAMP  
@@ -546,6 +597,25 @@ func (q *Queries) GetPendingWebhookJobs(ctx context.Context, limit int32) ([]Web
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPersonalOrganizationByUserID = `-- name: GetPersonalOrganizationByUserID :one
+SELECT id, name, owner_user_id, is_personal, created_at FROM organizations
+WHERE owner_user_id = $1 AND is_personal = true
+LIMIT 1
+`
+
+func (q *Queries) GetPersonalOrganizationByUserID(ctx context.Context, ownerUserID uuid.UUID) (Organization, error) {
+	row := q.db.QueryRow(ctx, getPersonalOrganizationByUserID, ownerUserID)
+	var i Organization
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.OwnerUserID,
+		&i.IsPersonal,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
@@ -701,13 +771,18 @@ func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobI
 }
 
 const insertApplication = `-- name: InsertApplication :one
-INSERT INTO applications (name, webhook_url, webhook_secret, aws_iam_role_arn)
-VALUES ($1, '', '', '')
-RETURNING id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at
+INSERT INTO applications (name, organization_id, webhook_url, webhook_secret, aws_iam_role_arn)
+VALUES ($1, $2, '', '', '')
+RETURNING id, name, webhook_url, webhook_secret, aws_iam_role_arn, max_retries, is_trusted, created_at, updated_at, organization_id
 `
 
-func (q *Queries) InsertApplication(ctx context.Context, name string) (Application, error) {
-	row := q.db.QueryRow(ctx, insertApplication, name)
+type InsertApplicationParams struct {
+	Name           string      `json:"name"`
+	OrganizationID pgtype.UUID `json:"organizationId"`
+}
+
+func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationParams) (Application, error) {
+	row := q.db.QueryRow(ctx, insertApplication, arg.Name, arg.OrganizationID)
 	var i Application
 	err := row.Scan(
 		&i.ID,
@@ -719,6 +794,7 @@ func (q *Queries) InsertApplication(ctx context.Context, name string) (Applicati
 		&i.IsTrusted,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OrganizationID,
 	)
 	return i, err
 }

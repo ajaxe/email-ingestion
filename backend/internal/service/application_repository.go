@@ -6,6 +6,7 @@ import (
 
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,7 +37,21 @@ func (a *PgxApplicationRepository) CreateApplication(ctx context.Context, userID
 
 	qtx := a.Queries.WithTx(tx)
 
-	app, err := qtx.InsertApplication(ctx, appName)
+	org, err := qtx.CreatePersonalOrganization(ctx, public.CreatePersonalOrganizationParams{
+		Name:        fmt.Sprintf("%s Org", appName),
+		OwnerUserID: userID,
+	})
+	if err != nil {
+		return public.Application{}, fmt.Errorf("failed to create personal organization: %w", err)
+	}
+
+	app, err := qtx.InsertApplication(ctx, public.InsertApplicationParams{
+		Name: appName,
+		OrganizationID: pgtype.UUID{
+			Bytes: org.ID,
+			Valid: true,
+		},
+	})
 	if err != nil {
 		return public.Application{}, fmt.Errorf("failed to insert application: %w", err)
 	}

@@ -111,6 +111,10 @@ func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *User
 		return nil, fmt.Errorf("failed to provision user by subject or email, missing partial user data")
 	}
 
+	if err := a.ensurePersonalOrg(ctx, user); err != nil {
+		slog.WarnContext(ctx, "failed to ensure personal organization during provision", "userID", user.ID, "error", err)
+	}
+
 	json, err := util.JSON(user)
 	if err != nil {
 		return nil, err
@@ -123,6 +127,22 @@ func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *User
 	}
 
 	return user, nil
+}
+
+func (a *AuthorizationService) ensurePersonalOrg(ctx context.Context, user *public.User) error {
+	orgName := user.Email
+	if orgName == "" {
+		orgName = fmt.Sprintf("User %s Org", user.ID.String()[:8])
+	}
+	_, err := a.queries.CreatePersonalOrganization(ctx, public.CreatePersonalOrganizationParams{
+		Name:        orgName,
+		OwnerUserID: user.ID,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to ensure personal organization for user", "userID", user.ID, "error", err)
+		return err
+	}
+	return nil
 }
 
 func (a *AuthorizationService) provisionBySubject(ctx context.Context, userData *UserProvisionData) (*public.User, bool, error) {
