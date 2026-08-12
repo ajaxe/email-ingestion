@@ -15,6 +15,7 @@
       title="Routing Addresses"
       to="/addresses"
       color="primary"
+      :disabled="disable"
     />
 
     <v-list-item
@@ -22,6 +23,7 @@
       title="Ingestion Logs"
       to="/emails"
       color="primary"
+      :disabled="disable"
     />
 
     <v-list-item
@@ -29,6 +31,7 @@
       title="Webhook Console"
       to="/webhooks"
       color="primary"
+      :disabled="disable"
     />
 
     <v-list-item
@@ -36,6 +39,15 @@
       title="API Keys & Security"
       to="/settings"
       color="primary"
+      :disabled="disable"
     />
   </v-list>
 </template>
+<script setup>
+defineProps({
+  disable: {
+    type: Boolean,
+    default: false,
+  },
+});
+</script>

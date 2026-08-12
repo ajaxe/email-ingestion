@@ -4,24 +4,24 @@ import {
   passwordLogout,
   getUser,
   signinRedirect,
+  signoutRedirect,
   signoutRedirectCallback,
   signinRedirectCallback,
+  emptyUser,
 } from "@/services/authService";
 
 import router from "@/router";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
-    isAuthenticated: false,
     provider: window.APP_CONFIG.AUTH_PROVIDER,
-    user: {
-      name: "",
-      email: "",
-      profileImage: "",
-    },
+    user: emptyUser,
   }),
   getters: {
     isPasswordProvider: (state) => state.provider === "password",
+    isAuthenticated: (state) => {
+      return state.user.name !== "";
+    },
   },
   actions: {
     async login(username, password) {
@@ -29,24 +29,22 @@ export const useAuthStore = defineStore("auth", {
         if (!username || !password)
           throw new Error("Username and password are required");
         const success = await passwordLogin(username, password);
-        this.isAuthenticated = success;
         return success;
       } else {
         await signinRedirect();
       }
     },
-    logout() {
-      this.isAuthenticated = false;
+    async logout() {
       if (this.isPasswordProvider) {
         passwordLogout();
+        router.push("/login");
       } else {
-        this.handleLogoutCallback();
+        await signoutRedirect();
       }
     },
 
     async loadUser() {
       this.user = await getUser();
-      this.isAuthenticated = !!this.user?.name;
       return this.isAuthenticated;
     },
 
@@ -71,9 +69,9 @@ export const useAuthStore = defineStore("auth", {
       try {
         // Complete the login, exchange code for tokens
         await signoutRedirectCallback();
-        this.user = null;
+        this.user = emptyUser;
         // Redirect to the home page
-        router.push("/");
+        router.push("/login");
       } catch (error) {
         console.error("Error handling login callback:", error);
         router.push("/login-failed"); // Or some error page

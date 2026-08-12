@@ -1,5 +1,5 @@
 <template>
-  <v-layout class="fill-height">
+  <v-layout class="fill-height" v-if="!isNavigating">
     <!-- Left Navigation Drawer -->
     <v-navigation-drawer v-model="drawer" permanent elevation="1" width="280" :rail="keepOpen" :expand-on-hover="keepOpen">
       <!-- Top Branding Section -->
@@ -21,7 +21,7 @@
       </template>
 
       <!-- Navigation Links -->
-      <NavigationLinks />
+      <NavigationLinks :disable="!hasApps" />
 
       <!-- Bottom Profile & Theme AddOns -->
       <template #append>
@@ -72,19 +72,20 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import NavigationLinks from "@/components/navigation/NavigationLinks.vue";
 import NavigationAddOns from "@/components/navigation/NavigationAddOns.vue";
 import CustomAppBar from '@/components/CustomAppBar.vue';
-import AppSelector from "@/components/AppSelector.vue";
 import { useNotificationStore } from "@/stores/notification";
 import { useAppStore } from "@/stores/application";
+import { isNavigating } from '@/router'
 
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
 
 const keepOpen = ref(false)
+const hasApps = computed(() => appStore.applications.length > 0)
 
 onMounted(() => {
   void appStore.fetchApplications();

@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex align-center gap-3">
+  <div class="d-flex align-center gap-3" v-if="show">
     <v-select
       v-model="appStore.activeAppId"
       :items="appStore.applications"
@@ -36,12 +36,13 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useAppStore } from '@/stores/application';
 import StatusChip from '@/components/StatusChip.vue';
 
 const emit = defineEmits(['open-create-modal']);
 const appStore = useAppStore();
+const show = computed(() => appStore.applications.length > 0)
 
 async function onAppChange(appId) {
   if (appId) {

@@ -88,7 +88,6 @@ function toggleTheme() {
 
 function handleLogout() {
   authStore.logout();
-  router.push("/login");
 }
 </script>
 

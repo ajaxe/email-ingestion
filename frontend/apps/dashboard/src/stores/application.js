@@ -25,6 +25,7 @@ export const useAppStore = defineStore('app', {
     activeAppStatus(state) {
       return state.application?.status || state.activeApp?.status || 'ACTIVE';
     },
+    hasApplication: state => state.applications.length > 0
   },
   actions: {
     async createApp(name) {

@@ -1,4 +1,4 @@
-import { UserManager } from 'oidc-client-ts'
+import { UserManager } from "oidc-client-ts";
 import { jwtDecode } from "jwt-decode";
 
 const authTokenKey = "authToken";
@@ -76,10 +76,10 @@ export async function getUser() {
     } catch (error) {
       err = error;
     }
-  } else if(window.APP_CONFIG.AUTH_PROVIDER === "oidc") {
-    const u = await userManager.getUser()
-    console.log("oidc user",u)
-    return u
+  } else if (window.APP_CONFIG.AUTH_PROVIDER === "oidc") {
+    const u = await userManager.getUser();
+    console.log("oidc user", toUser(u));
+    return toUser(u);
   }
   if (!err) {
     err = new Error("un-supported auth provider");
@@ -87,8 +87,12 @@ export async function getUser() {
   throw err;
 }
 
-export async function signoutRedirectCallback()  {
+export async function signoutRedirectCallback() {
   return await userManager.signoutRedirectCallback();
+}
+
+export function signoutRedirect() {
+  return userManager.signoutRedirect();
 }
 
 export function signinRedirect() {
@@ -97,10 +101,22 @@ export function signinRedirect() {
 
 export async function signinRedirectCallback() {
   const u = await userManager.signinRedirectCallback();
+  return toUser(u);
+}
+
+export const emptyUser = {
+  name: "",
+  email: "",
+  profileImage: "",
+};
+
+function toUser(oidcUser) {
+  if(!oidcUser) return emptyUser;
+  
   return {
-    name: u.profile?.name,
-    email: u.profile?.email,
-    profileImage: u.profile?.picture,
-    access_token: u.access_token,
+    name: oidcUser.profile?.name,
+    email: oidcUser.profile?.email,
+    profileImage: oidcUser.profile?.picture,
+    access_token: oidcUser.access_token,
   };
 }
