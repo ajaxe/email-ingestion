@@ -5,7 +5,7 @@ This document tracks active and upcoming development phases. Completed phases ar
 ## **Project Status Overview**
 
 **Current Phase:** Phase 6 (Application API & Brokered S3 Access Control)  
-**Overall Progress:** 5 / 8 Phases Completed (62.5%)
+**Overall Progress:** 6 / 9 Phases Completed (66.7%)
 
 | Phase | Status | Key Scope | Archive Details |
 | :--- | :--- | :--- | :--- |
@@ -15,8 +15,9 @@ This document tracks active and upcoming development phases. Completed phases ar
 | **Phase 4: MIME Engine & Workers** | Completed | Redis Consumer Group Pool & MIME Parsing | [View Details](file:///C:/CodeWorkspace/projects/email-ingestion/docs/task-list-archive.md#phase-4-spool-queue-worker--mime-parsing-engine) |
 | **Phase 5: Secure Webhook Dispatch** | Completed | SSRF Guard Handshake & Jitter Retries | [View Details](file:///C:/CodeWorkspace/projects/email-ingestion/docs/task-list-archive.md#phase-5-secure-webhook--callback-dispatch-engine) |
 | **Phase 6: REST API & STS S3** | **IN PROGRESS** | OIDC JWT Auth & Brokered AWS STS Presigned URLs | *Active Below* |
-| **Phase 7: Management Dashboard** | Pending | Vue.js SPA & Developer Management Console | *Active Below* |
+| **Phase 7: Management Dashboard** | Completed | Vue.js SPA & Developer Management Console | *Active Below* |
 | **Phase 8: Deployment & Infra** | Pending | Docker Multi-Stage, Traefik & MX DNS | *Active Below* |
+| **Phase 9: Database Migrations** | Pending | Goose Migration Engine, SemVer v0 & SQLC Integration | *Active Below* |
 
 ---
 
@@ -26,11 +27,11 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **6.1 Authentication & REST Endpoints**
 
-* [ ] Implement JWT OIDC verification middleware utilizing a cached JWKS endpoint provider.  
-* [ ] Create core routing pathways:  
-  * `POST /api/v1/addresses` (Provision new assigned 10-char routing paths).  
-  * `GET /api/v1/application` (Retrieve configurations and active scopes).  
-  * `GET /api/v1/emails` (List history logs).  
+* [x] Implement JWT OIDC verification middleware utilizing a cached JWKS endpoint provider.  
+* [x] Create core routing pathways:  
+  * `POST /api/v1/addresses` (Provision new assigned 10-char routing paths / `/app/v1/applications/:app_id/addresses`).  
+  * `GET /api/v1/application` (Retrieve configurations and active scopes / `/app/v1/applications/:app_id`).  
+  * `GET /api/v1/emails` (List history logs / `/app/v1/applications/:app_id/emails`).  
 * **Verification Checkpoint**: Query these endpoints with both valid and expired OIDC access tokens to verify signature enforcement.
 
 ### **6.2 Brokered IAM Role Assumption (S3 Downloader)**
@@ -57,9 +58,9 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **7.1 OIDC Auth Provider & HTTP Client Subsystem**
 
-* [ ] Implement OIDC PKCE authentication handler (`src/services/authService.js` / `src/services/oidcService.js`) utilizing `oidc-client-ts` (`UserManager`) interfacing with `Apogee-dev` IdP.  
-* [ ] Configure HTTP client module (`src/services/apiService.js`) with base URL `/app/v1`, automatic `Authorization: Bearer <token>` header injection, 401 response handling, and automatic token refresh managed by `oidc-client-ts`.  
-* [ ] Implement `useAuthStore` in `src/stores/auth.js` to manage user identity, OIDC tokens (via `oidc-client-ts`), active `app_id` selection, login, and logout state using `src/services/` modules.  
+* [x] Implement OIDC PKCE authentication handler (`src/services/authService.js` / `src/services/oidcService.js`) utilizing `oidc-client-ts` (`UserManager`) interfacing with `Apogee-dev` IdP.  
+* [x] Configure HTTP client module (`src/services/apiService.js`) with base URL `/app/v1`, automatic `Authorization: Bearer <token>` header injection, 401 response handling, and automatic token refresh managed by `oidc-client-ts`.  
+* [x] Implement `useAuthStore` in `src/stores/auth.js` to manage user identity, OIDC tokens (via `oidc-client-ts`), active `app_id` selection, login, and logout state using `src/services/` modules.  
 * **Verification Checkpoint**: Run dev server (`pnpm dev`), verify OIDC authentication handshake via `oidc-client-ts`, token storage, and Bearer token attachment to outgoing `/app/v1/...` API requests.
 
 ### **7.2 Core Pinia Stores & API Client Integration**
@@ -147,15 +148,15 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **7.5 Operational Sandbox & Real-Time Log Inspector**
 
-* [ ] Build interactive JSON payload inspector in `src/pages/webhooks/index.vue` and `src/pages/emails/[id].vue` to display formatted headers, body, and attempt logs.  
-* [ ] Add auto-refresh / polling toggle for delivery sandbox log table to monitor live outbox worker job execution.  
-* [ ] Add toast notification system (Vuetify `v-snackbar`) for success/error feedback across all user actions.  
+* [x] Build interactive JSON payload inspector in `src/pages/webhooks/index.vue` and `src/pages/emails/[id].vue` to display formatted headers, body, and attempt logs.  
+* [x] Add auto-refresh / polling toggle for delivery sandbox log table to monitor live outbox worker job execution.  
+* [x] Add toast notification system (Vuetify `v-snackbar`) for success/error feedback across all user actions.  
 * **Verification Checkpoint**: Perform manual webhook re-delivery from sandbox log table and verify UI updates immediately upon completion.
 
 ### **7.6 End-to-End System Integration & Verification**
 
-* [ ] Run full system flow: Log in via OIDC PKCE -> Select/fetch app scope (`/app/v1/applications/:app_id`) -> Provision new 10-character address -> Send email via SMTP -> Verify ingestion in Email Logs -> Download attachment via STS presigned S3 link -> Verify webhook payload delivered -> Trigger manual re-delivery from Sandbox.  
-* [ ] Run `pnpm lint` and `pnpm build` in `frontend/apps/dashboard` to verify zero build or linting errors.  
+* [x] Run full system flow: Log in via OIDC PKCE -> Select/fetch app scope (`/app/v1/applications/:app_id`) -> Provision new 10-character address -> Send email via SMTP -> Verify ingestion in Email Logs -> Download attachment via STS presigned S3 link -> Verify webhook payload delivered -> Trigger manual re-delivery from Sandbox.  
+* [x] Run `pnpm lint` and `pnpm build` in `frontend/apps/dashboard` to verify zero build or linting errors.  
 * **Verification Checkpoint**: Confirm clean `pnpm build` output and zero lint errors.
 
 ### **7.7 Webhook Outbox Delivery Jobs & Re-delivery API Engine**
@@ -255,3 +256,46 @@ This document tracks active and upcoming development phases. Completed phases ar
 * [ ] Configure your system's public DNS MX records to point to the ingestion server's public IP address.  
 * [ ] Implement clean TXT configurations (such as standard SPF strings, DKIM keys, and a basic `_dmarc` DMARC policy record) to prepare your domain for safe inbound validation.  
 * **Verification Checkpoint**: Deploy the production stack via `docker compose up -d` and confirm that external mail clients can perform TLS handshakes and route traffic through Traefik to your Go SMTP Daemon.
+
+---
+
+## **Phase 9: Database Migration Engine & Versioning (Pressly Goose)**
+
+*Implement a versioned, modular database migration pipeline using `pressly/goose` with Go `embed` support and SemVer folder organization.*
+
+### **9.1 SemVer Directory Structure & Schema Decomposition**
+
+* [ ] Create initial semantic version directory `backend/pkg/database/migrations/v0/`.  
+* [ ] Decompose monolithic `backend/pkg/database/migrations/public.sql` into sequential, numbered migration scripts:  
+  * `00001_init_extensions_and_enums.sql`: Enable `uuid-ossp` extension and `spool_status` / `webhook_status` ENUM types.  
+  * `00002_create_applications.sql`: Tenant `applications` table.  
+  * `00003_create_assigned_emails.sql`: `assigned_emails` table and lookup indexes.  
+  * `00004_create_ingested_emails.sql`: `ingested_emails` metadata table and search indexes.  
+  * `00005_create_webhook_jobs_and_logs.sql`: `webhook_delivery_jobs` & `webhook_logs` outbox tables and scheduled lookup indexes.  
+  * `00006_create_spool_queue.sql`: `inbound_spool_queue` buffer table.  
+  * `00007_create_users_and_access.sql`: `users`, `user_application_access`, and `api_keys` security tables + indexes.  
+  * `00008_create_organizations.sql`: `organizations` container table, FK linking to `applications`, and personal owner index.  
+* [ ] Add explicit `-- +goose Up` and `-- +goose Down` annotation blocks to every script for full rollback support.
+
+### **9.2 SQLC Schema Path Configuration**
+
+* [ ] Update `backend/sqlc.yaml` `schema` key to point to the semver folder list:  
+  ```yaml
+  schema:
+    - "pkg/database/migrations/v0"
+  ```
+* [ ] Run `sqlc generate` in `backend/` and verify Go database models in `pkg/database/public/` generate cleanly with zero schema regressions.
+
+### **9.3 Embedded Goose Runner & CLI Subcommand**
+
+* [ ] Add `github.com/pressly/goose/v3` package dependency to `backend/go.mod`.  
+* [ ] Create `backend/pkg/database/migrations.go` migration wrapper using Go `//go:embed migrations/*/*.sql` and `fs.Sub`.  
+* [ ] Create Cobra CLI migration command (`backend/cmd/migrate.go`) supporting subcommands: `up`, `down`, `status`, `version`, and `skip`.  
+* [ ] Integrate automatic migration checks into service startup routines (`backend/internal/startup/`).
+
+### **9.4 End-to-End Verification Checkpoint**
+
+* [ ] Run `go run cmd/api.go migrate up` against a clean Postgres container and confirm table creation.  
+* [ ] Verify migration history tracked in PostgreSQL `goose_db_version` table.  
+* [ ] Test `goose status` and `goose skip` commands to confirm migration skipping and status reporting functionality.  
+* [ ] Run `sqlc generate` and `go test ./...` to verify complete system compatibility.
