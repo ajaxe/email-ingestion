@@ -52,6 +52,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/auth/Callback': RouteRecordInfo<
+      '/auth/Callback',
+      '/auth/Callback',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/emails/': RouteRecordInfo<
       '/emails/',
       '/emails',
@@ -119,6 +126,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/addresses/index.vue': {
       routes:
         | '/addresses/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/auth/Callback.vue': {
+      routes:
+        | '/auth/Callback'
       views:
         | never
       pathParamNames:

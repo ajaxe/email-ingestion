@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed } from "vue";
 import { useTheme } from "vuetify";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
@@ -78,9 +78,9 @@ const theme = useTheme();
 const authStore = useAuthStore();
 const router = useRouter();
 
-const profileImage = ref(authStore.user.profileImage);
-const username = ref(authStore.user.name);
-const email = ref(authStore.user.email);
+const profileImage = computed(() => authStore.user.profileImage);
+const username = computed(() => authStore.user.name);
+const email = computed(() => authStore.user.email);
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? "light" : "dark";

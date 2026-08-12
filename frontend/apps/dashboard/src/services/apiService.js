@@ -1,7 +1,7 @@
 /* eslint-disable antfu/top-level-function */
 import axios from "axios";
 // import { UserManager } from "oidc-client-ts";
-import { fetchToken } from "./authService";
+import { getUser } from "./authService";
 
 const apiClient = axios.create({
   baseURL: "/app/v1",
@@ -16,7 +16,7 @@ const apiClient = axios.create({
 } */
 
 async function passwordTokenProvider() {
-  const { access_token } = await fetchToken();
+  const { access_token } = await getUser();
   return access_token;
 }
 
