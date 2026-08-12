@@ -27,9 +27,9 @@
       <template #activator="{ props }">
         <v-list-item
           v-bind="props"
-          prepend-avatar="https://randomuser.me/api/portraits/women/85.jpg"
-          title="Sandra Adams"
-          subtitle="sandra_a88@gmail.com"
+          :prepend-avatar="profileImage"
+          :title="username"
+          :subtitle="email"
           class="rounded-lg cursor-pointer"
         >
           <template #append>
@@ -40,16 +40,11 @@
 
       <v-card min-width="240" rounded="lg" elevation="6">
         <v-card-item class="py-3">
-          <template #prepend>
-            <v-avatar color="primary" variant="tonal" class="me-3">
-              <v-icon icon="mdi-account" />
-            </v-avatar>
-          </template>
           <v-card-title class="text-subtitle-2 font-weight-bold">
-            Sandra Adams
+            {{ username }}
           </v-card-title>
-          <v-card-subtitle class="text-caption text-truncate">
-            sandra_a88@gmail.com
+          <v-card-subtitle class="text-caption text-truncate" v-if="email">
+            {{ email }}
           </v-card-subtitle>
         </v-card-item>
 
@@ -74,6 +69,7 @@
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { useTheme } from "vuetify";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from "vue-router";
@@ -81,6 +77,10 @@ import { useRouter } from "vue-router";
 const theme = useTheme();
 const authStore = useAuthStore();
 const router = useRouter();
+
+const profileImage = ref(authStore.user.profileImage);
+const username = ref(authStore.user.name);
+const email = ref(authStore.user.email);
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? "light" : "dark";

@@ -205,7 +205,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      jwt-decode:
+        specifier: ^4.0.0
+        version: 4.0.0
 
   apps/dashboard:
     dependencies:

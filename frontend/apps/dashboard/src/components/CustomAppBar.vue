@@ -33,9 +33,10 @@ import { ref } from "vue";
 import AppSelector from "@/components/AppSelector.vue";
 import CreateAppModal from "@/components/CreateAppModal.vue";
 import { useNotificationStore } from "@/stores/notification";
+import {useAuthStore} from "@/stores/auth";
 
-const { AUTH_PROVIDER } = window.APP_CONFIG || {};
-const idp = ref(AUTH_PROVIDER === "oidc" ? "OIDC" : "Admin Password");
+const authStore = useAuthStore();
+const idp = ref(authStore.provider === "oidc" ? "OIDC" : "Admin Password");
 const showCreateModal = ref(false);
 const notificationStore = useNotificationStore();
 
