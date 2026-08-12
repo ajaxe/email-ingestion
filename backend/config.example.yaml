@@ -39,6 +39,6 @@ auth:
     authority: "dev-application" # Issuer for JWT tokens. Only used when provider is "password
     token_ttl_minutes: 1440
   oidc:
-    issuer: https://auth.some-domain.com
+    authority: https://auth.some-domain.com
     client_id: client-id-dev
     jwks_uri: https://auth.some-domain.com/.well-known/jwks

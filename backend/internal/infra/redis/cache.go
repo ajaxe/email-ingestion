@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -34,4 +35,12 @@ func (c *CacheService) Get(ctx context.Context, key string) (v string, found boo
 		return "", false, e
 	}
 	return r.Val(), true, nil
+}
+
+func (c *CacheService) GetValue(ctx context.Context, key string, v any) (found bool, err error) {
+	s, found, err := c.Get(ctx, key)
+	if found {
+		err = json.Unmarshal([]byte(s), v)
+	}
+	return found, err
 }

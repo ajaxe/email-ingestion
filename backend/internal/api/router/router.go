@@ -70,9 +70,17 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
 	pwdAuthService := service.NewPasswordAuthService(&cfg.Auth, service.NewAppPasswordAuthRepository(o.Queries, authz))
 
+	var authService middleware.UserAccessVerifier
+
+	if cfg.Auth.Provider == config.PasswordAuthProvider {
+		authService = pwdAuthService
+	} else {
+		authService = service.NewOIDCAuthService(&cfg.Auth, service.NewPgxOIDCAuthRepository(o.Queries, authz))
+	}
+
 	prefix := "/app/v1"
 	appGroup := e.Group(prefix)
-	appGroup.Use(middleware.AppAuth(pwdAuthService))
+	appGroup.Use(middleware.AppAuth(authService))
 
 	appService := service.NewApplicationService(service.NewPgxApplicationRepository(o.DBPool))
 	emailService := service.NewEmailService(o.Queries, storageService)

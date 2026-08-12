@@ -50,9 +50,8 @@ func (p *PasswordAuthService) Authenticate(ctx context.Context, username, passwo
 	}
 
 	u, err := p.repo.ProvisionUser(ctx, &UserProvisionData{
-		Email:         AdminEmailClaimValue,
-		EmailVerified: true,
-		Subject:       SubjectPasswordAuth,
+		Email:   AdminEmailClaimValue,
+		Subject: SubjectPasswordAuth,
 	})
 
 	c := customClaims{
@@ -116,7 +115,7 @@ func (p *PasswordAuthService) VerifyToken(ctx context.Context, token string) (*d
 
 func (p *PasswordAuthService) PermittedApplications(ctx context.Context, userID string) ([]public.Application, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("invliad userID")
+		return nil, fmt.Errorf("invalid userID")
 	}
 	_, err := uuid.Parse(userID)
 	if err != nil {

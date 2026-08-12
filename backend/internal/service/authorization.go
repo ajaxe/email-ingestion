@@ -77,6 +77,20 @@ func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *User
 		return nil, fmt.Errorf("user data - subject is nil")
 	}
 
+	key := userData.CacheKey()
+
+	u := &public.User{}
+	found, err := a.cache.GetValue(ctx, key, u)
+
+	if err != nil {
+		slog.WarnContext(ctx, "failed to get cached provisioned user", "error", err)
+	}
+
+	if found {
+		slog.InfoContext(ctx, "found cached provisioned user", "userID", u.ID.String())
+		return u, nil
+	}
+
 	// try provisioning using user Subject ID first, if status already "active" then no update is needed.
 	user, ok, err := a.provisionBySubject(ctx, userData)
 
@@ -95,6 +109,17 @@ func (a *AuthorizationService) ProvisionUser(ctx context.Context, userData *User
 
 	if !ok {
 		return nil, fmt.Errorf("failed to provision user by subject or email, missing partial user data")
+	}
+
+	json, err := util.JSON(user)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.cache.Set(ctx, key, json, 5*time.Minute)
+
+	if err != nil {
+		slog.WarnContext(ctx, "failed to cache provisioned user", "error", err)
 	}
 
 	return user, nil

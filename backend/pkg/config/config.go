@@ -8,6 +8,8 @@ import (
 )
 
 const AppName = "email-ingestion"
+const PasswordAuthProvider = "password"
+const OIDCAuthProvider = "oidc"
 
 type AppConfig struct {
 	Environment string         `mapstructure:"environment"`
