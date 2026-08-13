@@ -45,8 +45,8 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **9.1 SemVer Directory Structure & Schema Decomposition**
 
-* [ ] Create initial semantic version directory `backend/pkg/database/migrations/v0/`.  
-* [ ] Decompose monolithic `backend/pkg/database/migrations/public.sql` into sequential, numbered migration scripts:  
+* [x] Create initial semantic version directory `backend/pkg/database/migrations/v0/`.  
+* [x] Decompose monolithic `backend/pkg/database/migrations/public.sql` into sequential, numbered migration scripts:  
   * `00001_init_extensions_and_enums.sql`: Enable `uuid-ossp` extension and `spool_status` / `webhook_status` ENUM types.  
   * `00002_create_applications.sql`: Tenant `applications` table.  
   * `00003_create_assigned_emails.sql`: `assigned_emails` table and lookup indexes.  
@@ -55,16 +55,17 @@ This document tracks active and upcoming development phases. Completed phases ar
   * `00006_create_spool_queue.sql`: `inbound_spool_queue` buffer table.  
   * `00007_create_users_and_access.sql`: `users`, `user_application_access`, and `api_keys` security tables + indexes.  
   * `00008_create_organizations.sql`: `organizations` container table, FK linking to `applications`, and personal owner index.  
-* [ ] Add explicit `-- +goose Up` and `-- +goose Down` annotation blocks to every script for full rollback support.
+* [x] Add explicit `-- +goose Up` and `-- +goose Down` annotation blocks to every script for full rollback support.
+
 
 ### **9.2 SQLC Schema Path Configuration**
 
-* [ ] Update `backend/sqlc.yaml` `schema` key to point to the semver folder list:  
+* [x] Update `backend/sqlc.yaml` `schema` key to point to the semver folder list:  
   ```yaml
   schema:
     - "pkg/database/migrations/v0"
   ```
-* [ ] Run `sqlc generate` in `backend/` and verify Go database models in `pkg/database/public/` generate cleanly with zero schema regressions.
+* [x] Run `sqlc generate` in `backend/` and verify Go database models in `pkg/database/public/` generate cleanly with zero schema regressions.
 
 ### **9.3 Embedded Goose Runner & CLI Subcommand**
 
@@ -78,4 +79,4 @@ This document tracks active and upcoming development phases. Completed phases ar
 * [ ] Run `go run cmd/api.go migrate up` against a clean Postgres container and confirm table creation.  
 * [ ] Verify migration history tracked in PostgreSQL `goose_db_version` table.  
 * [ ] Test `goose status` and `goose skip` commands to confirm migration skipping and status reporting functionality.  
-* [ ] Run `sqlc generate` and `go test ./...` to verify complete system compatibility.
+* [ ] Run `sqlc generate` and `go test ./...` to verify complete system compatibility.
