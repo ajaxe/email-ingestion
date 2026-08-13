@@ -33,3 +33,31 @@ func HandleAPIEmailByID(svc *service.EmailService) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, r)
 	}
 }
+
+// HandleAPIGetAttachmentURL handles the GET request to retrieve a presigned download URL for an email attachment.
+func HandleAPIGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		e := c.Param("email_id")
+		emailID, err := uuid.Parse(e)
+		if err != nil {
+			return apperror.Validation("Invalid email ID", err)
+		}
+
+		attachmentID := c.Param("attachment_id")
+		if attachmentID == "" {
+			return apperror.Validation("Invalid attachment ID")
+		}
+
+		appID, ok := middleware.ApplicationIDFromContext(ctx)
+		if !ok {
+			return apperror.Unauthorized("Missing application context")
+		}
+
+		r, err := svc.GetAttachmentURL(ctx, appID, emailID, attachmentID)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, r)
+	}
+}

@@ -55,6 +55,7 @@ func configureM2MAPI(e *echo.Echo, o *ApiInitOptions, storageService *storage.S3
 	emailService := service.NewEmailService(o.Queries, storageService)
 
 	m2mGroup.GET("/emails/:email_id", handler.HandleAPIEmailByID(emailService))
+	m2mGroup.GET("/emails/:email_id/attachments/:attachment_id", handler.HandleAPIGetAttachmentURL(emailService))
 }
 
 func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, apiKeyService *service.ApiKeyService, storageService *storage.S3StorageService) {
@@ -96,7 +97,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
 	appGroup.GET("/applications/:app_id/emails/:email_id", handler.HandleGetEmailByID(emailService))
-	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(appService))
+	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(emailService))
 
 	appGroup.GET("/applications/:app_id/api-keys", handler.HandleListAPIKeys(apiKeyService))
 	appGroup.POST("/applications/:app_id/api-keys", handler.HandleCreateAPIKey(apiKeyService))

@@ -24,6 +24,7 @@ storage:
   s3_bucket: "email-ingestion-storage-dev" # S3 bucket for storing processed emails.
   ingestion_prefix: "tmp/" # S3 prefix for storing raw email files before they are processed
   storage_prefix: "storage/" # S3 prefix for storing processed email files after, converting the raw EML to a json file exclding the attachments.
+  presign_url_ttl_minutes: 15
 
 webhook:
   allowed_domains:

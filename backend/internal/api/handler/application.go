@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/internal/api/middleware"
@@ -293,7 +292,7 @@ func HandleToggleAddressStatus(svc *service.ApplicationService) echo.HandlerFunc
 	}
 }
 
-func HandleGetAttachmentURL(svc *service.ApplicationService) echo.HandlerFunc {
+func HandleGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
@@ -303,7 +302,7 @@ func HandleGetAttachmentURL(svc *service.ApplicationService) echo.HandlerFunc {
 		}
 
 		emailIDStr := c.Param("email_id")
-		_, err = uuid.Parse(emailIDStr)
+		emailID, err := uuid.Parse(emailIDStr)
 		if err != nil {
 			return apperror.Validation("invalid email ID")
 		}
@@ -317,17 +316,11 @@ func HandleGetAttachmentURL(svc *service.ApplicationService) echo.HandlerFunc {
 			return err
 		}
 
-		// TODO: Generate AWS STS pre-signed S3 download URL (Phase 6.2)
-		// 1. Validate JWT / User context and resolve request client to application identity (appID).
-		// 2. Query Postgres to fetch the application's unique aws_iam_role_arn.
-		// 3. Call AWS STS AssumeRole using Go AWS SDK.
-		// 4. Instantiate a scoped S3 client using returned transient STS credentials.
-		// 5. Generate a short-lived S3 Presigned URL for the requested attachment object key.
+		res, err := svc.GetAttachmentURL(ctx, appID, emailID, attachmentIDStr)
+		if err != nil {
+			return err
+		}
 
-		return c.JSON(http.StatusOK, dto.AttachmentURLResponse{
-			AttachmentID: attachmentIDStr,
-			DownloadURL:  "https://placeholder-storage.s3.amazonaws.com/attachments/" + attachmentIDStr,
-			ExpiresAt:    time.Now().Add(15 * time.Minute),
-		})
+		return c.JSON(http.StatusOK, res)
 	}
 }

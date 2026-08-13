@@ -168,7 +168,7 @@
               Attachments ({{ attachments.length }})
             </div>
             <v-chip size="small" color="primary" variant="tonal">
-              STS Brokered S3 Download
+              S3 Presigned Direct Download
             </v-chip>
           </div>
 
@@ -339,12 +339,12 @@ async function downloadAttachment(attachmentId) {
 
     if (downloadUrl) {
       notificationStore.success(
-        "Generated STS Presigned URL. Opening download link...",
+        "Generated S3 presigned URL. Opening download link...",
       );
       window.open(downloadUrl, "_blank");
     } else {
       notificationStore.error(
-        "No download URL returned by STS broker service.",
+        "No download URL returned by storage service.",
       );
     }
   } catch (err) {

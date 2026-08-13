@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -64,6 +65,15 @@ type StorageConfig struct {
 	S3BaseEndpoint string `mapstructure:"s3_base_endpoint"`
 	// UsePathStyle indicates whether to use path-style addressing for S3 (true for MinIO, false for AWS S3)
 	UsePathStyle bool `mapstructure:"use_path_style"`
+	// PresignURLTTLMinutes is the duration in minutes for presigned S3 URLs
+	PresignURLTTLMinutes int `mapstructure:"presign_url_ttl_minutes"`
+}
+
+func (s *StorageConfig) PresignedURLTTL() time.Duration {
+	if s.PresignURLTTLMinutes <= 0 {
+		return 15 * time.Minute
+	}
+	return time.Duration(s.PresignURLTTLMinutes) * time.Minute
 }
 
 type WebhookConfig struct {

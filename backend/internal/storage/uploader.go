@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
 
@@ -84,6 +85,36 @@ func (s *S3StorageService) DeleteObject(ctx context.Context, key string) error {
 	})
 
 	return err
+}
+
+func (s *S3StorageService) PresignTTL() time.Duration {
+	return s.config.PresignedURLTTL()
+}
+
+func (s *S3StorageService) GeneratePresignedURL(ctx context.Context, key string, expiration time.Duration) (string, error) {
+	_, s3client, err := s.transferManager(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if len(key) == 0 {
+		return "", fmt.Errorf("empty object key")
+	}
+
+	if expiration <= 0 {
+		expiration = s.config.PresignedURLTTL()
+	}
+
+	presignClient := s3.NewPresignClient(s3client)
+	presignedReq, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.config.S3Bucket),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(expiration))
+	if err != nil {
+		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	return presignedReq.URL, nil
 }
 
 func (s *S3StorageService) transferManager(ctx context.Context) (*transfermanager.Client, *s3.Client, error) {
