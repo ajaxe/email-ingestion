@@ -31,7 +31,7 @@ router.beforeEach(async (to) => {
       return { name: "need-invitation" };
     }
 
-    if (to.path !== "/" && result.applications.length > 0) {
+    if (to.path !== "/" && result.applications.length === 0) {
       return { path: "/" };
     }
   }
