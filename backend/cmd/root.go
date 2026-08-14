@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/spf13/cobra"
@@ -20,7 +20,6 @@ webhooks to registered SaaS applications with strict multi-tenant isolation.`,
   email-ingestion cron
   email-ingestion migrate up`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Running root command...")
 
 		cfg, err := config.LoadConfig(".")
 		if err != nil {
@@ -28,6 +27,7 @@ webhooks to registered SaaS applications with strict multi-tenant isolation.`,
 		}
 
 		config.SetupLogger(cfg)
+		slog.Info("Running root command...")
 
 		return nil
 	},

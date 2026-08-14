@@ -19,18 +19,21 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /out/email-service .
 
 # -----------------------------
-# Stage 2: Minimal Runtime
+# Stage 2: Minimal Alpine Runtime
 # -----------------------------
-# distroless includes root TLS certs and timezone data, perfect for outbound API calls/DB connections
-FROM gcr.io/distroless/static-debian12:nonroot
+# Alpine OS allows console access/troubleshooting (/bin/sh) while remaining lightweight
+FROM alpine:3.20
+
+# Install CA certificates and timezone data for outbound HTTPS & DB connection support
+RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
 # Copy binary from build stage
-COPY --from=builder /out/email-service /bin/email-service
+COPY --from=builder /out/email-service /app/email-service
 
 # Entrypoint is fixed to the multi-service binary
-ENTRYPOINT ["/bin/email-service"]
+ENTRYPOINT ["/app/email-service"]
 
 # Fallback command if none passed
 CMD ["--help"]

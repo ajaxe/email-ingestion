@@ -28,6 +28,7 @@ type ApiInitOptions struct {
 func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	e.HTTPErrorHandler = apperror.NewEchoHTTPErrorHandler()
 
 	// Generic middleware

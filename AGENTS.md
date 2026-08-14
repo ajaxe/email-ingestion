@@ -44,6 +44,8 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 * **DO NOT** store or manage custom application/tenant claims in the IdP. The IdP should remain decoupled from service logic.
 * **DO NOT** expose raw AWS credentials or leak DB IDs to the IdP. Use the **Gateway-Brokered S3 Access Control** pattern.
 * **DO NOT** allow webhook deliveries to private, loopback, or RFC 1918 IP addresses. Maintain the strict SSRF DNS guard.
+* **DO NOT** output or expose secret passwords, connection string credentials, API keys, or `.env` file contents in chat responses, transcripts, or artifact logs.
+* **DO NOT** read or inspect local configuration files containing secret credentials (e.g., `backend/config.yaml`, `.env*`) unless explicitly requested by the user.
 
 ## 7. Operational Commands
 * **Start Local Environment (PostgreSQL, LocalStack, App):**
