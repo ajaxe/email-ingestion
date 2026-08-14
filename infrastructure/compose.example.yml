@@ -1,0 +1,65 @@
+services:
+  # Base template: builds once and tags the image
+  base-app: &base-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: email-service:latest
+    restart: unless-stopped
+    env_file: .env
+
+  # 1. API Service (REST / Webhooks)
+  api:
+    <<: *base-app
+    container_name: email-api
+    command: ["api", "--port=8080"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+
+  # 2. Background Worker (Queue processing, parsing, async jobs)
+  worker:
+    <<: *base-app
+    container_name: email-worker
+    command: ["worker", "--concurrency=10", "--queue=incoming-emails"]
+    depends_on:
+      - postgres
+      - redis
+
+  # 3. Scheduled Tasks / Cron (Cleanup, retries, stats aggregation)
+  cron:
+    <<: *base-app
+    container_name: email-cron
+    command: ["cron", "--schedule=*/5 * * * *"]
+    depends_on:
+      - postgres
+      - redis
+
+  # ---------------------------------------------
+  # Supporting Infrastructure (adjust as needed)
+  # ---------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: email-postgres
+    environment:
+      POSTGRES_DB: email_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: email-redis
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
+  redisdata:

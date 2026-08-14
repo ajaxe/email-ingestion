@@ -1,0 +1,4 @@
+*.exe
+email-ingest*
+.env*
+config*.yaml
