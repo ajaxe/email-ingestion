@@ -5,7 +5,7 @@ This document tracks active and upcoming development phases. Completed phases ar
 ## **Project Status Overview**
 
 **Current Phase:** Phase 8 (Deployment & Infra)  
-**Overall Progress:** 7 / 9 Phases Completed (77.8%)
+**Overall Progress:** 8 / 9 Phases Completed (88.9%)
 
 | Phase | Status | Key Scope | Archive Details |
 | :--- | :--- | :--- | :--- |
@@ -17,7 +17,7 @@ This document tracks active and upcoming development phases. Completed phases ar
 | **Phase 6: REST API & Presigned S3 Downloads** | Completed | OIDC JWT Auth & Direct S3 Presigned Attachment Downloader | [View Details](file:///C:/CodeWorkspace/projects/email-ingestion/docs/task-list-archive.md#phase-6-application-api--direct-s3-presigned-downloads) |
 | **Phase 7: Management Dashboard** | Completed | Vue.js SPA & Developer Management Console | [View Details](file:///C:/CodeWorkspace/projects/email-ingestion/docs/task-list-archive.md#phase-7-management-dashboard-vuejs-spa) |
 | **Phase 8: Deployment & Infra** | Pending | Docker Multi-Stage, Traefik & MX DNS | *Active Below* |
-| **Phase 9: Database Migrations** | Pending | Goose Migration Engine, SemVer v0 & SQLC Integration | *Active Below* |
+| **Phase 9: Database Migrations** | Completed | Goose Migration Engine, SemVer v0 & SQLC Integration | *Active Below* |
 
 ---
 
@@ -69,14 +69,14 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **9.3 Embedded Goose Runner & CLI Subcommand**
 
-* [ ] Add `github.com/pressly/goose/v3` package dependency to `backend/go.mod`.  
-* [ ] Create `backend/pkg/database/migrations.go` migration wrapper using Go `//go:embed migrations/*/*.sql` and `fs.Sub`.  
-* [ ] Create Cobra CLI migration command (`backend/cmd/migrate.go`) supporting subcommands: `up`, `down`, `status`, `version`, and `skip`.  
-* [ ] Integrate automatic migration checks into service startup routines (`backend/internal/startup/`).
+* [x] Add `github.com/pressly/goose/v3` package dependency to `backend/go.mod`.  
+* [x] Create `backend/pkg/database/migrations.go` migration wrapper using Go `//go:embed migrations/*/*.sql` and `fs.Sub`.  
+* [x] Create Cobra CLI migration command (`backend/cmd/migrate.go`) supporting subcommands: `up`, `down`, `status`, `version`, and `skip`.  
+* [x] Integrate automatic migration checks into service startup routines (`backend/internal/startup/`).
 
 ### **9.4 End-to-End Verification Checkpoint**
 
-* [ ] Run `go run cmd/api.go migrate up` against a clean Postgres container and confirm table creation.  
-* [ ] Verify migration history tracked in PostgreSQL `goose_db_version` table.  
-* [ ] Test `goose status` and `goose skip` commands to confirm migration skipping and status reporting functionality.  
-* [ ] Run `sqlc generate` and `go test ./...` to verify complete system compatibility.
+* [x] Run `go run cmd/api.go migrate up` against a clean Postgres container and confirm table creation.  
+* [x] Verify migration history tracked in PostgreSQL `goose_db_version` table.  
+* [x] Test `goose status` and `goose skip` commands to confirm migration skipping and status reporting functionality.  
+* [x] Run `sqlc generate` and `go test ./...` to verify complete system compatibility.

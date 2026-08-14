@@ -11,6 +11,7 @@ import (
 
 	"github.com/ajaxe/email-ingestion/internal/api/router"
 	"github.com/ajaxe/email-ingestion/internal/infra/redis"
+	"github.com/ajaxe/email-ingestion/internal/startup"
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
@@ -26,6 +27,10 @@ var apiCmd = &cobra.Command{
 		cfg, err := config.LoadConfig(".")
 		if err != nil {
 			return err
+		}
+
+		if err := startup.RunStartupChecks(ctx, cfg); err != nil {
+			return fmt.Errorf("failed to run startup checks: %w", err)
 		}
 
 		dbPool := database.NewDbPool(cfg)
