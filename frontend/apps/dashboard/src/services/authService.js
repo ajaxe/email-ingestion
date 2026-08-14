@@ -33,6 +33,21 @@ export const authSettings = {
 // Export the single instance
 export const userManager = new UserManager(settings);
 
+async function oidcTokenProvider(silentSignin = false) {
+  if (silentSignin) {
+    await userManager.signinSilent();
+  }
+  const user = await userManager.getUser();
+  return user?.access_token;
+}
+
+async function passwordTokenProvider() {
+  const { access_token } = await getUser();
+  return access_token;
+}
+
+export const tokenProvider = window.APP_CONFIG.AUTH_PROVIDER === "password" ? passwordTokenProvider : oidcTokenProvider;
+
 export async function passwordLogin(username, password) {
   const resp = await fetch("/app/v1/auth/login", {
     method: "POST",
@@ -103,6 +118,30 @@ export async function signinRedirectCallback() {
   return toUser(u);
 }
 
+export async function getAuthSession() {
+  const token = await tokenProvider();
+  const resp = await fetch("/app/v1/auth/session", {
+    method: "GET",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (resp.status >= 200 && resp.status <= 299) {
+    return await resp.json();
+  }
+
+  if (resp.status === 401) {
+    throw new Error("Unauthorized");
+  }
+  if (resp.status === 403) {
+    throw new Error("Forbidden");
+  }
+
+  throw new Error("Internal error");
+}
+
 export const emptyUser = {
   name: "",
   email: "",
@@ -110,8 +149,8 @@ export const emptyUser = {
 };
 
 function toUser(oidcUser) {
-  if(!oidcUser) return emptyUser;
-  
+  if (!oidcUser) return emptyUser;
+
   return {
     name: oidcUser.profile?.name,
     email: oidcUser.profile?.email,

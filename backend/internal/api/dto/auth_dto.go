@@ -18,8 +18,8 @@ type UserProfile struct {
 }
 
 type UserAccessResult struct {
-	UserProfile  *UserProfile
-	Applications []public.Application
+	UserProfile  *UserProfile         `json:"userProfile"`
+	Applications []public.Application `json:"applications"`
 }
 
 func (u *UserAccessResult) ApplicationByID(id uuid.UUID) *public.Application {

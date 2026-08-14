@@ -23,16 +23,16 @@ router.beforeEach(async (to) => {
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
     const authStore = useAuthStore();
-    await authStore.loadUser();
-    if (!authStore.isAuthenticated) {
+    const result = await authStore.loadUser();
+    if (!result.isAuthenticated) {
       // Redirect to login page
       return { name: "/login/" };
+    } else if (result.forbidden) {
+      return { name: "need-invitation" };
     }
-    console.log("to", to)
-    const appStore = useAppStore()
-    await appStore.fetchApplicationsOnce()
-    if (to.path !== "/" && !appStore.hasApplication) {
-      return { path: "/" }
+
+    if (to.path !== "/" && result.applications.length > 0) {
+      return { path: "/" };
     }
   }
   return true;

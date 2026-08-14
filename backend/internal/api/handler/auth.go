@@ -2,10 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"text/template"
 
 	"github.com/ajaxe/email-ingestion/internal/api/dto"
+	"github.com/ajaxe/email-ingestion/internal/api/middleware"
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
@@ -52,5 +54,15 @@ func HandlePostLogin(authService *service.PasswordAuthService) echo.HandlerFunc 
 		return e.JSON(http.StatusOK, map[string]string{
 			"token": token,
 		})
+	}
+}
+
+func HandleGetAuthSession() echo.HandlerFunc {
+	return func(e echo.Context) error {
+		u, ok := middleware.UserAccessFromContext(e.Request().Context())
+		if !ok {
+			slog.Warn("no user in the current session context")
+		}
+		return e.JSON(http.StatusOK, u)
 	}
 }

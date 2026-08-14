@@ -3,12 +3,15 @@ import {
   passwordLogin,
   passwordLogout,
   getUser,
+  getAuthSession,
   signinRedirect,
   signoutRedirect,
   signoutRedirectCallback,
   signinRedirectCallback,
   emptyUser,
 } from "@/services/authService";
+
+import { useAppStore } from "@/stores/application";
 
 import router from "@/router";
 
@@ -44,8 +47,31 @@ export const useAuthStore = defineStore("auth", {
     },
 
     async loadUser() {
-      this.user = await getUser();
-      return this.isAuthenticated;
+      const [u, userAccess] = await Promise.allSettled([
+        getUser(),
+        getAuthSession(),
+      ]);
+      if (u.status === "fulfilled" && u.value) {
+        this.user = u.value;
+      }
+      
+      const isForbidden = userAccess.status === "rejected";
+      let apps = [];
+
+      if (!isForbidden) {
+        apps = userAccess.value.applications || [];
+        if(apps.length > 0) {
+          const appStore = useAppStore();
+          appStore.applications = apps
+          appStore.application = apps[0];
+          appStore.activeAppId = apps[0].id;
+        }
+      }
+      return {
+        isAuthenticated: this.isAuthenticated,
+        forbidden: isForbidden,
+        applications: apps,
+      };
     },
 
     async handleLoginCallback() {
@@ -77,6 +103,15 @@ export const useAuthStore = defineStore("auth", {
         router.push("/login-failed"); // Or some error page
       }
     },
+
+    async checkSession() {
+      try {
+        await getAuthSession();
+      } catch (error) {
+        console.error("Error checking session:", error);
+        this.user = emptyUser;
+        router.push("/login");
+      }
+    },
   },
 });
-

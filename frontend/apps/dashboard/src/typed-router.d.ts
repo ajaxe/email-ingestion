@@ -87,6 +87,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    'need-invitation': RouteRecordInfo<
+      'need-invitation',
+      '/need-invitation',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/settings/': RouteRecordInfo<
       '/settings/',
       '/settings',
@@ -173,6 +180,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/login/index.vue': {
       routes:
         | '/login/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/NeedInvitation.vue': {
+      routes:
+        | 'need-invitation'
       views:
         | never
       pathParamNames:

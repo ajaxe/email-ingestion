@@ -1,5 +1,6 @@
 <template>
   <v-card class="mx-auto pa-12 pb-8" elevation="3" width="448" rounded="lg">
+    <AppName />
     <v-form ref="form" v-if="usePassword">
       <div class="text-body-large text-medium-emphasis">Account</div>
 
@@ -68,6 +69,7 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import AppName from "./AppName.vue";
 
 const form = ref();
 

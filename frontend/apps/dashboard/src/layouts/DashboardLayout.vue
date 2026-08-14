@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from "vue";
+import { ref, computed } from "vue";
 import NavigationLinks from "@/components/navigation/NavigationLinks.vue";
 import NavigationAddOns from "@/components/navigation/NavigationAddOns.vue";
 import CustomAppBar from '@/components/CustomAppBar.vue';
@@ -88,12 +88,6 @@ const authStore = useAuthStore();
 
 const keepOpen = ref(false)
 const hasApps = computed(() => appStore.applications.length > 0)
-
-onMounted(() => {
-  if(authStore.isAuthenticated) {
-    void appStore.fetchApplications();
-  }
-});
 
 function getSnackbarIcon(color) {
   switch (color) {

@@ -1,25 +1,10 @@
 /* eslint-disable antfu/top-level-function */
 import axios from "axios";
-import { getUser, userManager } from "./authService";
+import { tokenProvider } from "./authService";
 
 const apiClient = axios.create({
   baseURL: "/app/v1",
 });
-
-async function oidcTokenProvider(silentSignin = false) {
-  if (silentSignin) {
-    await userManager.signinSilent();
-  }
-  const user = await userManager.getUser();
-  return user?.access_token;
-}
-
-async function passwordTokenProvider() {
-  const { access_token } = await getUser();
-  return access_token;
-}
-
-const tokenProvider = window.APP_CONFIG.AUTH_PROVIDER === "password" ? passwordTokenProvider : oidcTokenProvider;
 
 apiClient.interceptors.request.use(async (config) => {
   const token = await tokenProvider();
