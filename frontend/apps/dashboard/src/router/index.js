@@ -30,16 +30,12 @@ router.beforeEach(async (to) => {
     }
     console.log("to", to)
     const appStore = useAppStore()
+    await appStore.fetchApplicationsOnce()
     if (to.path !== "/" && !appStore.hasApplication) {
       return { path: "/" }
     }
-
-    // Load user from storage
-
-    // If not logged in, redirect to login
-    // Check if user is authorized
-    return true;
   }
+  return true;
 });
 
 // Always reset loading status regardless of outcome

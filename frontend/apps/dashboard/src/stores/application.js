@@ -16,7 +16,8 @@ export const useAppStore = defineStore('app', {
       activeAddresses: -1,
       webhookSuccessRate: -1,
       failWebhookJobCount: -1,
-    }
+    },
+    initOnce: false
   }),
   getters: {
     activeApp(state) {
@@ -57,6 +58,7 @@ export const useAppStore = defineStore('app', {
       await this.fetchAppDetails(appId);
       await this.fetchApiKeys(appId);
     },
+
     async fetchAppDetails(appId) {
       const targetId = appId || this.activeAppId;
       this.loading = true;
@@ -88,6 +90,12 @@ export const useAppStore = defineStore('app', {
         this.error = err;
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchApplicationsOnce() {
+      if (!this.initOnce) {
+        await this.fetchApplications()
       }
     },
 

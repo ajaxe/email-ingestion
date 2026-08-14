@@ -78,17 +78,21 @@ import NavigationAddOns from "@/components/navigation/NavigationAddOns.vue";
 import CustomAppBar from '@/components/CustomAppBar.vue';
 import { useNotificationStore } from "@/stores/notification";
 import { useAppStore } from "@/stores/application";
+import { useAuthStore } from "@/stores/auth";
 import { isNavigating } from '@/router'
 
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
+const authStore = useAuthStore();
 
 const keepOpen = ref(false)
 const hasApps = computed(() => appStore.applications.length > 0)
 
 onMounted(() => {
-  void appStore.fetchApplications();
+  if(authStore.isAuthenticated) {
+    void appStore.fetchApplications();
+  }
 });
 
 function getSnackbarIcon(color) {

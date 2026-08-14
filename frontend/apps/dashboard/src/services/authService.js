@@ -30,7 +30,6 @@ export const authSettings = {
   authCallbackUrl: loginCallbackUrl,
   logoutCallbackUrl,
 };
-console.log("authSettings", authSettings);
 // Export the single instance
 export const userManager = new UserManager(settings);
 

@@ -57,11 +57,6 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 		return fmt.Errorf("failed to get application %s: %w", appID, err)
 	}
 
-	if app.WebhookUrl == "" {
-		slog.WarnContext(ctx, "application has no webhook URL configured, skipping delivery", "application_id", appID)
-		return nil
-	}
-
 	// 2. Get Job Details (To check retry count)
 	var job public.WebhookDeliveryJob
 	if payload.JobID != "" {
@@ -81,6 +76,25 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 		if fetchErr != nil {
 			return fmt.Errorf("failed to get webhook job: %w", fetchErr)
 		}
+	}
+
+	if app.WebhookUrl == "" {
+		slog.WarnContext(ctx, "application has no webhook URL configured, skipping delivery", "application_id", appID)
+		_ = w.queries.LogWebhookAttempt(ctx, public.LogWebhookAttemptParams{
+			WebhookDeliveryJobID: job.ID,
+			AttemptNumber:        0,
+			HttpStatusCode:       0,
+			ResponseBody:         "application has no webhook URL configured, skipping delivery",
+			IsRetry:              false,
+			DurationMs:           0,
+		})
+		_ = w.queries.UpdateWebhookJobStatus(ctx, public.UpdateWebhookJobStatusParams{
+			ID:             job.ID,
+			Status:         public.WebhookStatusDEAD,
+			RetryCount:     0,
+			NextDeliveryAt: time.Now().Add(-(1 * time.Minute)),
+		})
+		return nil
 	}
 
 	// 3. Get Ingested Email Metadata
