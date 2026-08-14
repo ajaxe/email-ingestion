@@ -23,9 +23,15 @@ var streamNames []string
 
 var workerCmd = &cobra.Command{
 	Use:   "worker",
-	Short: "Run the stream processor workers",
-	Long:  "Run the stream processor workers that continuously poll Redis streams for new jobs. The --streams flag determines which streams this binary will consume.",
-	RunE:  func(cmd *cobra.Command, args []string) error { return runWorker(cmd.Context()) },
+	Short: "Run stream processor workers",
+	Long: `Run background stream processor workers that continuously poll Redis streams for new jobs. 
+The --streams flag determines which streams this worker instance will consume (e.g., "email" for MIME parsing 
+and raw email ingestion, or "webhook" for HTTP webhook dispatch).`,
+	Example: `  email-ingestion worker --streams email
+  email-ingestion worker --streams webhook
+  email-ingestion worker --streams email,webhook`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error { return runWorker(cmd.Context()) },
 }
 
 func runWorker(ctx context.Context) error {

@@ -16,8 +16,13 @@ import (
 
 var cronCmd = &cobra.Command{
 	Use:   "cron",
-	Short: "Run background polling tasks",
-	RunE:  func(cmd *cobra.Command, args []string) error { return runCron(cmd.Context()) },
+	Short: "Run background polling tasks and retry schedulers",
+	Long: `Run the background cron scheduler daemon. Periodically sweeps PostgreSQL for 
+pending or retriable webhook delivery jobs and enqueues them onto Redis streams for 
+worker processing.`,
+	Example: `  email-ingestion cron`,
+	Args:    cobra.NoArgs,
+	RunE:    func(cmd *cobra.Command, args []string) error { return runCron(cmd.Context()) },
 }
 
 func runCron(ctx context.Context) error {

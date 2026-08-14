@@ -13,9 +13,13 @@ import (
 
 var smtpCmd = &cobra.Command{
 	Use:   "smtp",
-	Short: "Run the SMTP server",
-	Long:  "Run the SMTP server",
-	RunE:  func(cmd *cobra.Command, args []string) error { return runSMTP(cmd.Context()) },
+	Short: "Run the inbound SMTP edge server",
+	Long: `Run the non-blocking SMTP edge daemon. Receives inbound SMTP connections, performs 
+perimeter recipient validation against the API/cache, and streams raw email payloads 
+to the internal ingestion API.`,
+	Example: `  email-ingestion smtp`,
+	Args:    cobra.NoArgs,
+	RunE:    func(cmd *cobra.Command, args []string) error { return runSMTP(cmd.Context()) },
 }
 
 func runSMTP(ctx context.Context) error {

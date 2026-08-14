@@ -20,8 +20,11 @@ import (
 
 var apiCmd = &cobra.Command{
 	Use:   "api",
-	Short: "Run the API server",
-	Long:  "Run the API server",
+	Short: "Run the HTTP REST API server",
+	Long: `Run the Echo HTTP REST API server. Handles tenant management, email ingestion endpoints from the 
+SMTP proxy, S3 presigned URL generation, recipient validation, and webhook delivery endpoints.`,
+	Example: `  email-ingestion api`,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		cfg, err := config.LoadConfig(".")
