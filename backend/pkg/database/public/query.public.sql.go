@@ -736,7 +736,7 @@ func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDs
 }
 
 const getWebhookLogsByJobID = `-- name: GetWebhookLogsByJobID :many
-SELECT id, webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms, executed_at FROM webhook_logs
+SELECT id, webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms, executed_at, request_payload FROM webhook_logs
 WHERE webhook_delivery_job_id = $1
 ORDER BY attempt_number DESC
 `
@@ -759,6 +759,7 @@ func (q *Queries) GetWebhookLogsByJobID(ctx context.Context, webhookDeliveryJobI
 			&i.IsRetry,
 			&i.DurationMs,
 			&i.ExecutedAt,
+			&i.RequestPayload,
 		); err != nil {
 			return nil, err
 		}
@@ -950,10 +951,11 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 
 const listWebhookJobsByApplication = `-- name: ListWebhookJobsByApplication :many
 SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
-       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0)
+       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0),
+       COALESCE(wl.request_payload, ''), COALESCE(wl.response_body, '')
 FROM webhook_delivery_jobs wj
 LEFT JOIN LATERAL (
-  SELECT http_status_code, duration_ms, attempt_number
+  SELECT http_status_code, duration_ms, attempt_number, request_payload, response_body
   FROM webhook_logs
   WHERE webhook_delivery_job_id = wj.id
   ORDER BY attempt_number DESC
@@ -983,6 +985,8 @@ type ListWebhookJobsByApplicationRow struct {
 	HttpStatusCode  int32         `json:"httpStatusCode"`
 	DurationMs      int32         `json:"durationMs"`
 	AttemptNumber   int32         `json:"attemptNumber"`
+	RequestPayload  string        `json:"requestPayload"`
+	ResponseBody    string        `json:"responseBody"`
 }
 
 func (q *Queries) ListWebhookJobsByApplication(ctx context.Context, arg ListWebhookJobsByApplicationParams) ([]ListWebhookJobsByApplicationRow, error) {
@@ -1010,6 +1014,8 @@ func (q *Queries) ListWebhookJobsByApplication(ctx context.Context, arg ListWebh
 			&i.HttpStatusCode,
 			&i.DurationMs,
 			&i.AttemptNumber,
+			&i.RequestPayload,
+			&i.ResponseBody,
 		); err != nil {
 			return nil, err
 		}
@@ -1022,14 +1028,15 @@ func (q *Queries) ListWebhookJobsByApplication(ctx context.Context, arg ListWebh
 }
 
 const logWebhookAttempt = `-- name: LogWebhookAttempt :exec
-INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms)  
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, request_payload, response_body, is_retry, duration_ms)  
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type LogWebhookAttemptParams struct {
 	WebhookDeliveryJobID uuid.UUID `json:"webhookDeliveryJobId"`
 	AttemptNumber        int32     `json:"attemptNumber"`
 	HttpStatusCode       int32     `json:"httpStatusCode"`
+	RequestPayload       string    `json:"requestPayload"`
 	ResponseBody         string    `json:"responseBody"`
 	IsRetry              bool      `json:"isRetry"`
 	DurationMs           int32     `json:"durationMs"`
@@ -1040,6 +1047,7 @@ func (q *Queries) LogWebhookAttempt(ctx context.Context, arg LogWebhookAttemptPa
 		arg.WebhookDeliveryJobID,
 		arg.AttemptNumber,
 		arg.HttpStatusCode,
+		arg.RequestPayload,
 		arg.ResponseBody,
 		arg.IsRetry,
 		arg.DurationMs,

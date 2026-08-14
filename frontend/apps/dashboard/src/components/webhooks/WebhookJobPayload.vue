@@ -34,7 +34,7 @@
         <v-window v-model="modalTab">
           <v-window-item value="request">
             <CodePreview
-              :code="sampleRequestPayload"
+              :code="parsedRequestPayload"
               language="json"
               title="Webhook Outbox Dispatch Payload"
               max-height="400px"
@@ -43,7 +43,7 @@
 
           <v-window-item value="response">
             <CodePreview
-              :code="sampleResponseBody"
+              :code="parsedResponseBody"
               language="json"
               title="HTTP Delivery Response"
               max-height="400px"
@@ -67,7 +67,6 @@
 <script setup>
 import { computed, ref } from "vue";
 import CodePreview from "@/components/CodePreview.vue";
-import { useAppStore } from "@/stores/application";
 
 const props = defineProps({
   modelValue: {
@@ -82,7 +81,6 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue"]);
 
-const appStore = useAppStore();
 const modalTab = ref("request");
 
 const dialogVisible = computed({
@@ -90,33 +88,33 @@ const dialogVisible = computed({
   set: (val) => emit("update:modelValue", val),
 });
 
-const sampleRequestPayload = computed(() => {
+const parsedRequestPayload = computed(() => {
   if (!props.job) return {};
-  return {
-    event: "email.ingested",
-    job_id: props.job.id || props.job.job_id,
-    application_id: appStore.activeAppId,
-    timestamp: new Date().toISOString(),
-    signature:
-      "sha256=a8f9b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abc",
-    data: {
-      email_id:
-        props.job.ingested_email_id ||
-        "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-      from: "sender@example.com",
-      to: "inbound@domain.com",
-      subject: "Sample Webhook Payload Payload",
-    },
-  };
+  const raw = props.job.requestPayload || props.job.request_payload;
+  if (!raw) return { message: "No request payload recorded" };
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 });
 
-const sampleResponseBody = computed(() => {
+const parsedResponseBody = computed(() => {
   if (!props.job) return {};
-  return {
-    http_status: props.job.http_status_code || 200,
-    body: { status: "ok", message: "Event received successfully" },
-    duration_ms: props.job.duration_ms || 42,
-  };
+  const raw = props.job.responseBody || props.job.response_body;
+  if (!raw) {
+    return {
+      http_status: props.job.httpStatusCode || props.job.http_status_code || 0,
+      message: "No response body recorded",
+    };
+  }
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 });
 </script>
 

@@ -9,7 +9,6 @@ import { ref } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
 import { useAuthStore } from "@/stores/auth";
-import { useAppStore } from "@/stores/app";
 
 export const isNavigating = ref(false);
 

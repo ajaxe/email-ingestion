@@ -84,7 +84,8 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 			WebhookDeliveryJobID: job.ID,
 			AttemptNumber:        0,
 			HttpStatusCode:       0,
-			ResponseBody:         "application has no webhook URL configured, skipping delivery",
+			RequestPayload:       "application has no webhook URL configured, skipping delivery",
+			ResponseBody:         "",
 			IsRetry:              false,
 			DurationMs:           0,
 		})
@@ -166,13 +167,11 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 	} else {
 		defer resp.Body.Close()
 		statusCode = int32(resp.StatusCode)
-		if statusCode >= 200 && statusCode < 300 {
-			// Success!
-		} else {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 65536))
+		respBody = string(b)
+		if statusCode < 200 || statusCode >= 300 {
 			status = public.WebhookStatusFAILED
 			deliverErr = fmt.Errorf("non-success http status code: %d", statusCode)
-			b, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-			respBody = string(b)
 		}
 	}
 
@@ -182,6 +181,7 @@ func (w *WebhookDeliveryProcessor) Process(ctx context.Context, payload *worker.
 		WebhookDeliveryJobID: job.ID,
 		AttemptNumber:        job.RetryCount + 1,
 		HttpStatusCode:       statusCode,
+		RequestPayload:       string(reqBody),
 		ResponseBody:         respBody,
 		IsRetry:              isRetry,
 		DurationMs:           durationMs,

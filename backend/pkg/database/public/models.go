@@ -203,4 +203,5 @@ type WebhookLog struct {
 	IsRetry              bool      `json:"isRetry"`
 	DurationMs           int32     `json:"durationMs"`
 	ExecutedAt           time.Time `json:"executedAt"`
+	RequestPayload       string    `json:"requestPayload"`
 }

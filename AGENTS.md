@@ -31,11 +31,13 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 
 ## 5. Development Standards
 * **Database Queries:** All Postgres access must be managed via **`sqlc`**. Write pure SQL in `pkg/database/public/query.public.sql` (or `query.sql`) and generate Go models.
+* **Database Migrations:** All database schema changes MUST be created as a new SQL migration file with a 5-digit zero-padded sequential prefix (e.g., `00001_*.sql`, `00009_*.sql`) in `backend/pkg/database/migrations/v0/` for compatibility with `pressly/goose`. Never modify existing migration files.
 * **Naming Conventions:** Use standard Go conventions (`camelCase` for internal, `PascalCase` for exported) and `snake_case` for all PostgreSQL schemas and tables.
 * **API Responses & Error Handling:** The REST API expects JSON request payloads and returns **unified JSON error responses**. Authentication is managed via `Authorization: Bearer <JWT_Token>`.
 * **Frontend Component Modularity:** Decompose pages into single-responsibility Vue components. Logical UI/UX elements (e.g., config forms, data tables, modal dialogs) must be extracted into dedicated components in `src/components/` rather than monolithic page files.
 
 ## 6. Hard Constraints & Anti-Patterns
+* **DO NOT** modify existing SQL migration files to alter database schema. Create a new migration file with a 5-digit prefix (e.g. `00009_*.sql`).
 * **DO NOT** write monolithic Vue pages containing multiple distinct UI sections or inline dialogs. Extract them into smaller, single-responsibility components.
 * **DO NOT** use the standard library `net/mail` for MIME parsing. You **MUST** use **`enmime`**.
 * **DO NOT** use Bloom Filters for address validation, as false positives violate SMTP reliability. Use the designated **Hybrid Caching Strategy**.

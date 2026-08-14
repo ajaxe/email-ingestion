@@ -44,8 +44,8 @@ SET status = $2, retry_count = $3, next_delivery_at = $4
 WHERE id = $1;
 
 -- name: LogWebhookAttempt :exec  
-INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms)  
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO webhook_logs (webhook_delivery_job_id, attempt_number, http_status_code, request_payload, response_body, is_retry, duration_ms)  
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: CreateInboundSpooledEmail :one  
 INSERT INTO inbound_spool_queue (id, s3_object_key, status, attempt_count, last_error_message, created_at, updated_at)  
@@ -137,10 +137,11 @@ SET email = $1, idp_user_sub = $2, status = $3, created_at = $4, activated_at = 
 
 -- name: ListWebhookJobsByApplication :many
 SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
-       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0)
+       COALESCE(wl.http_status_code, 0), COALESCE(wl.duration_ms, 0), COALESCE(wl.attempt_number, 0),
+       COALESCE(wl.request_payload, ''), COALESCE(wl.response_body, '')
 FROM webhook_delivery_jobs wj
 LEFT JOIN LATERAL (
-  SELECT http_status_code, duration_ms, attempt_number
+  SELECT http_status_code, duration_ms, attempt_number, request_payload, response_body
   FROM webhook_logs
   WHERE webhook_delivery_job_id = wj.id
   ORDER BY attempt_number DESC
