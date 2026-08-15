@@ -12,7 +12,7 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = "${var.aws_profile}"
+  profile = var.aws_profile
 }
 
 # --- VPC & Subnets ---
@@ -40,6 +40,17 @@ data "aws_ami" "al2023_arm64" {
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
+  }
+}
+
+# --- SSH Key Pair ---
+resource "aws_key_pair" "smtp_edge_key" {
+  key_name   = "email-ingestion-mta-ec2-${var.environment}"
+  public_key = file("~/.ssh/${var.public_key}")
+
+  tags = {
+    Name        = "email-ingestion-mta-ec2-key"
+    Environment = var.environment
   }
 }
 
@@ -124,6 +135,7 @@ resource "aws_instance" "smtp_edge" {
   ami                  = data.aws_ami.al2023_arm64.id
   instance_type        = "t4g.nano"
   subnet_id            = data.aws_subnets.default.ids[0]
+  key_name             = aws_key_pair.smtp_edge_key.key_name
   iam_instance_profile = aws_iam_instance_profile.smtp_edge_profile.name
 
   vpc_security_group_ids = [aws_security_group.smtp_edge_sg.id]
@@ -170,4 +182,3 @@ resource "aws_eip" "smtp_eip" {
 
   depends_on = [aws_instance.smtp_edge]
 }
-

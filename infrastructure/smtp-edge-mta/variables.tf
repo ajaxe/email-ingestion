@@ -15,3 +15,8 @@ variable "admin_cidr" {
   type        = string
   description = "Allowed IP range for administrative access"
 }
+
+variable "public_key" {
+  type = string
+  default = "email_ingestion_mta_ec2.pub"
+}
