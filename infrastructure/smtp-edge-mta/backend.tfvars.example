@@ -1,0 +1,5 @@
+bucket  = "YOUR-TERRAFORM-STATE-BUCKET-NAME"
+key     = "email-ingestion/edge-smtp/terraform.tfstate"
+region  = "us-east-1"
+profile = "PROFILE-NAME"
+encrypt = true

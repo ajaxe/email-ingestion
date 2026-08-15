@@ -107,3 +107,18 @@ config.yaml
 test_email.eml
 .env.dev*
 __debug_bin.*
+output/
+
+# Ignore local state files & cache
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+tfplan
+
+# Ignore all variable value files
+*.tfvars
+*.tfvars.json
+
+# Allow committing a dummy example file for reference
+!*.tfvars.example
