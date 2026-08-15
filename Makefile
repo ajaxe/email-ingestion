@@ -1,8 +1,8 @@
-IMAGE_TAG ?= apogee-dev/email-ingestion:local
-DOCKERFILE ?= infrastructure/Dockerfile
-BUILD_CONTEXT ?= backend
 
-.PHONY: docker-build
+.PHONY: docker-build docker-spa
 
 docker-build:
-	docker build -f $(DOCKERFILE) -t $(IMAGE_TAG) $(BUILD_CONTEXT)
+	docker build --progress=plain -f infrastructure/Dockerfile -t apogee-dev/email-ingestion:local backend
+
+docker-spa:
+	docker build --progress=plain -f infrastructure/Dockerfile.spa -t apogee-dev/email-ingestion-spa:local frontend

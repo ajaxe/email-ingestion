@@ -1,0 +1,24 @@
+# Exclude node_modules, as they will be installed inside the container
+**/node_modules
+
+# Exclude npm debug logs
+*/npm-debug.log
+**/*.log
+
+# Exclude local environment variables file
+**/.env*
+
+**/dist
+**/build
+**/out
+**/coverage
+
+# Exclude Docker files from the build context
+**/Dockerfile*
+**/.dockerignore
+
+# Exclude git directory
+.git
+
+.DS_Store
+Thumbs.db

@@ -19,6 +19,7 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
+  title: Settings
 </route>
 
 <script setup>

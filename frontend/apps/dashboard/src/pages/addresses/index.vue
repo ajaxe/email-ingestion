@@ -207,6 +207,7 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
+  title: Addresses
 </route>
 
 <script setup>

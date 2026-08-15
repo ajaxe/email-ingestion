@@ -261,6 +261,7 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
+  title: Email Details
 </route>
 
 <script setup>

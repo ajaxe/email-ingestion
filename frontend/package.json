@@ -12,13 +12,9 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^11.14.0",
+      "version": "11.21.0",
       "onFail": "download"
     }
   },
-  "type": "module",
-  "dependencies": {
-    "jwt-decode": "^4.0.0",
-    "oidc-client-ts": "^3.5.0"
-  }
+  "type": "module"
 }

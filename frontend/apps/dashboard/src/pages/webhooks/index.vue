@@ -8,6 +8,7 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
+  title: Webhooks
 </route>
 
 <script setup>

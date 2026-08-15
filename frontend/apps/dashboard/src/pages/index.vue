@@ -74,6 +74,7 @@
 <route lang="yaml">
 meta:
   requiresAuth: true
+  title: Dashboard
 </route>
 
 <script setup>

@@ -34,6 +34,7 @@ router.beforeEach(async (to) => {
       return { path: "/" };
     }
   }
+  document.title = `Email Ingestion Console: ${to.meta.title}`;
   return true;
 });
 

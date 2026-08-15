@@ -48,6 +48,7 @@
 meta:
   requiresAuth: false
   layout: NoLayout
+  title: Need Invitation
 </route>
 
 <script setup>

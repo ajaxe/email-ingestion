@@ -84,7 +84,6 @@ import { isNavigating } from '@/router'
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
-const authStore = useAuthStore();
 
 const keepOpen = ref(false)
 const hasApps = computed(() => appStore.applications.length > 0)

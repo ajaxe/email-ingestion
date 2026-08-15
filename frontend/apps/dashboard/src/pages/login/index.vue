@@ -8,6 +8,7 @@
 meta:
   requiresAuth: false
   layout: NoLayout
+  title: Login
 </route>
 
 <script setup>
