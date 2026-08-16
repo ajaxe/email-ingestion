@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.31
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.0
+	github.com/coreos/go-oidc/v3 v3.20.0
 	github.com/emersion/go-msgauth v0.7.0
 	github.com/emersion/go-smtp v0.24.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -15,10 +16,12 @@ require (
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/labstack/echo/v4 v4.15.4
 	github.com/mileusna/spf v0.9.5
+	github.com/pressly/goose/v3 v3.27.3
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/samber/slog-echo v1.23.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.22.0
 )
 
@@ -42,7 +45,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/coreos/go-oidc/v3 v3.20.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
@@ -67,7 +70,7 @@ require (
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pressly/goose/v3 v3.27.3 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/samber/lo v1.52.0 // indirect
 	github.com/sethvargo/go-retry v0.4.0 // indirect
@@ -91,4 +94,5 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

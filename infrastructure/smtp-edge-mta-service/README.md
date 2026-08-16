@@ -52,25 +52,25 @@ sudo systemctl enable --now email-ingest
 To tail the logs:
 
 ```bash
-sudo journalctl -u email-ingest -f
+sudo journalctl --namespace=email-ingest -u email-ingest -f
 ```
 
 View logs since current boot:
 
 ```bash
-sudo journalctl -u email-ingest -f
+sudo journalctl --namespace=email-ingest -u email-ingest -f
 ```
 
 Filter by time window:
 
 ```bash
-sudo journalctl -u email-ingest --since "1 hour ago"
+sudo journalctl --namespace=email-ingest -u email-ingest --since "1 hour ago"
 ```
 
 Show only errors/warnings:
 
 ```bash
-sudo journalctl -u email-ingest -p err..emerg
+sudo journalctl --namespace=email-ingest -u email-ingest -p err..emerg
 ```
 
 Manually truncate / vacuum only this service's logs:
