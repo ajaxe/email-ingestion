@@ -26,6 +26,9 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 * **`backend/internal/`**: Core internal business logic (e.g., `smtp/` for inbound routing, `startup/` for initialization, `storage/`).
 * **`backend/pkg/`**: Reusable Go libraries and domain helpers (e.g., database queries via `sqlc` and config).
 * **`docs/`**: Architecture and technical specifications.
+* **`infrastructure/`**: IaC and edge deployment configurations:
+  * **`infrastructure/smtp-edge-mta/`**: Terraform IaC for provisioning edge SMTP MTA infrastructure on AWS EC2 & Route53.
+  * **`infrastructure/smtp-edge-mta-service/`**: Systemd unit definition, deployment/setup scripts (`upload.ps1`, `setup.sh`, `uninstall.sh`), and journald retention configuration for edge MTA host management.
 * **`logs/`**: Local application log files.
 * **`misc/`**: Miscellaneous scripts and assets.
 

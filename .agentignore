@@ -1,4 +1,4 @@
- backend/config.yaml
+ */**/config.yaml
 .env*
 *.pem
 *.key
