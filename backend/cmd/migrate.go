@@ -21,7 +21,7 @@ var migrateCmd = &cobra.Command{
 		if len(args) == 0 {
 			return cmd.Help()
 		}
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -38,7 +38,7 @@ var migrateUpCmd = &cobra.Command{
 	Example: `  email-ingestion migrate up
   email-ingestion migrate up --version-dir v0`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -52,7 +52,7 @@ var migrateDownCmd = &cobra.Command{
 	Long:  "Roll back the single most recent database migration version.",
 	Example: `  email-ingestion migrate down`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -67,7 +67,7 @@ var migrateStatusCmd = &cobra.Command{
 	Example: `  email-ingestion migrate status`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -82,7 +82,7 @@ var migrateVersionCmd = &cobra.Command{
 	Example: `  email-ingestion migrate version`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}
@@ -96,7 +96,7 @@ var migrateSkipCmd = &cobra.Command{
 	Long:  "Mark the next database migration version as applied in the database tracking table without executing any underlying SQL migration scripts.",
 	Example: `  email-ingestion migrate skip`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return fmt.Errorf("failed to load configuration: %w", err)
 		}

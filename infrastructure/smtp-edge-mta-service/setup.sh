@@ -20,6 +20,9 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_SRC="${SCRIPT_DIR}/email-ingest.service"
+if [[ ! -f "${SERVICE_SRC}" && -f "${SCRIPT_DIR}/service_artifacts/email-ingest.service" ]]; then
+    SERVICE_SRC="${SCRIPT_DIR}/service_artifacts/email-ingest.service"
+fi
 SERVICE_DEST="/etc/systemd/system/email-ingest.service"
 JOURNAL_CONF_DIR="/etc/systemd/journald@email-ingest.conf.d"
 JOURNAL_CONF_FILE="${JOURNAL_CONF_DIR}/retention.conf"
@@ -74,6 +77,10 @@ if [[ -f "${SCRIPT_DIR}/email-ingest-arm64" ]]; then
     SRC_BIN="${SCRIPT_DIR}/email-ingest-arm64"
 elif [[ -f "${SCRIPT_DIR}/email-ingest" ]]; then
     SRC_BIN="${SCRIPT_DIR}/email-ingest"
+elif [[ -f "${SCRIPT_DIR}/service_artifacts/email-ingest-arm64" ]]; then
+    SRC_BIN="${SCRIPT_DIR}/service_artifacts/email-ingest-arm64"
+elif [[ -f "${SCRIPT_DIR}/service_artifacts/email-ingest" ]]; then
+    SRC_BIN="${SCRIPT_DIR}/service_artifacts/email-ingest"
 fi
 
 if [[ -n "${SRC_BIN}" ]]; then
@@ -83,12 +90,16 @@ if [[ -n "${SRC_BIN}" ]]; then
     chown email-ingest:email-ingest "${APP_BIN}"
     echo "  - Binary installed successfully."
 elif [[ -f "${APP_BIN}" ]]; then
-    echo "  - Source binary not found in ${SCRIPT_DIR}; retaining existing ${APP_BIN}."
+    echo "  - Source binary not found in ${SCRIPT_DIR} or ${SCRIPT_DIR}/service_artifacts; retaining existing ${APP_BIN}."
 else
-    echo "  - [WARNING] No binary found at ${SCRIPT_DIR}/email-ingest-arm64 or ${APP_BIN}."
+    echo "  - [WARNING] No binary found at ${SCRIPT_DIR}/email-ingest-arm64, ${SCRIPT_DIR}/service_artifacts/email-ingest-arm64, or ${APP_BIN}."
 fi
 
 SRC_CONFIG="${SCRIPT_DIR}/config.yaml"
+if [[ ! -f "${SRC_CONFIG}" && -f "${SCRIPT_DIR}/service_artifacts/config.yaml" ]]; then
+    SRC_CONFIG="${SCRIPT_DIR}/service_artifacts/config.yaml"
+fi
+
 if [[ -f "${SRC_CONFIG}" ]]; then
     echo "  - Copying configuration file from ${SRC_CONFIG} to ${APP_CONFIG}..."
     cp "${SRC_CONFIG}" "${APP_CONFIG}"
@@ -96,7 +107,7 @@ if [[ -f "${SRC_CONFIG}" ]]; then
     chown email-ingest:email-ingest "${APP_CONFIG}"
     echo "  - Configuration file installed successfully."
 elif [[ -f "${APP_CONFIG}" ]]; then
-    echo "  - Source configuration file not found in ${SCRIPT_DIR}; retaining existing ${APP_CONFIG}."
+    echo "  - Source configuration file not found in ${SCRIPT_DIR} or ${SCRIPT_DIR}/service_artifacts; retaining existing ${APP_CONFIG}."
 else
     echo "  - [WARNING] No configuration file found at ${SRC_CONFIG} or ${APP_CONFIG}."
 fi

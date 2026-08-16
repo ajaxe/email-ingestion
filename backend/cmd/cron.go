@@ -26,7 +26,7 @@ worker processing.`,
 }
 
 func runCron(ctx context.Context) error {
-	cfg, err := config.LoadConfig(".")
+	cfg, err := config.LoadConfig(getConfigPath())
 	if err != nil {
 		return err
 	}

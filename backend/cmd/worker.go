@@ -35,7 +35,7 @@ and raw email ingestion, or "webhook" for HTTP webhook dispatch).`,
 }
 
 func runWorker(ctx context.Context) error {
-	cfg, err := config.LoadConfig(".")
+	cfg, err := config.LoadConfig(getConfigPath())
 	if err != nil {
 		return err
 	}

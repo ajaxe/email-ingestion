@@ -22,6 +22,7 @@ To automatically query the public IP from Terraform and upload the required depl
 Run the setup script with `sudo` to perform user creation, directory permissions, journald retention setup, and service enablement in one command:
 
 ```bash
+cd service_artifacts
 chmod +x setup.sh
 sudo ./setup.sh
 ```
@@ -31,6 +32,7 @@ sudo ./setup.sh
 Run the uninstall script with `sudo` to stop/disable the service, remove systemd unit & journald config, remove application files, and delete system user/group:
 
 ```bash
+cd service_artifacts
 chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```

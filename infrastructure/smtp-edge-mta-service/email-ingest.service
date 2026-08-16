@@ -7,7 +7,7 @@ Type=simple
 User=email-ingest
 Group=email-ingest
 WorkingDirectory=/opt/email-ingest
-ExecStart=/opt/email-ingest/email-ingest --config /opt/email-ingest/config.yaml
+ExecStart=/opt/email-ingest/email-ingest smtp --config /opt/email-ingest/config.yaml
 Restart=always
 RestartSec=5s
 

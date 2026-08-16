@@ -27,7 +27,7 @@ SMTP proxy, S3 presigned URL generation, recipient validation, and webhook deliv
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
-		cfg, err := config.LoadConfig(".")
+		cfg, err := config.LoadConfig(getConfigPath())
 		if err != nil {
 			return err
 		}

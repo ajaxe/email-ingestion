@@ -23,7 +23,7 @@ to the internal ingestion API.`,
 }
 
 func runSMTP(ctx context.Context) error {
-	cfg, err := config.LoadConfig(".")
+	cfg, err := config.LoadConfig(getConfigPath())
 	if err != nil {
 		return err
 	}

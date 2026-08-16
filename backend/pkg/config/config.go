@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -106,17 +108,40 @@ func (s *SmtpConfig) EmailMaxSizeBytes() int64 {
 
 var allConfig *AppConfig
 
-// LoadConfig loads the application configuration from the specified path.
+// ResetConfig resets the singleton config instance (primarily for testing).
+func ResetConfig() {
+	allConfig = nil
+}
+
+// LoadConfig loads the application configuration from the specified path or file.
 func LoadConfig(path string) (*AppConfig, error) {
 	if allConfig != nil {
 		return allConfig, nil
 	}
 
+	if path == "" {
+		path = "."
+	}
+
 	fmt.Printf("Loading config from path:%s\n", path)
 
-	viper.AddConfigPath(path)
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
+	if info, err := os.Stat(path); err == nil {
+		if info.IsDir() {
+			viper.AddConfigPath(path)
+			viper.SetConfigName("config")
+			viper.SetConfigType("yaml")
+		} else {
+			viper.SetConfigFile(path)
+		}
+	} else {
+		if filepath.Ext(path) != "" {
+			viper.SetConfigFile(path)
+		} else {
+			viper.AddConfigPath(path)
+			viper.SetConfigName("config")
+			viper.SetConfigType("yaml")
+		}
+	}
 
 	// Environment variable overrides (EM_...)
 	// e.g., EM_DATABASE_DSN overrides database.dsn
