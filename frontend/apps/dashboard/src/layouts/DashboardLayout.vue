@@ -11,8 +11,7 @@
             class="brand-title px-2"
           >
             <template #prepend>
-              <v-avatar color="primary" variant="flat" size="36">
-                <v-icon icon="mdi-email-multiple" size="20" color="white" />
+              <v-avatar image="/favicon.svg" variant="flat" size="36">
               </v-avatar>
             </template>
           </v-list-item>

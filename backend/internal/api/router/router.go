@@ -112,7 +112,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.GET("/auth/session", handler.HandleGetAuthSession())
 
 	// TODO: open endpoint needs protection, may be move to SPA as static file, need to address maintenance of the file.
-	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth, cfg.Smtp.Domain))
+	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth, cfg.Smtp.EmailDomain))
 
 	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
 	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))

@@ -1,7 +1,11 @@
 <template>
   <div class="d-flex align-center gap-3">
-    <v-avatar color="primary" variant="flat" size="40" class="elevation-2">
-      <v-icon icon="mdi-email-multiple" size="22" color="white" />
+    <v-avatar
+      :image="logo"
+      variant="flat"
+      size="40"
+      class="elevation-2"
+    >
     </v-avatar>
     <div class="ms-2">
       <div class="text-h6 font-weight-bold line-height-tight">
@@ -15,3 +19,6 @@
     </div>
   </div>
 </template>
+<script setup>
+const logo = "/favicon.svg"
+</script>
