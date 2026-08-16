@@ -71,18 +71,18 @@ func (o *OIDCAuthService) VerifyToken(ctx context.Context, token string) (*dto.U
 }
 func (o *OIDCAuthService) PermittedApplications(ctx context.Context, userID string) ([]public.Application, error) {
 	if userID == "" {
-		return nil, fmt.Errorf("invalid userID")
+		return nil, apperror.Validation("invalid userID")
 	}
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		return nil, err
+		return nil, apperror.Validation("invalid userID", err)
 	}
 	if uid == uuid.Nil {
-		return nil, fmt.Errorf("invalid user id, empty uuid")
+		return nil, apperror.Validation("invalid userID", fmt.Errorf("invalid user id, empty uuid"))
 	}
 	apps, err := o.repo.GetApplications(ctx, uid)
 	if err != nil {
-		return nil, err
+		return nil, apperror.Forbidden("failed to get applications", err)
 	}
 	if apps == nil {
 		apps = []public.Application{}

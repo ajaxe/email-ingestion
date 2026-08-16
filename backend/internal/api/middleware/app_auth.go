@@ -29,14 +29,14 @@ func AppAuth(verifier UserAccessVerifier) echo.MiddlewareFunc {
 
 			if err != nil {
 				slog.ErrorContext(ctx, "failed to validate api key", "error", err)
-				return apperror.Forbidden("invalid token", err)
+				return err
 			}
 
 			apps, err := verifier.PermittedApplications(ctx, profile.UserID)
 
 			if err != nil {
 				slog.ErrorContext(ctx, "failed to fetch permitted applications", "error", err)
-				return apperror.Forbidden("invalid token", err)
+				return err
 			}
 
 			ctx = WithUserAccess(ctx, &dto.UserAccessResult{
