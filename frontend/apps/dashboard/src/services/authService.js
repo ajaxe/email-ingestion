@@ -21,7 +21,7 @@ const settings = {
 
   // **This enables the Auth Code + PKCE flow**
   response_type: "code",
-  scope: "openid profile email",
+  scope: "openid profile email offline_access",
 
   automaticSilentRenew: true,
   loadUserInfo: true,
