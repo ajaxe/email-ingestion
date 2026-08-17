@@ -1,7 +1,13 @@
 <template>
   <v-layout class="fill-height" v-if="!isNavigating">
     <!-- Left Navigation Drawer -->
-    <v-navigation-drawer v-model="drawer" permanent elevation="1" width="280" :rail="keepOpen" :expand-on-hover="keepOpen">
+    <v-navigation-drawer
+      v-model="drawer"
+      permanent
+      elevation="1"
+      width="280"
+      :rail="rail"
+    >
       <!-- Top Branding Section -->
       <template #prepend>
         <v-list class="py-3">
@@ -11,8 +17,39 @@
             class="brand-title px-2"
           >
             <template #prepend>
-              <v-avatar image="/favicon.svg" variant="flat" size="36">
-              </v-avatar>
+              <v-hover v-slot="{ isHovering, props }">
+                <div
+                  v-bind="props"
+                  class="d-flex align-center justify-center me-2"
+                  style="width: 36px; height: 36px"
+                >
+                  <v-btn
+                    v-if="isHovering && rail"
+                    variant="text"
+                    icon
+                    size="small"
+                    @click.stop="collapseToggle(false)"
+                  >
+                    <v-icon icon="mdi-arrow-collapse-right" />
+                  </v-btn>
+                  <v-avatar
+                    v-else
+                    image="/favicon.svg"
+                    variant="flat"
+                    size="36"
+                  />
+                </div>
+              </v-hover>
+            </template>
+            <template #append>
+              <v-btn
+                variant="text"
+                icon
+                class="ms-3"
+                @click.stop="collapseToggle(true)"
+              >
+                <v-icon icon="mdi-arrow-collapse-left" />
+              </v-btn>
             </template>
           </v-list-item>
         </v-list>
@@ -25,7 +62,7 @@
       <!-- Bottom Profile & Theme AddOns -->
       <template #append>
         <v-divider />
-        <NavigationAddOns />
+        <NavigationAddOns :is-collapsed="rail" />
       </template>
     </v-navigation-drawer>
 
@@ -74,18 +111,17 @@
 import { ref, computed } from "vue";
 import NavigationLinks from "@/components/navigation/NavigationLinks.vue";
 import NavigationAddOns from "@/components/navigation/NavigationAddOns.vue";
-import CustomAppBar from '@/components/CustomAppBar.vue';
+import CustomAppBar from "@/components/CustomAppBar.vue";
 import { useNotificationStore } from "@/stores/notification";
 import { useAppStore } from "@/stores/application";
-import { useAuthStore } from "@/stores/auth";
-import { isNavigating } from '@/router'
+import { isNavigating } from "@/router";
 
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
 
-const keepOpen = ref(false)
-const hasApps = computed(() => appStore.applications.length > 0)
+const rail = ref(true);
+const hasApps = computed(() => appStore.applications.length > 0);
 
 function getSnackbarIcon(color) {
   switch (color) {
@@ -98,6 +134,10 @@ function getSnackbarIcon(color) {
     default:
       return "mdi-information";
   }
+}
+
+function collapseToggle(open) {
+  rail.value = open;
 }
 </script>
 
