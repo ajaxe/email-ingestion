@@ -55,21 +55,33 @@ export const useAuthStore = defineStore("auth", {
         this.user = u.value;
       }
       
-      const isForbidden = userAccess.status === "rejected";
+      let isForbiddenUser = false;
+      let isTokenInvalid = false;
       let apps = [];
 
-      if (!isForbidden) {
+      if (userAccess.status === "rejected") {
+        const err = userAccess.reason;
+        const msg = err?.message;
+
+        if (msg === "forbidden_token_invalid" || err?.status === 401) {
+          isTokenInvalid = true;
+          this.user = emptyUser;
+          passwordLogout();
+        } else if (msg === "forbidden_user" || err?.status === 403) {
+          isForbiddenUser = true;
+        }
+      } else if (userAccess.status === "fulfilled") {
         apps = userAccess.value.applications || [];
-        if(apps.length > 0) {
+        if (apps.length > 0) {
           const appStore = useAppStore();
-          appStore.applications = apps
+          appStore.applications = apps;
           appStore.application = apps[0];
           appStore.activeAppId = apps[0].id;
         }
       }
       return {
-        isAuthenticated: this.isAuthenticated,
-        forbidden: isForbidden,
+        isAuthenticated: this.isAuthenticated && !isTokenInvalid,
+        forbidden: isForbiddenUser,
         applications: apps,
       };
     },

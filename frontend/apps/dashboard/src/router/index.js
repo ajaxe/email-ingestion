@@ -24,17 +24,18 @@ router.beforeEach(async (to) => {
     const authStore = useAuthStore();
     const result = await authStore.loadUser();
     if (!result.isAuthenticated) {
-      // Redirect to login page
-      return { name: "/login/" };
-    } else if (result.forbidden) {
-      return { name: "need-invitation" };
-    }
+      if (to.path !== "/login") {
+        return { path: "/login" };
+      }
+    } else if (result.forbidden && to.name !== "need-invitation" && to.path !== "/need-invitation") {
+        return { name: "need-invitation" };
+      }
 
     if (to.path !== "/" && result.applications.length === 0) {
       return { path: "/" };
     }
   }
-  document.title = `Email Ingestion Console: ${to.meta.title}`;
+  document.title = `Email Ingestion Console${to.meta?.title ? `: ${to.meta.title}` : ''}`;
   return true;
 });
 

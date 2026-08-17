@@ -41,14 +41,16 @@ func NewOIDCAuthService(authConfig *config.AuthConfig, repo OIDCAuthRepository) 
 	}
 }
 
-func (o *OIDCAuthService) VerifyToken(ctx context.Context, token string) (*dto.UserProfile, error) {
+func (o *OIDCAuthService) VerifyToken(ctx context.Context, token string) (up *dto.UserProfile, err error) {
 	idToken, err := o.verifier.Verify(ctx, token)
 	if err != nil {
-		return nil, apperror.Forbidden("failed to verify token", err)
+		err = apperror.Forbidden("forbidden_token_invalid", err)
+		return
 	}
 	var profile oidcUserProfileClaims
-	if err := idToken.Claims(&profile); err != nil {
-		return nil, apperror.Forbidden("failed to parse claims", err)
+	if err = idToken.Claims(&profile); err != nil {
+		err = apperror.Forbidden("forbidden_token_invalid", err)
+		return
 	}
 
 	provisionData := &UserProvisionData{
@@ -59,33 +61,47 @@ func (o *OIDCAuthService) VerifyToken(ctx context.Context, token string) (*dto.U
 	// lazy provision of partial user info in the database
 	user, err := o.repo.ProvisionUser(ctx, provisionData)
 	if err != nil {
-		return nil, apperror.Forbidden("failed to provision user", err)
+		err = apperror.Forbidden("forbidden_user", err)
+		return
 	}
 
-	return &dto.UserProfile{
+	up = &dto.UserProfile{
 		Username: user.Email,
 		Email:    user.Email,
 		Subject:  user.IdpUserSub,
 		UserID:   user.ID.String(),
-	}, nil
+	}
+	return
 }
-func (o *OIDCAuthService) PermittedApplications(ctx context.Context, userID string) ([]public.Application, error) {
+
+func (o *OIDCAuthService) PermittedApplications(ctx context.Context, userID string) (apps []public.Application, err error) {
+	defer func() {
+		if err != nil {
+			apps = nil
+			e := fmt.Errorf("failed to get permitted applications: %w", err)
+			err = apperror.Forbidden("forbidden", e)
+		}
+	}()
 	if userID == "" {
-		return nil, apperror.Validation("invalid userID")
+		err = fmt.Errorf("invalid userID")
+		return
 	}
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		return nil, apperror.Validation("invalid userID", err)
+		err = fmt.Errorf("invalid userID: %w", err)
+		return
 	}
 	if uid == uuid.Nil {
-		return nil, apperror.Validation("invalid userID", fmt.Errorf("invalid user id, empty uuid"))
+		err = fmt.Errorf("invalid user id, empty uuid")
+		return
 	}
-	apps, err := o.repo.GetApplications(ctx, uid)
+
+	apps, err = o.repo.GetApplications(ctx, uid)
 	if err != nil {
-		return nil, apperror.Forbidden("failed to get applications", err)
+		return
 	}
 	if apps == nil {
 		apps = []public.Application{}
 	}
-	return apps, nil
+	return
 }

@@ -132,14 +132,11 @@ export async function getAuthSession() {
     return await resp.json();
   }
 
-  if (resp.status === 401) {
-    throw new Error("Unauthorized");
-  }
-  if (resp.status === 403) {
-    throw new Error("Forbidden");
-  }
-
-  throw new Error("Internal error");
+  const errorData = await resp.json().catch(() => ({}));
+  const error = new Error(errorData.message || (resp.status === 401 ? "Unauthorized" : "Forbidden"));
+  error.code = errorData.code || "UNKNOWN";
+  error.status = resp.status;
+  throw error;
 }
 
 export const emptyUser = {
