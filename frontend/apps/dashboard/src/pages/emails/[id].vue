@@ -117,7 +117,7 @@
           <v-tabs v-model="activeTab" color="primary" class="mb-4">
             <v-tab value="html" prepend-icon="mdi-code-tags">HTML Body</v-tab>
             <v-tab value="text" prepend-icon="mdi-text-short">Text Body</v-tab>
-            <v-tab value="json" prepend-icon="mdi-code-json"
+            <v-tab value="json" prepend-icon="mdi-email-text-outline"
               >Email Headers</v-tab
             >
           </v-tabs>
@@ -151,10 +151,8 @@
             </v-window-item>
 
             <v-window-item value="json">
-              <CodePreview
-                :code="rawJson"
-                language="json"
-                title="Email Headers"
+              <EmailHeadersList
+                :headers="emailDetail?.headers"
                 max-height="380px"
               />
             </v-window-item>
@@ -267,7 +265,8 @@ meta:
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import CodePreview from "@/components/CodePreview.vue";
+import CodePreview from "@/components/shared/CodePreview.vue";
+import EmailHeadersList from "@/components/emails/EmailHeadersList.vue";
 import { useAppStore } from "@/stores/application";
 import { useEmailStore } from "@/stores/emails";
 import { useNotificationStore } from "@/stores/notification";

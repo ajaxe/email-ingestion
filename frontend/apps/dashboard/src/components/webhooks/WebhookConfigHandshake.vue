@@ -111,7 +111,7 @@
 
 <script setup>
 import { onMounted, ref, watch } from "vue";
-import StatusChip from "@/components/StatusChip.vue";
+import StatusChip from "@/components/shared/StatusChip.vue";
 import WebhookSecretConfirmation from "./WebhookSecretConfirmation.vue";
 import { useAppStore } from "@/stores/application";
 import { useWebhookStore } from "@/stores/webhooks";

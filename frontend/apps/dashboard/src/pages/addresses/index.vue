@@ -212,7 +212,7 @@ meta:
 
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import StatusChip from "@/components/StatusChip.vue";
+import StatusChip from "@/components/shared/StatusChip.vue";
 import { useAppStore } from "@/stores/application";
 import { useAddressStore } from "@/stores/addresses";
 import { useNotificationStore } from "@/stores/notification";

@@ -38,7 +38,7 @@
 <script setup>
 import { onMounted, computed } from 'vue';
 import { useAppStore } from '@/stores/application';
-import StatusChip from '@/components/StatusChip.vue';
+import StatusChip from '@/components/shared/StatusChip.vue';
 
 const emit = defineEmits(['open-create-modal']);
 const appStore = useAppStore();

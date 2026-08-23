@@ -182,13 +182,13 @@ const filteredEmails = computed(() => {
   let list = emailStore.emails || [];
 
   if (selectedLocalPart.value !== 'ALL') {
-    list = list.filter((item) => item.local_part === selectedLocalPart.value);
+    list = list.filter((item) => item.localPart === selectedLocalPart.value);
   }
 
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim();
     list = list.filter((item) => {
-      const from = (item.from_address || item.sender || '').toLowerCase();
+      const from = (item.fromAddress || item.sender || '').toLowerCase();
       const subj = (item.subject || '').toLowerCase();
       return from.includes(q) || subj.includes(q);
     });

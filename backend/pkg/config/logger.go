@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"log/slog"
 	"os"
 	"strings"
@@ -8,12 +9,14 @@ import (
 
 func SetupLogger(cfg *AppConfig) {
 	logLevel := slog.LevelInfo
-	if strings.ToLower(cfg.LogLevel) == "debug" {
+	if cfg != nil && strings.ToLower(cfg.LogLevel) == "debug" {
 		logLevel = slog.LevelDebug
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
-	}))
+	})
+	logger := slog.New(jsonHandler)
 	slog.SetDefault(logger)
+	log.SetOutput(slog.NewLogLogger(jsonHandler, logLevel).Writer())
 }

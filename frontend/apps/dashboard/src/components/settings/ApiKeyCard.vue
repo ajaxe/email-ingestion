@@ -122,7 +122,7 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ConfirmDialog from '@/components/shared/ConfirmDialog.vue';
 import ApiKeyConfirmationModal from '@/components/settings/ApiKeyConfirmationModal.vue';
 import CreateApiKeyModal from '@/components/settings/CreateApiKeyModal.vue';
 import { useAppStore } from '@/stores/application';

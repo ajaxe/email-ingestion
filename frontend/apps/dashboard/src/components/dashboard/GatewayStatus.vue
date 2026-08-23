@@ -31,7 +31,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import StatusChip from '@/components/StatusChip.vue';
+import StatusChip from '@/components/shared/StatusChip.vue';
 import { useAppStore } from '@/stores/application';
 
 const appStore = useAppStore();

@@ -66,7 +66,7 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import CodePreview from "@/components/CodePreview.vue";
+import CodePreview from "@/components/shared/CodePreview.vue";
 
 const props = defineProps({
   modelValue: {

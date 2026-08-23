@@ -161,7 +161,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import StatusChip from "@/components/StatusChip.vue";
+import StatusChip from "@/components/shared/StatusChip.vue";
 import WebhookJobPayload from "./WebhookJobPayload.vue";
 import { useAppStore } from "@/stores/application";
 import { useWebhookStore } from "@/stores/webhooks";
