@@ -11,12 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ListEmailsFilter struct {
+	Limit     int32
+	Offset    int32
+	LocalPart string
+	Search    string
+}
+
 type ApplicationRepository interface {
 	GetApplicationByID(ctx context.Context, appID uuid.UUID) (public.Application, error)
 	CreateAssignedEmail(ctx context.Context, args public.CreateAssignedEmailParams) (public.AssignedEmail, error)
 	ListAssignedEmailsByApplication(ctx context.Context, appID uuid.UUID) ([]public.AssignedEmail, error)
 	ListIngestedEmailsByApplication(ctx context.Context, args public.ListIngestedEmailsByApplicationParams) ([]public.ListIngestedEmailsByApplicationRow, error)
-	CountIngestedEmailsByApplication(ctx context.Context, appID uuid.UUID) (int64, error)
+	CountIngestedEmailsByApplication(ctx context.Context, args public.CountIngestedEmailsByApplicationParams) (int64, error)
 	UpdateAssignedEmailStatus(ctx context.Context, args public.UpdateAssignedEmailStatusParams) error
 	GetWebhookDeliveryStatsByApplication(ctx context.Context, applicationID uuid.UUID) (public.GetWebhookDeliveryStatsByApplicationRow, error)
 
@@ -60,17 +67,42 @@ func (s *ApplicationService) CreateAddress(ctx context.Context, appID uuid.UUID,
 	})
 }
 
-func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, limit, offset int32) ([]public.ListIngestedEmailsByApplicationRow, error) {
+func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, filter ListEmailsFilter) ([]public.ListIngestedEmailsByApplicationRow, int64, error) {
+	var localPartText pgtype.Text
+	if filter.LocalPart != "" && filter.LocalPart != "ALL" {
+		localPartText = pgtype.Text{String: filter.LocalPart, Valid: true}
+	}
+
+	var searchText pgtype.Text
+	if filter.Search != "" {
+		searchText = pgtype.Text{String: filter.Search, Valid: true}
+	}
+
 	l, err := s.repo.ListIngestedEmailsByApplication(ctx, public.ListIngestedEmailsByApplicationParams{
 		ApplicationID: appID,
-		Limit:         limit,
-		Offset:        offset,
+		Limit:         filter.Limit,
+		Offset:        filter.Offset,
+		LocalPart:     localPartText,
+		Search:        searchText,
 	})
+	if err != nil {
+		return nil, 0, err
+	}
 
 	if l == nil {
 		l = []public.ListIngestedEmailsByApplicationRow{}
 	}
-	return l, err
+
+	total, err := s.repo.CountIngestedEmailsByApplication(ctx, public.CountIngestedEmailsByApplicationParams{
+		ApplicationID: appID,
+		LocalPart:     localPartText,
+		Search:        searchText,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return l, total, nil
 }
 
 func (s *ApplicationService) ListAddresses(ctx context.Context, appID uuid.UUID) ([]public.AssignedEmail, error) {
@@ -95,7 +127,9 @@ func (s *ApplicationService) GetApplicationStats(ctx context.Context, appID uuid
 		}
 	}()
 
-	emailCount, err := s.repo.CountIngestedEmailsByApplication(ctx, appID)
+	emailCount, err := s.repo.CountIngestedEmailsByApplication(ctx, public.CountIngestedEmailsByApplicationParams{
+		ApplicationID: appID,
+	})
 	if err != nil {
 		return
 	}

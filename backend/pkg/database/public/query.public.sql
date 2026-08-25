@@ -102,10 +102,24 @@ RETURNING *;
 -- name: ListIngestedEmailsByApplication :many
 SELECT i.*, a.local_part FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
-WHERE i.application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3;
+WHERE i.application_id = $1
+  AND (sqlc.narg('local_part')::text IS NULL OR sqlc.narg('local_part')::text = '' OR a.local_part = sqlc.narg('local_part')::text)
+  AND (sqlc.narg('search')::text IS NULL OR sqlc.narg('search')::text = '' OR (
+    i.from_address ILIKE '%' || sqlc.narg('search')::text || '%' OR
+    i.subject ILIKE '%' || sqlc.narg('search')::text || '%'
+  ))
+ORDER BY i.received_at DESC LIMIT $2 OFFSET $3;
 
 -- name: CountIngestedEmailsByApplication :one
-SELECT count(*) FROM ingested_emails WHERE application_id = $1;
+SELECT count(*) FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.application_id = $1
+  AND (sqlc.narg('local_part')::text IS NULL OR sqlc.narg('local_part')::text = '' OR a.local_part = sqlc.narg('local_part')::text)
+  AND (sqlc.narg('search')::text IS NULL OR sqlc.narg('search')::text = '' OR (
+    i.from_address ILIKE '%' || sqlc.narg('search')::text || '%' OR
+    i.subject ILIKE '%' || sqlc.narg('search')::text || '%'
+  ));
+
 
 -- name: GetApiKeyByKeyHash :one
 SELECT * FROM api_keys WHERE key_hash = $1;

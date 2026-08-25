@@ -59,7 +59,7 @@
       >
         <template #item.local_part="{ item }">
           <span class="font-mono font-weight-bold primary--text">
-            {{ item.local_part || item.localPart }}
+            {{ item.localPart }}
           </span>
         </template>
 
@@ -249,7 +249,7 @@ const filteredAddresses = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase().trim();
     list = list.filter((item) => {
-      const local = (item.local_part || item.localPart || "").toLowerCase();
+      const local = (item.localPart || "").toLowerCase();
       const desc = (item.description || "").toLowerCase();
       return local.includes(q) || desc.includes(q);
     });

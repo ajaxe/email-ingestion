@@ -190,7 +190,7 @@ const appName = computed(() => currentApp.value.name || 'New Application');
 
 const fullAddress = computed(() => {
   if (props.provisionedAddress) {
-    const local = props.provisionedAddress.local_part || props.provisionedAddress.localPart;
+    const local = props.provisionedAddress.localPart;
     const domain = window.APP_CONFIG?.INGEST_DOMAIN || 'localhost';
     if (local) return `${local}@${domain}`;
   }

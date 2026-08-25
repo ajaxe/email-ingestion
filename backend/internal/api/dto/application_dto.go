@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
 )
 
@@ -33,3 +34,16 @@ type AttachmentURLResponse struct {
 type AppCreateRequest struct {
 	Name string `json:"name" validate:"required,min=3,max=255"`
 }
+
+type PaginationMeta struct {
+	CurrentPage int64 `json:"currentPage"`
+	Limit       int64 `json:"limit"`
+	TotalCount  int64 `json:"totalCount"`
+	TotalPages  int64 `json:"totalPages"`
+}
+
+type PaginatedEmailsResponse struct {
+	Emails     []public.ListIngestedEmailsByApplicationRow `json:"emails"`
+	Pagination PaginationMeta                              `json:"pagination"`
+}
+

@@ -10,7 +10,11 @@
           </div>
         </v-col>
 
-        <v-col cols="12" md="9" class="pa-0 mt-3 mt-md-0 d-flex flex-wrap align-center justify-md-end gap-3">
+        <v-col
+          cols="12"
+          md="9"
+          class="pa-0 mt-3 mt-md-0 d-flex flex-wrap align-center justify-md-end gap-3"
+        >
           <v-text-field
             v-model="searchQuery"
             prepend-inner-icon="mdi-magnify"
@@ -50,7 +54,9 @@
             @click="refreshLogs"
           >
             <v-icon icon="mdi-refresh" />
-            <v-tooltip activator="parent" location="top">Manual Refresh</v-tooltip>
+            <v-tooltip activator="parent" location="top"
+              >Manual Refresh</v-tooltip
+            >
           </v-btn>
         </v-col>
       </v-row>
@@ -70,12 +76,12 @@ meta:
 </route>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useAppStore } from '@/stores/application';
-import { useEmailStore } from '@/stores/emails';
-import { useAddressStore } from '@/stores/addresses';
-import EmailList from '@/components/emails/EmailList.vue';
-import { storeToRefs } from 'pinia';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useAppStore } from "@/stores/application";
+import { useEmailStore } from "@/stores/emails";
+import { useAddressStore } from "@/stores/addresses";
+import EmailList from "@/components/emails/EmailList.vue";
+import { storeToRefs } from "pinia";
 
 const appStore = useAppStore();
 const emailStore = useEmailStore();
@@ -85,13 +91,11 @@ const { selectedLocalPart, searchQuery } = storeToRefs(emailStore);
 const autoRefresh = ref(false);
 let refreshInterval = null;
 
-
-
 const localPartOptions = computed(() => {
-  const options = [{ title: 'All Local Parts', value: 'ALL' }];
+  const options = [{ title: "All Local Parts", value: "ALL" }];
   if (addressStore.addresses) {
-    for(const addr of addressStore.addresses) {
-      const val = addr.local_part || addr.localPart;
+    for (const addr of addressStore.addresses) {
+      const val = addr.localPart;
       if (val) {
         options.push({ title: val, value: val });
       }
@@ -102,7 +106,7 @@ const localPartOptions = computed(() => {
 
 async function refreshLogs() {
   if (appStore.activeAppId) {
-    await emailStore.fetchEmails(appStore.activeAppId, { limit: 50 });
+    await emailStore.fetchEmails(appStore.activeAppId);
   }
 }
 
@@ -117,19 +121,19 @@ watch(autoRefresh, (enabled) => {
 
 onMounted(async () => {
   if (appStore.activeAppId) {
-    await Promise.allSettled([
-      refreshLogs(),
-      addressStore.fetchAddresses(appStore.activeAppId),
-    ]);
+    await addressStore.fetchAddresses(appStore.activeAppId);
   }
 });
 
-watch(() => appStore.activeAppId, () => {
-  if (appStore.activeAppId) {
-    refreshLogs();
-    addressStore.fetchAddresses(appStore.activeAppId);
-  }
-});
+watch(
+  () => appStore.activeAppId,
+  () => {
+    if (appStore.activeAppId) {
+      refreshLogs();
+      addressStore.fetchAddresses(appStore.activeAppId);
+    }
+  },
+);
 
 onBeforeUnmount(() => {
   if (refreshInterval) {

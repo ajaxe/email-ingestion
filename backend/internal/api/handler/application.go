@@ -182,7 +182,7 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 		}
 
 		limitStr := c.QueryParam("limit")
-		offsetStr := c.QueryParam("offset")
+		pageStr := c.QueryParam("page")
 
 		limit := 50
 		if limitStr != "" {
@@ -192,18 +192,39 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 		}
 
 		offset := 0
-		if offsetStr != "" {
-			if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-				offset = o
-			}
+		page := 1
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+			offset = (page - 1) * limit
 		}
 
-		emails, err := svc.ListEmails(ctx, appID, int32(limit), int32(offset))
+		search := c.QueryParam("search")
+		localPart := c.QueryParam("localPart")
+
+		emails, totalCount, err := svc.ListEmails(ctx, appID, service.ListEmailsFilter{
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+			LocalPart: localPart,
+			Search:    search,
+		})
 		if err != nil {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, emails)
+		totalPages := int64(0)
+		if limit > 0 {
+			totalPages = (totalCount + int64(limit) - 1) / int64(limit)
+		}
+
+		return c.JSON(http.StatusOK, dto.PaginatedEmailsResponse{
+			Emails: emails,
+			Pagination: dto.PaginationMeta{
+				CurrentPage: int64(page),
+				Limit:       int64(limit),
+				TotalCount:  totalCount,
+				TotalPages:  totalPages,
+			},
+		})
 	}
 }
 

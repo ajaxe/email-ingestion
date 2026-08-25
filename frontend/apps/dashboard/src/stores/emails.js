@@ -9,11 +9,12 @@ import { useAddressStore } from "./addresses";
 export const useEmailStore = defineStore("emails", {
   state: () => ({
     emails: [],
+    totalCount: 0,
     attachments: {},
     loading: false,
     error: null,
-    selectedLocalPart: 'ALL',
-    searchQuery: '',
+    selectedLocalPart: "ALL",
+    searchQuery: "",
   }),
   getters: {
     localPartOptions: () => {
@@ -21,7 +22,7 @@ export const useEmailStore = defineStore("emails", {
       const options = [{ title: "All Local Parts", value: "ALL" }];
       if (addressStore.addresses) {
         for (const addr of addressStore.addresses) {
-          const val = addr.local_part || addr.localPart;
+          const val = addr.localPart;
           if (val) {
             options.push({ title: val, value: val });
           }
@@ -31,11 +32,26 @@ export const useEmailStore = defineStore("emails", {
     },
   },
   actions: {
-    async fetchEmails(appId, queryParams) {
+    async fetchEmails(appId, { limit, page, localPart, search } = {}) {
       this.loading = true;
+      limit = limit || 10;
+      page = page || 1;
+      localPart = localPart?.trim() ? localPart : this.selectedLocalPart;
+      search = search?.trim() ? search : this.searchQuery;
+
+      const params = { limit, page };
+      if (localPart && localPart !== "ALL") {
+        params.localPart = localPart;
+      }
+      if (search && search.trim()) {
+        params.search = search.trim();
+      }
+
       try {
-        const res = await getEmailList(appId, queryParams);
-        this.emails = res.data || res;
+        const res = await getEmailList(appId, params);
+        const { emails, pagination } = res.data;
+        this.emails = emails;
+        this.totalCount = pagination?.totalCount || 0;
         return this.emails;
       } catch (err) {
         this.error = err;

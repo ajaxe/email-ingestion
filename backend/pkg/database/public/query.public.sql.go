@@ -49,11 +49,24 @@ func (q *Queries) CheckDuplicateWebhookJob(ctx context.Context, arg CheckDuplica
 }
 
 const countIngestedEmailsByApplication = `-- name: CountIngestedEmailsByApplication :one
-SELECT count(*) FROM ingested_emails WHERE application_id = $1
+SELECT count(*) FROM ingested_emails i
+JOIN assigned_emails a ON a.id = i.assigned_email_id
+WHERE i.application_id = $1
+  AND ($2::text IS NULL OR $2::text = '' OR a.local_part = $2::text)
+  AND ($3::text IS NULL OR $3::text = '' OR (
+    i.from_address ILIKE '%' || $3::text || '%' OR
+    i.subject ILIKE '%' || $3::text || '%'
+  ))
 `
 
-func (q *Queries) CountIngestedEmailsByApplication(ctx context.Context, applicationID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countIngestedEmailsByApplication, applicationID)
+type CountIngestedEmailsByApplicationParams struct {
+	ApplicationID uuid.UUID   `json:"applicationId"`
+	LocalPart     pgtype.Text `json:"localPart"`
+	Search        pgtype.Text `json:"search"`
+}
+
+func (q *Queries) CountIngestedEmailsByApplication(ctx context.Context, arg CountIngestedEmailsByApplicationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countIngestedEmailsByApplication, arg.ApplicationID, arg.LocalPart, arg.Search)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -896,13 +909,21 @@ func (q *Queries) ListAssignedEmailsByApplication(ctx context.Context, applicati
 const listIngestedEmailsByApplication = `-- name: ListIngestedEmailsByApplication :many
 SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, a.local_part FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
-WHERE i.application_id = $1 ORDER BY received_at DESC LIMIT $2 OFFSET $3
+WHERE i.application_id = $1
+  AND ($4::text IS NULL OR $4::text = '' OR a.local_part = $4::text)
+  AND ($5::text IS NULL OR $5::text = '' OR (
+    i.from_address ILIKE '%' || $5::text || '%' OR
+    i.subject ILIKE '%' || $5::text || '%'
+  ))
+ORDER BY i.received_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListIngestedEmailsByApplicationParams struct {
-	ApplicationID uuid.UUID `json:"applicationId"`
-	Limit         int32     `json:"limit"`
-	Offset        int32     `json:"offset"`
+	ApplicationID uuid.UUID   `json:"applicationId"`
+	Limit         int32       `json:"limit"`
+	Offset        int32       `json:"offset"`
+	LocalPart     pgtype.Text `json:"localPart"`
+	Search        pgtype.Text `json:"search"`
 }
 
 type ListIngestedEmailsByApplicationRow struct {
@@ -919,7 +940,13 @@ type ListIngestedEmailsByApplicationRow struct {
 }
 
 func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]ListIngestedEmailsByApplicationRow, error) {
-	rows, err := q.db.Query(ctx, listIngestedEmailsByApplication, arg.ApplicationID, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listIngestedEmailsByApplication,
+		arg.ApplicationID,
+		arg.Limit,
+		arg.Offset,
+		arg.LocalPart,
+		arg.Search,
+	)
 	if err != nil {
 		return nil, err
 	}

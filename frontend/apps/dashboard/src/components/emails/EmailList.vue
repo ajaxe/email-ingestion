@@ -1,8 +1,11 @@
 <template>
-  <v-data-table
+  <v-data-table-server
     :headers="headers"
-    :items="filteredEmails"
+    :items="emails"
+    :items-length="totalCount"
     :loading="emailStore.loading"
+    v-model:items-per-page="itemsPerPage"
+    @update:options="loadItems"
     density="comfortable"
     hover
   >
@@ -73,53 +76,46 @@
         </div>
       </div>
     </template>
-  </v-data-table>
+  </v-data-table-server>
 </template>
 <script setup>
-import { computed } from "vue";
+import { ref, watch } from "vue";
 import { useEmailStore } from "@/stores/emails";
+import { useAppStore } from "@/stores/application";
 import { storeToRefs } from "pinia";
 
 const emailStore = useEmailStore();
-const { selectedLocalPart, searchQuery } = storeToRefs(emailStore);
+const appStore = useAppStore();
+
+const { selectedLocalPart, searchQuery, totalCount, emails } = storeToRefs(emailStore);
+const itemsPerPage = ref(10);
+let searchDebounceTimer = null;
 
 const headers = [
-  { title: "Received At", key: "created_at", sortable: true },
-  { title: "Local Part", key: "local_part", sortable: true },
-  { title: "From Address", key: "from_address", sortable: true },
-  { title: "Subject", key: "subject", sortable: true },
+  { title: "Received At", key: "created_at", sortable: false },
+  { title: "Local Part", key: "local_part", sortable: false },
+  { title: "From Address", key: "from_address", sortable: false },
+  { title: "Subject", key: "subject", sortable: false },
   { title: "Ref Token", key: "reference_token", sortable: false },
   {
     title: "Attachments",
     key: "attachments_count",
     align: "center",
-    sortable: true,
+    sortable: false,
   },
   { title: "Actions", key: "actions", align: "end", sortable: false },
 ];
 
-const filteredEmails = computed(() => {
-  let list = emailStore.emails || [];
-
-  if (selectedLocalPart.value !== "ALL") {
-    list = list.filter((item) => item.localPart === selectedLocalPart.value);
-  }
-
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase().trim();
-    list = list.filter((item) => {
-      const from = (item.fromAddress || item.sender || "").toLowerCase();
-      const subj = (item.subject || "").toLowerCase();
-      return from.includes(q) || subj.includes(q);
-    });
-  }
-
-  return list;
-});
-
+function loadItems({ page, itemsPerPage, sortBy }) {
+  if (!appStore.activeAppId) return;
+  emailStore.fetchEmails(appStore.activeAppId, {
+    limit: itemsPerPage,
+    page,
+  });
+}
 
 function formatDate(val) {
-  if (!val) return '—';
+  if (!val) return "—";
   try {
     return new Date(val).toLocaleString();
   } catch {
@@ -128,17 +124,36 @@ function formatDate(val) {
 }
 
 function getAttachmentCount(item) {
-  if (typeof item.attachments_count === 'number') return item.attachments_count;
+  if (typeof item.attachments_count === "number") return item.attachments_count;
   if (Array.isArray(item.attachments)) return item.attachments.length;
   return 0;
 }
+
+watch(searchQuery, () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    if (!appStore.activeAppId) return;
+    emailStore.fetchEmails(appStore.activeAppId, {
+      page: 1,
+      limit: itemsPerPage.value,
+    });
+  }, 300);
+});
+
+watch(selectedLocalPart, () => {
+  if (!appStore.activeAppId) return;
+  emailStore.fetchEmails(appStore.activeAppId, {
+    page: 1,
+    limit: itemsPerPage.value,
+  });
+});
 </script>
 <style scoped>
 .gap-3 {
   gap: 12px;
 }
 .font-mono {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 .max-w-180 {
   max-width: 180px;
