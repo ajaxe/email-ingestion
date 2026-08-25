@@ -98,28 +98,44 @@ func HandleListWebhookJobs(svc *service.WebhookService) echo.HandlerFunc {
 			return err
 		}
 
-		limit := int32(50)
-		if limitStr := c.QueryParam("limit"); limitStr != "" {
+		limitStr := c.QueryParam("limit")
+		pageStr := c.QueryParam("page")
+
+		limit := 50
+		if limitStr != "" {
 			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-				limit = int32(l)
+				limit = l
 			}
 		}
 
-		offset := int32(0)
-		if offsetStr := c.QueryParam("offset"); offsetStr != "" {
-			if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-				offset = int32(o)
-			}
+		offset := 0
+		page := 1
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+			offset = (page - 1) * limit
 		}
 
 		status := c.QueryParam("status")
 
-		jobs, err := svc.ListJobs(ctx, appID, limit, offset, status)
+		jobs, totalCount, err := svc.ListJobs(ctx, appID, int32(limit), int32(offset), status)
 		if err != nil {
 			return err
 		}
 
-		return c.JSON(http.StatusOK, jobs)
+		totalPages := int64(0)
+		if limit > 0 {
+			totalPages = (totalCount + int64(limit) - 1) / int64(limit)
+		}
+
+		return c.JSON(http.StatusOK, dto.PaginatedWebhookJobsResponse{
+			Jobs: jobs,
+			Pagination: dto.PaginationMeta{
+				CurrentPage: int64(page),
+				Limit:       int64(limit),
+				TotalCount:  totalCount,
+				TotalPages:  totalPages,
+			},
+		})
 	}
 }
 

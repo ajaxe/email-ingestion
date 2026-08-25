@@ -166,6 +166,12 @@ WHERE wj.application_id = $1
 ORDER BY wj.created_at DESC
 LIMIT $2 OFFSET $3;
 
+-- name: CountWebhookJobsByApplication :one
+SELECT count(*)
+FROM webhook_delivery_jobs wj
+WHERE wj.application_id = $1
+  AND (sqlc.narg('status')::text IS NULL OR sqlc.narg('status')::text = '' OR wj.status = sqlc.narg('status')::webhook_status);
+
 -- name: GetWebhookDeliveryStatsByApplication :one
     SELECT
         COUNT(*)::bigint AS total,

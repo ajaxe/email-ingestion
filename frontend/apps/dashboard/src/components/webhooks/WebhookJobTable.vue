@@ -54,10 +54,13 @@
     </v-row>
 
     <!-- Outbox Data Table -->
-    <v-data-table
+    <v-data-table-server
       :headers="headers"
-      :items="filteredJobs"
+      :items="jobs"
       :loading="webhookStore.loading"
+      :items-length="totalCount"
+      :search="search"
+      @update:options="loadItems"
       density="comfortable"
       hover
     >
@@ -90,9 +93,7 @@
 
       <template #item.created_at="{ item }">
         <span class="font-mono text-caption">
-          {{
-            formatDate(item.createdAt)
-          }}
+          {{ formatDate(item.createdAt) }}
         </span>
       </template>
 
@@ -106,9 +107,7 @@
           "
           variant="tonal"
         >
-          {{
-            (item.retryCount || item.attemptNumber  || 0) > 1 ? "Yes" : "No"
-          }}
+          {{ (item.retryCount || item.attemptNumber || 0) > 1 ? "Yes" : "No" }}
         </v-chip>
       </template>
 
@@ -153,49 +152,44 @@
           </div>
         </div>
       </template>
-    </v-data-table>
+    </v-data-table-server>
 
     <WebhookJobPayload v-model="showPayloadModal" :job="selectedJob" />
   </v-card>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, ref, watch } from "vue";
 import StatusChip from "@/components/shared/StatusChip.vue";
 import WebhookJobPayload from "./WebhookJobPayload.vue";
 import { useAppStore } from "@/stores/application";
 import { useWebhookStore } from "@/stores/webhooks";
 import { useNotificationStore } from "@/stores/notification";
+import { storeToRefs } from "pinia";
 
 const appStore = useAppStore();
 const webhookStore = useWebhookStore();
 const notificationStore = useNotificationStore();
 
-const statusFilter = ref("ALL");
+const { jobs, totalCount, statusFilter } = storeToRefs(webhookStore);
+
 const autoRefresh = ref(false);
 let refreshInterval = null;
+const search = ref('')
 
 const redeliveringId = ref("");
 const showPayloadModal = ref(false);
 const selectedJob = ref(null);
 
 const headers = [
-  { title: "Job ID", key: "id", sortable: true },
-  { title: "Attempt #", key: "retry_count", align: "center", sortable: true },
-  { title: "Status", key: "status", sortable: true },
-  { title: "Duration", key: "duration_ms", align: "end", sortable: true },
-  { title: "Executed At", key: "created_at", sortable: true },
+  { title: "Job ID", key: "id", sortable: false },
+  { title: "Attempt #", key: "retry_count", align: "center", sortable: false },
+  { title: "Status", key: "status", sortable: false },
+  { title: "Duration", key: "duration_ms", align: "end", sortable: false },
+  { title: "Executed At", key: "created_at", sortable: false },
   { title: "Is Retry", key: "is_retry", align: "center", sortable: false },
   { title: "Actions", key: "actions", align: "end", sortable: false },
 ];
-
-const filteredJobs = computed(() => {
-  let list = webhookStore.jobs || [];
-  if (statusFilter.value !== "ALL") {
-    list = list.filter((j) => (j.status || j.Status) === statusFilter.value);
-  }
-  return list;
-});
 
 function formatShortId(id) {
   if (!id) return "—";
@@ -241,6 +235,11 @@ async function loadWebhookJobs() {
   }
 }
 
+function loadItems({ page, itemsPerPage, sortBy }) {
+  if (!appStore.activeAppId) return;
+  webhookStore.fetchJobs(appStore.activeAppId, { page, limit: itemsPerPage });
+}
+
 watch(autoRefresh, (enabled) => {
   if (enabled) {
     refreshInterval = setInterval(loadWebhookJobs, 5000);
@@ -250,9 +249,9 @@ watch(autoRefresh, (enabled) => {
   }
 });
 
-onMounted(() => {
-  loadWebhookJobs();
-});
+watch(statusFilter, () => {
+  search.value = String(Date.now())
+})
 
 watch(
   () => appStore.activeApp,

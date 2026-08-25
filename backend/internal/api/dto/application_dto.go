@@ -47,3 +47,7 @@ type PaginatedEmailsResponse struct {
 	Pagination PaginationMeta                              `json:"pagination"`
 }
 
+type PaginatedWebhookJobsResponse struct {
+	Jobs       []public.ListWebhookJobsByApplicationRow `json:"jobs"`
+	Pagination PaginationMeta                           `json:"pagination"`
+}

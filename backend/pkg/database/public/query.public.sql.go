@@ -72,6 +72,25 @@ func (q *Queries) CountIngestedEmailsByApplication(ctx context.Context, arg Coun
 	return count, err
 }
 
+const countWebhookJobsByApplication = `-- name: CountWebhookJobsByApplication :one
+SELECT count(*)
+FROM webhook_delivery_jobs wj
+WHERE wj.application_id = $1
+  AND ($2::text IS NULL OR $2::text = '' OR wj.status = $2::webhook_status)
+`
+
+type CountWebhookJobsByApplicationParams struct {
+	ApplicationID uuid.UUID   `json:"applicationId"`
+	Status        pgtype.Text `json:"status"`
+}
+
+func (q *Queries) CountWebhookJobsByApplication(ctx context.Context, arg CountWebhookJobsByApplicationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countWebhookJobsByApplication, arg.ApplicationID, arg.Status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createApiKey = `-- name: CreateApiKey :exec
 INSERT INTO api_keys (application_id, name, key_prefix, key_hash, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)

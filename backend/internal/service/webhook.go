@@ -137,7 +137,7 @@ func (s *WebhookService) verify(ctx context.Context, app public.Application, web
 	return nil
 }
 
-func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string) ([]public.ListWebhookJobsByApplicationRow, error) {
+func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, offset int32, status string) ([]public.ListWebhookJobsByApplicationRow, int64, error) {
 	jobs, err := s.queries.ListWebhookJobsByApplication(ctx, public.ListWebhookJobsByApplicationParams{
 		ApplicationID: appID,
 		Limit:         limit,
@@ -146,14 +146,22 @@ func (s *WebhookService) ListJobs(ctx context.Context, appID uuid.UUID, limit, o
 	})
 
 	if err != nil {
-		return nil, apperror.Internal("failed to list webhook jobs", err)
+		return nil, 0, apperror.Internal("failed to list webhook jobs", err)
 	}
 
 	if len(jobs) == 0 {
 		jobs = []public.ListWebhookJobsByApplicationRow{}
 	}
 
-	return jobs, nil
+	total, err := s.queries.CountWebhookJobsByApplication(ctx, public.CountWebhookJobsByApplicationParams{
+		ApplicationID: appID,
+		Status:        pgtype.Text{String: status, Valid: status != ""},
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return jobs, total, nil
 }
 
 func (s *WebhookService) RedeliverJob(ctx context.Context, appID uuid.UUID, jobID uuid.UUID) (*public.WebhookDeliveryJob, error) {

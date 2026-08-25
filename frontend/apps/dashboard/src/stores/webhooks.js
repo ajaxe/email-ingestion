@@ -12,6 +12,8 @@ export const useWebhookStore = defineStore("webhooks", {
     jobs: [],
     loading: false,
     error: null,
+    totalCount: 0,
+    statusFilter:  "ALL",
   }),
   actions: {
     async registerWebhook(appId, config) {
@@ -61,9 +63,19 @@ export const useWebhookStore = defineStore("webhooks", {
 
     async fetchJobs(appId, queryParams) {
       this.loading = true;
+      queryParams = queryParams || {};
+      queryParams.limit = queryParams.limit || 10;
+      queryParams.page = queryParams.page || 1;
+      if(this.statusFilter !== "ALL") {
+        queryParams.status = this.statusFilter;
+      } else if(queryParams.status === "ALL") {
+        delete queryParams.status;
+      }
       try {
         const res = await getWebhookJobs(appId, queryParams);
-        this.jobs = res.data || res;
+        const { jobs, pagination } = res.data;
+        this.jobs = jobs;
+        this.totalCount = pagination?.totalCount || 0;
         return this.jobs;
       } catch (err) {
         this.error = err;
