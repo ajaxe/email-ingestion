@@ -61,3 +61,26 @@ func HandleAPIGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, r)
 	}
 }
+
+// HandleAPIDeleteEmail handles the DELETE request to soft-delete an ingested email for a specific application.
+func HandleAPIDeleteEmail(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		e := c.Param("email_id")
+		emailID, err := uuid.Parse(e)
+		if err != nil {
+			return apperror.Validation("Invalid email ID", err)
+		}
+
+		appID, ok := middleware.ApplicationIDFromContext(ctx)
+		if !ok {
+			return apperror.Unauthorized("Missing application context")
+		}
+
+		if err := svc.SoftDeleteEmail(ctx, appID, emailID); err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "Email deleted successfully"})
+	}
+}

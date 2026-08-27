@@ -27,14 +27,14 @@ This document tracks active and upcoming development phases. Completed phases ar
 
 ### **8.1 Docker Configurations & Build Stage**
 
-* [ ] Write a multi-stage Dockerfile optimizing the Go application binary size and execution security (using a scratch or alpine base).  
-* [ ] Implement the `docker-compose.yml` for production deployments, omitting Postgres container orchestration (since you utilize an external PostgreSQL instance), but including services for LocalStack/S3 and Traefik.
+* [x] Write a multi-stage Dockerfile optimizing the Go application binary size and execution security (using a scratch or alpine base).  
+* [x] Implement the `docker-compose.yml` for production deployments, omitting Postgres container orchestration (since you utilize an external PostgreSQL instance), but including services for LocalStack/S3 and Traefik.
 
 ### **8.2 Traefik Routing & Production DNS**
 
-* [ ] Create a Traefik routing configuration to handle automated Let's Encrypt SSL/TLS certificates and expose API ports securely.  
-* [ ] Configure your system's public DNS MX records to point to the ingestion server's public IP address.  
-* [ ] Implement clean TXT configurations (such as standard SPF strings, DKIM keys, and a basic `_dmarc` DMARC policy record) to prepare your domain for safe inbound validation.  
+* [x] Create a Traefik routing configuration to handle automated Let's Encrypt SSL/TLS certificates and expose API ports securely.  
+* [x] Configure your system's public DNS MX records to point to the ingestion server's public IP address.  
+* [x] Implement clean TXT configurations (such as standard SPF strings, DKIM keys, and a basic `_dmarc` DMARC policy record) to prepare your domain for safe inbound validation.  
 * **Verification Checkpoint**: Deploy the production stack via `docker compose up -d` and confirm that external mail clients can perform TLS handshakes and route traffic through Traefik to your Go SMTP Daemon.
 
 ---

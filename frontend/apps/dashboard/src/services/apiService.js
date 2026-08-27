@@ -71,6 +71,18 @@ export function getEmailById (appId, emailId) {
   return apiClient.get(`/applications/${appId}/emails/${emailId}`)
 }
 
+export function deleteEmail (appId, emailId) {
+  return apiClient.delete(`/applications/${appId}/emails/${emailId}`)
+}
+
+export function bulkDeleteEmails (appId, emailIds) {
+  return apiClient.post(`/applications/${appId}/emails/bulk-delete`, { emailIds })
+}
+
+export function getEmailWebhookHistory (appId, emailId) {
+  return apiClient.get(`/applications/${appId}/emails/${emailId}/webhooks`)
+}
+
 export function getAttachmentUrl (appId, emailId, attachmentId) {
   return apiClient.get(
     `/applications/${appId}/emails/${emailId}/attachments/${attachmentId}`,

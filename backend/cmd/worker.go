@@ -62,6 +62,7 @@ func runWorker(ctx context.Context) error {
 
 		emailStreamName := util.EmailStreamName(cfg.Environment)
 		webhookStreamName := util.WebhookStreamName(cfg.Environment)
+		jobsStreamName := util.JobsStreamName(cfg.Environment)
 
 		switch s {
 		case "email":
@@ -75,6 +76,12 @@ func runWorker(ctx context.Context) error {
 			webhookProcessor := service.NewWebhookDeliveryProcessor(queries, storageService, &cfg.Webhook)
 			webhookHandler := handler.NewWebhookDeliveryHandler(webhookProcessor)
 			consumer := worker.NewStreamConsumer(rdsManager, webhookStreamName, "webhook_worker_group", webhookHandler)
+			consumers = append(consumers, consumer)
+
+		case "jobs":
+			jobsProcessor := service.NewJobsProcessor(storageService)
+			jobsHandler := handler.NewJobsHandler(jobsProcessor, rdsManager.Stream, jobsStreamName)
+			consumer := worker.NewStreamConsumer(rdsManager, jobsStreamName, "jobs_worker_group", jobsHandler)
 			consumers = append(consumers, consumer)
 
 		default:
@@ -106,6 +113,6 @@ func runWorker(ctx context.Context) error {
 }
 
 func init() {
-	workerCmd.Flags().StringSliceVar(&streamNames, "streams", []string{"email"}, "Comma-separated list of streams to consume (e.g., email,webhook)")
+	workerCmd.Flags().StringSliceVar(&streamNames, "streams", []string{"email", "jobs"}, "Comma-separated list of streams to consume (e.g., email,webhook,jobs)")
 	rootCmd.AddCommand(workerCmd)
 }

@@ -172,4 +172,3 @@ func TestHandleListEmails_SearchFilter(t *testing.T) {
 		t.Errorf("expected Count LocalPart param 'sales', got %v", mockRepo.lastCountArg.LocalPart)
 	}
 }
-

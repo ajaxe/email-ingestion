@@ -12,10 +12,11 @@ import (
 )
 
 type ListEmailsFilter struct {
-	Limit     int32
-	Offset    int32
-	LocalPart string
-	Search    string
+	Limit          int32
+	Offset         int32
+	LocalPart      string
+	Search         string
+	IncludeDeleted bool
 }
 
 type ApplicationRepository interface {
@@ -79,11 +80,12 @@ func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, fi
 	}
 
 	l, err := s.repo.ListIngestedEmailsByApplication(ctx, public.ListIngestedEmailsByApplicationParams{
-		ApplicationID: appID,
-		Limit:         filter.Limit,
-		Offset:        filter.Offset,
-		LocalPart:     localPartText,
-		Search:        searchText,
+		ApplicationID:  appID,
+		Limit:          filter.Limit,
+		Offset:         filter.Offset,
+		LocalPart:      localPartText,
+		Search:         searchText,
+		IncludeDeleted: filter.IncludeDeleted,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -94,9 +96,10 @@ func (s *ApplicationService) ListEmails(ctx context.Context, appID uuid.UUID, fi
 	}
 
 	total, err := s.repo.CountIngestedEmailsByApplication(ctx, public.CountIngestedEmailsByApplicationParams{
-		ApplicationID: appID,
-		LocalPart:     localPartText,
-		Search:        searchText,
+		ApplicationID:  appID,
+		LocalPart:      localPartText,
+		Search:         searchText,
+		IncludeDeleted: filter.IncludeDeleted,
 	})
 	if err != nil {
 		return nil, 0, err

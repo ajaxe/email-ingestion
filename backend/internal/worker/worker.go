@@ -11,7 +11,7 @@ import (
 
 // MessageHandler is an interface for handling specific payloads from a stream.
 type MessageHandler interface {
-	// Handle processes the raw stream message. 
+	// Handle processes the raw stream message.
 	// Returning an error indicates a transient failure and prevents the message from being acknowledged,
 	// allowing it to be auto-claimed and retried later.
 	// Returning nil indicates the message was successfully processed (or permanently failed) and should be acknowledged.

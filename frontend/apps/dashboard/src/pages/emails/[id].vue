@@ -9,9 +9,21 @@
         </v-btn>
 
         <div class="flex-grow-1 min-w-0">
-          <div class="text-h6 font-weight-bold text-truncate">
-            {{ emailDetail?.subject || "Email Details" }}
+          <div class="d-flex align-center gap-2">
+            <div class="text-h6 font-weight-bold text-truncate">
+              {{ emailDetail?.subject || "Email Details" }}
+            </div>
+            <v-chip
+              v-if="isDeleted"
+              size="x-small"
+              color="error"
+              variant="flat"
+              class="font-weight-bold"
+            >
+              DELETED
+            </v-chip>
           </div>
+
           <div class="d-flex align-center gap-2 mt-1">
             <v-chip
               size="x-small"
@@ -24,13 +36,30 @@
             <span class="text-caption text-medium-emphasis">
               Received
               {{
-                formatDate(emailDetail?.receivedAt)
+                formatDate(emailDetail?.receivedAt || emailDetail?.received_at)
               }}
             </span>
           </div>
         </div>
+
+        <v-btn
+          v-if="!isDeleted"
+          color="error"
+          variant="tonal"
+          size="small"
+          prepend-icon="mdi-delete-outline"
+          @click="showDeleteModal = true"
+        >
+          Delete Email
+        </v-btn>
       </div>
     </v-card>
+
+    <!-- Deleted Banner Notice -->
+    <DeletedEmailBanner
+      v-if="isDeleted"
+      :deleted-at="emailDetail?.deletedAt || emailDetail?.deleted_at"
+    />
 
     <!-- Loading State -->
     <v-card v-if="loading" rounded="lg" class="pa-8 text-center">
@@ -39,204 +68,242 @@
     </v-card>
 
     <!-- Split Layout -->
-    <v-row v-else-if="emailDetail">
-      <!-- Left Column: Metadata Card (4 cols) -->
-      <v-col cols="12" md="4">
-        <v-card rounded="lg" variant="elevated" class="pa-4">
-          <div class="text-h6 font-weight-bold mb-3">Email Metadata</div>
+    <div v-else-if="emailDetail">
+      <v-row>
+        <!-- Left Column: Metadata Card (4 cols) -->
+        <v-col cols="12" md="4">
+          <v-card rounded="lg" variant="elevated" class="pa-4">
+            <div class="text-h6 font-weight-bold mb-3">Email Metadata</div>
 
-          <v-list density="compact" class="pa-0 bg-transparent">
-            <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis"
-                >Sender (From)</v-list-item-title
-              >
-              <div class="text-body-2 font-weight-medium text-break">
-                {{ emailDetail.fromAddress || "—" }}
-              </div>
-            </v-list-item>
+            <v-list density="compact" class="pa-0 bg-transparent">
+              <v-list-item class="px-0">
+                <v-list-item-title class="text-caption text-medium-emphasis"
+                  >Sender (From)</v-list-item-title
+                >
+                <div class="text-body-2 font-weight-medium text-break">
+                  {{ emailDetail.fromAddress || emailDetail.from_address || "—" }}
+                </div>
+              </v-list-item>
 
-            <v-divider class="my-2" />
+              <v-divider class="my-2" />
 
-            <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis"
-                >Recipient (To)</v-list-item-title
-              >
-              <div class="text-body-2 font-weight-medium text-break">
-                {{ emailDetail.localPart + '@' + ingestDomain }}
-              </div>
-            </v-list-item>
+              <v-list-item class="px-0">
+                <v-list-item-title class="text-caption text-medium-emphasis"
+                  >Recipient (To)</v-list-item-title
+                >
+                <div class="text-body-2 font-weight-medium text-break">
+                  {{ (emailDetail.localPart || emailDetail.local_part) + '@' + ingestDomain }}
+                </div>
+              </v-list-item>
 
-            <v-divider class="my-2" />
+              <v-divider class="my-2" />
 
-            <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis"
-                >Reference Token</v-list-item-title
-              >
-              <v-chip
-                size="small"
-                color="info"
-                variant="tonal"
-                class="font-mono mt-1"
-              >
-                {{ emailDetail.referenceToken || "N/A" }}
-              </v-chip>
-            </v-list-item>
+              <v-list-item class="px-0">
+                <v-list-item-title class="text-caption text-medium-emphasis"
+                  >Reference Token</v-list-item-title
+                >
+                <v-chip
+                  size="small"
+                  color="info"
+                  variant="tonal"
+                  class="font-mono mt-1"
+                >
+                  {{ emailDetail.referenceToken || emailDetail.reference_token || "N/A" }}
+                </v-chip>
+              </v-list-item>
 
-            <v-divider class="my-2" />
+              <v-divider class="my-2" />
 
-            <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis mb-1">
-                S3 Storage Key Prefix
-              </v-list-item-title>
-              <div
-                class="text-caption font-mono bg-surface-variant pa-2 rounded text-break"
-              >
-                {{ s3KeyPrefix }}
-              </div>
-            </v-list-item>
+              <v-list-item class="px-0">
+                <v-list-item-title class="text-caption text-medium-emphasis mb-1">
+                  S3 Storage Key Prefix
+                </v-list-item-title>
+                <div
+                  class="text-caption font-mono bg-surface-variant pa-2 rounded text-break"
+                >
+                  {{ s3KeyPrefix }}
+                </div>
+              </v-list-item>
 
-            <v-divider class="my-2" />
+              <v-divider class="my-2" />
 
-            <v-list-item class="px-0">
-              <v-list-item-title class="text-caption text-medium-emphasis"
-                >Ingestion UUID</v-list-item-title
-              >
-              <div
-                class="text-caption font-mono text-medium-emphasis text-break"
-              >
-                {{ emailDetail?.id }}
-              </div>
-            </v-list-item>
-          </v-list>
-        </v-card>
-      </v-col>
+              <v-list-item class="px-0">
+                <v-list-item-title class="text-caption text-medium-emphasis"
+                  >Ingestion UUID</v-list-item-title
+                >
+                <div
+                  class="text-caption font-mono text-medium-emphasis text-break"
+                >
+                  {{ emailDetail?.id }}
+                </div>
+              </v-list-item>
 
-      <!-- Right Column: Content & Attachments Card (8 cols) -->
-      <v-col cols="12" md="8">
-        <v-card rounded="lg" variant="elevated" class="pa-4 mb-4">
-          <v-tabs v-model="activeTab" color="primary" class="mb-4">
-            <v-tab value="html" prepend-icon="mdi-code-tags">HTML Body</v-tab>
-            <v-tab value="text" prepend-icon="mdi-text-short">Text Body</v-tab>
-            <v-tab value="json" prepend-icon="mdi-email-text-outline"
-              >Email Headers</v-tab
-            >
-          </v-tabs>
+              <template v-if="isDeleted">
+                <v-divider class="my-2" />
 
-          <v-window v-model="activeTab">
-            <v-window-item value="html">
-              <div
-                v-if="emailDetail.html"
-                class="iframe-wrapper border rounded"
-              >
-                <iframe
-                  :srcdoc="emailDetail.html"
-                  sandbox="allow-same-origin"
-                  class="w-100 border-0"
-                  style="height: 380px"
-                />
-              </div>
-              <div v-else class="text-center py-8 text-medium-emphasis">
-                <v-icon icon="mdi-code-tags-check" size="40" class="mb-2" />
-                <div>No HTML body content present for this MIME message.</div>
-              </div>
-            </v-window-item>
-
-            <v-window-item value="text">
-              <CodePreview
-                :code="emailDetail.text || '(No plain text body)'"
-                language="text"
-                title="Plain Text Content"
-                max-height="380px"
-              />
-            </v-window-item>
-
-            <v-window-item value="json">
-              <EmailHeadersList
-                :headers="emailDetail?.headers"
-                max-height="380px"
-              />
-            </v-window-item>
-          </v-window>
-        </v-card>
-
-        <!-- Attachments Section -->
-        <v-card rounded="lg" variant="elevated" class="pa-4">
-          <div class="d-flex align-center justify-space-between mb-3">
-            <div class="text-h6 font-weight-bold">
-              Attachments ({{ attachments.length }})
-            </div>
-            <v-chip size="small" color="primary" variant="tonal">
-              S3 Presigned Direct Download
-            </v-chip>
-          </div>
-
-          <v-divider class="mb-4" />
-
-          <div v-if="attachments.length > 0" class="d-flex flex-column gap-3">
-            <v-card
-              v-for="(att, idx) in attachments"
-              :key="att.id || att.attachment_id || idx"
-              variant="outlined"
-              rounded="lg"
-              class="pa-3"
-            >
-              <div
-                class="d-flex align-center justify-space-between flex-wrap gap-2"
-              >
-                <div class="d-flex align-center gap-3">
-                  <v-avatar
-                    color="primary"
-                    variant="tonal"
-                    size="40"
-                    rounded="md"
+                <v-list-item class="px-0">
+                  <v-list-item-title class="text-caption text-medium-emphasis text-error"
+                    >Deleted At</v-list-item-title
                   >
-                    <v-icon icon="mdi-file-document-outline" size="22" />
-                  </v-avatar>
-                  <div>
-                    <div class="text-subtitle-2 font-weight-bold">
-                      {{
-                        att.filename || att.fileName || `attachment_${idx + 1}`
-                      }}
-                    </div>
-                    <div class="text-caption text-medium-emphasis font-mono">
-                      {{
-                        att.content_type ||
-                        att.contentType ||
-                        "application/octet-stream"
-                      }}
-                      • {{ formatBytes(att.size || att.byte_size || 0) }}
+                  <div class="text-body-2 font-weight-bold text-error">
+                    {{ formatDate(emailDetail?.deletedAt || emailDetail?.deleted_at) }}
+                  </div>
+                </v-list-item>
+              </template>
+            </v-list>
+          </v-card>
+        </v-col>
+
+        <!-- Right Column: Content & Attachments Card (8 cols) -->
+        <v-col cols="12" md="8">
+          <!-- Active Email Content Tabs -->
+          <v-card v-if="!isDeleted" rounded="lg" variant="elevated" class="pa-4 mb-4">
+            <v-tabs v-model="activeTab" color="primary" class="mb-4">
+              <v-tab value="html" prepend-icon="mdi-code-tags">HTML Body</v-tab>
+              <v-tab value="text" prepend-icon="mdi-text-short">Text Body</v-tab>
+              <v-tab value="json" prepend-icon="mdi-email-text-outline"
+                >Email Headers</v-tab
+              >
+            </v-tabs>
+
+            <v-window v-model="activeTab">
+              <v-window-item value="html">
+                <div
+                  v-if="emailDetail.html"
+                  class="iframe-wrapper border rounded"
+                >
+                  <iframe
+                    :srcdoc="emailDetail.html"
+                    sandbox="allow-same-origin"
+                    class="w-100 border-0"
+                    style="height: 380px"
+                  />
+                </div>
+                <div v-else class="text-center py-8 text-medium-emphasis">
+                  <v-icon icon="mdi-code-tags-check" size="40" class="mb-2" />
+                  <div>No HTML body content present for this MIME message.</div>
+                </div>
+              </v-window-item>
+
+              <v-window-item value="text">
+                <CodePreview
+                  :code="emailDetail.text || '(No plain text body)'"
+                  language="text"
+                  title="Plain Text Content"
+                  max-height="380px"
+                />
+              </v-window-item>
+
+              <v-window-item value="json">
+                <EmailHeadersList
+                  :headers="emailDetail?.headers"
+                  max-height="380px"
+                />
+              </v-window-item>
+            </v-window>
+          </v-card>
+
+          <!-- Soft-Deleted Replacement Content Card -->
+          <v-card v-else rounded="lg" variant="elevated" class="pa-6 mb-4 text-center">
+            <v-avatar color="amber-lighten-4" size="56" class="mb-3">
+              <v-icon icon="mdi-file-hidden" color="amber-darken-3" size="32" />
+            </v-avatar>
+            <div class="text-h6 font-weight-bold mb-1">Body Content Purged</div>
+            <div class="text-body-2 text-medium-emphasis max-w-500 mx-auto">
+              This email was soft-deleted. The raw MIME body (HTML & plain text) and headers were permanently purged from object storage.
+            </div>
+          </v-card>
+
+          <!-- Attachments Section -->
+          <v-card rounded="lg" variant="elevated" class="pa-4">
+            <div class="d-flex align-center justify-space-between mb-3">
+              <div class="text-h6 font-weight-bold">
+                Attachments ({{ isDeleted ? 0 : attachments.length }})
+              </div>
+              <v-chip size="small" :color="isDeleted ? 'grey' : 'primary'" variant="tonal">
+                {{ isDeleted ? 'Content Purged' : 'S3 Presigned Direct Download' }}
+              </v-chip>
+            </div>
+
+            <v-divider class="mb-4" />
+
+            <div v-if="!isDeleted && attachments.length > 0" class="d-flex flex-column gap-3">
+              <v-card
+                v-for="(att, idx) in attachments"
+                :key="att.id || att.attachment_id || idx"
+                variant="outlined"
+                rounded="lg"
+                class="pa-3"
+              >
+                <div
+                  class="d-flex align-center justify-space-between flex-wrap gap-2"
+                >
+                  <div class="d-flex align-center gap-3">
+                    <v-avatar
+                      color="primary"
+                      variant="tonal"
+                      size="40"
+                      rounded="md"
+                    >
+                      <v-icon icon="mdi-file-document-outline" size="22" />
+                    </v-avatar>
+                    <div>
+                      <div class="text-subtitle-2 font-weight-bold">
+                        {{
+                          att.filename || att.fileName || `attachment_${idx + 1}`
+                        }}
+                      </div>
+                      <div class="text-caption text-medium-emphasis font-mono">
+                        {{
+                          att.content_type ||
+                          att.contentType ||
+                          "application/octet-stream"
+                        }}
+                        • {{ formatBytes(att.size || att.byte_size || 0) }}
+                      </div>
                     </div>
                   </div>
+
+                  <v-btn
+                    color="primary"
+                    variant="flat"
+                    size="small"
+                    prepend-icon="mdi-download"
+                    :loading="
+                      downloadingId ===
+                      (att.id || att.attachment_id || String(idx))
+                    "
+                    @click="
+                      downloadAttachment(
+                        att.id || att.attachment_id || String(idx),
+                      )
+                    "
+                  >
+                    Download Attachment
+                  </v-btn>
                 </div>
+              </v-card>
+            </div>
 
-                <v-btn
-                  color="primary"
-                  variant="flat"
-                  size="small"
-                  prepend-icon="mdi-download"
-                  :loading="
-                    downloadingId ===
-                    (att.id || att.attachment_id || String(idx))
-                  "
-                  @click="
-                    downloadAttachment(
-                      att.id || att.attachment_id || String(idx),
-                    )
-                  "
-                >
-                  Download Attachment
-                </v-btn>
-              </div>
-            </v-card>
-          </div>
+            <div v-else-if="isDeleted" class="text-center py-6 text-medium-emphasis">
+              <v-icon icon="mdi-folder-remove-outline" size="36" class="mb-2" />
+              <div>Attachments purged from object storage during soft deletion.</div>
+            </div>
 
-          <div v-else class="text-center py-6 text-medium-emphasis">
-            <v-icon icon="mdi-paperclip-off" size="36" class="mb-2" />
-            <div>No attachments associated with this email.</div>
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
+            <div v-else class="text-center py-6 text-medium-emphasis">
+              <v-icon icon="mdi-paperclip-off" size="36" class="mb-2" />
+              <div>No attachments associated with this email.</div>
+            </div>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- Webhook Delivery Job History Section -->
+      <EmailWebhookHistory
+        :jobs="webhookJobs"
+        :loading="loadingWebhooks"
+      />
+    </div>
 
     <!-- Not Found State -->
     <v-card v-else rounded="lg" class="pa-8 text-center">
@@ -253,6 +320,13 @@
       </div>
       <v-btn color="primary" to="/emails">Return to Ingestion Logs</v-btn>
     </v-card>
+
+    <!-- Delete Modal -->
+    <DeleteEmailModal
+      v-model="showDeleteModal"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
 
@@ -264,24 +338,41 @@ meta:
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import CodePreview from "@/components/shared/CodePreview.vue";
 import EmailHeadersList from "@/components/emails/EmailHeadersList.vue";
+import DeletedEmailBanner from "@/components/emails/DeletedEmailBanner.vue";
+import DeleteEmailModal from "@/components/emails/DeleteEmailModal.vue";
+import EmailWebhookHistory from "@/components/emails/EmailWebhookHistory.vue";
 import { useAppStore } from "@/stores/application";
 import { useEmailStore } from "@/stores/emails";
 import { useNotificationStore } from "@/stores/notification";
 
 const route = useRoute();
+const router = useRouter();
 const appStore = useAppStore();
 const emailStore = useEmailStore();
 const notificationStore = useNotificationStore();
 
 const activeTab = ref("html");
 const loading = ref(true);
+const loadingWebhooks = ref(false);
+const deleting = ref(false);
+const showDeleteModal = ref(false);
 const downloadingId = ref("");
 
 const ingestDomain = window.APP_CONFIG.INGEST_DOMAIN;
-const emailDetail = ref({});
+const emailDetail = ref(null);
+const webhookJobs = ref([]);
+
+const isDeleted = computed(() => {
+  if (!emailDetail.value) return false;
+  return Boolean(
+    emailDetail.value.isDeleted ||
+    emailDetail.value.deletedAt ||
+    emailDetail.value.deleted_at
+  );
+});
 
 const s3KeyPrefix = computed(() => {
   const appId = appStore.activeAppId || "app-uuid";
@@ -295,11 +386,6 @@ const attachments = computed(() => {
     return emailDetail.value.attachments;
   }
   return [];
-});
-
-const rawJson = computed(() => {
-  if (!emailDetail.value) return {};
-  return emailDetail.value.headers;
 });
 
 function formatDate(val) {
@@ -356,6 +442,25 @@ async function downloadAttachment(attachmentId) {
   }
 }
 
+async function confirmDelete() {
+  const appId = appStore.activeAppId;
+  const emailId = route.params.id;
+  if (!appId || !emailId) return;
+
+  deleting.value = true;
+  try {
+    await emailStore.deleteEmail(appId, emailId);
+    notificationStore.success("Email soft deleted successfully.");
+    showDeleteModal.value = false;
+    // Reload email detail to display Replacement UI
+    emailDetail.value = await emailStore.fetchEmailById(appId, emailId);
+  } catch (err) {
+    notificationStore.error(err.response?.data?.message || "Failed to soft delete email.");
+  } finally {
+    deleting.value = false;
+  }
+}
+
 onMounted(async () => {
   loading.value = true;
   try {
@@ -364,6 +469,19 @@ onMounted(async () => {
         appStore.activeAppId,
         route.params.id,
       );
+
+      // Fetch webhook history
+      loadingWebhooks.value = true;
+      try {
+        webhookJobs.value = await emailStore.fetchEmailWebhookHistory(
+          appStore.activeAppId,
+          route.params.id,
+        );
+      } catch (err) {
+        console.error("Failed to fetch webhook history", err);
+      } finally {
+        loadingWebhooks.value = false;
+      }
     }
   } finally {
     loading.value = false;
@@ -372,6 +490,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.gap-1 {
+  gap: 4px;
+}
 .gap-2 {
   gap: 8px;
 }
@@ -384,5 +505,8 @@ onMounted(async () => {
 .iframe-wrapper {
   background-color: #ffffff;
   overflow: hidden;
+}
+.max-w-500 {
+  max-width: 500px;
 }
 </style>

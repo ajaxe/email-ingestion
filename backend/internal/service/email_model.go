@@ -7,5 +7,6 @@ import (
 
 type EmailContent struct {
 	public.GetIngestedEmailByIDRow
+	IsDeleted bool `json:"isDeleted"`
 	storage.EmailStorageContent
 }

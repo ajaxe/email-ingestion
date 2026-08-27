@@ -147,15 +147,16 @@ type InboundSpoolQueue struct {
 }
 
 type IngestedEmail struct {
-	ID              uuid.UUID `json:"id"`
-	ApplicationID   uuid.UUID `json:"applicationId"`
-	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
-	ReferenceToken  string    `json:"referenceToken"`
-	FromAddress     string    `json:"fromAddress"`
-	Subject         string    `json:"subject"`
-	MessageID       string    `json:"messageId"`
-	S3KeyPrefix     string    `json:"s3KeyPrefix"`
-	ReceivedAt      time.Time `json:"receivedAt"`
+	ID              uuid.UUID  `json:"id"`
+	ApplicationID   uuid.UUID  `json:"applicationId"`
+	AssignedEmailID uuid.UUID  `json:"assignedEmailId"`
+	ReferenceToken  string     `json:"referenceToken"`
+	FromAddress     string     `json:"fromAddress"`
+	Subject         string     `json:"subject"`
+	MessageID       string     `json:"messageId"`
+	S3KeyPrefix     string     `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time  `json:"receivedAt"`
+	DeletedAt       *time.Time `json:"deletedAt"`
 }
 
 type Organization struct {

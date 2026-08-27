@@ -32,6 +32,10 @@ func WebhookStreamName(env string) string {
 	return fmt.Sprintf("%s:%s:webhook:stream", config.AppName, env)
 }
 
+func JobsStreamName(env string) string {
+	return fmt.Sprintf("%s:%s:jobs:stream", config.AppName, env)
+}
+
 func JSON(p any) (string, error) {
 	d, e := json.Marshal(p)
 	if e != nil {

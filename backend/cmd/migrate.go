@@ -47,9 +47,9 @@ var migrateUpCmd = &cobra.Command{
 }
 
 var migrateDownCmd = &cobra.Command{
-	Use:   "down",
-	Short: "Roll back the most recent migration",
-	Long:  "Roll back the single most recent database migration version.",
+	Use:     "down",
+	Short:   "Roll back the most recent migration",
+	Long:    "Roll back the single most recent database migration version.",
 	Example: `  email-ingestion migrate down`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.LoadConfig(getConfigPath())
@@ -61,9 +61,9 @@ var migrateDownCmd = &cobra.Command{
 }
 
 var migrateStatusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Display database migration status",
-	Long:  "Print the current status of database migrations indicating which migration files have been applied.",
+	Use:     "status",
+	Short:   "Display database migration status",
+	Long:    "Print the current status of database migrations indicating which migration files have been applied.",
 	Example: `  email-ingestion migrate status`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -76,9 +76,9 @@ var migrateStatusCmd = &cobra.Command{
 }
 
 var migrateVersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print current database migration version",
-	Long:  "Print the current migration version number applied to the target database.",
+	Use:     "version",
+	Short:   "Print current database migration version",
+	Long:    "Print the current migration version number applied to the target database.",
 	Example: `  email-ingestion migrate version`,
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -91,9 +91,9 @@ var migrateVersionCmd = &cobra.Command{
 }
 
 var migrateSkipCmd = &cobra.Command{
-	Use:   "skip",
-	Short: "Skip next database migration without running queries",
-	Long:  "Mark the next database migration version as applied in the database tracking table without executing any underlying SQL migration scripts.",
+	Use:     "skip",
+	Short:   "Skip next database migration without running queries",
+	Long:    "Mark the next database migration version as applied in the database tracking table without executing any underlying SQL migration scripts.",
 	Example: `  email-ingestion migrate skip`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.LoadConfig(getConfigPath())

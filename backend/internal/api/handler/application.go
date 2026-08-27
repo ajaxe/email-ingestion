@@ -201,11 +201,15 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 		search := c.QueryParam("search")
 		localPart := c.QueryParam("localPart")
 
+		includeDeletedStr := c.QueryParam("includeDeleted")
+		includeDeleted := strings.EqualFold(includeDeletedStr, "true") || includeDeletedStr == "1"
+
 		emails, totalCount, err := svc.ListEmails(ctx, appID, service.ListEmailsFilter{
-			Limit:     int32(limit),
-			Offset:    int32(offset),
-			LocalPart: localPart,
-			Search:    search,
+			Limit:          int32(limit),
+			Offset:         int32(offset),
+			LocalPart:      localPart,
+			Search:         search,
+			IncludeDeleted: includeDeleted,
 		})
 		if err != nil {
 			return err
@@ -254,6 +258,93 @@ func HandleGetEmailByID(svc *service.EmailService) echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, email)
+	}
+}
+
+func HandleDeleteEmail(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		appIDStr := c.Param("app_id")
+		emailIDStr := c.Param("email_id")
+
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		emailID, err := uuid.Parse(emailIDStr)
+		if err != nil {
+			return apperror.Validation("invalid email ID")
+		}
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		if err := svc.SoftDeleteEmail(ctx, appID, emailID); err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"message": "Email deleted successfully"})
+	}
+}
+
+func HandleBulkDeleteEmails(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		appIDStr := c.Param("app_id")
+
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		var req dto.BulkDeleteEmailsRequest
+		if err := c.Bind(&req); err != nil {
+			return apperror.Validation("invalid request payload", err)
+		}
+
+		deletedCount, err := svc.BulkSoftDeleteEmails(ctx, appID, req.EmailIDs)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, dto.BulkDeleteEmailsResponse{
+			DeletedCount: deletedCount,
+		})
+	}
+}
+
+func HandleGetEmailWebhookHistory(svc *service.EmailService) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+		appIDStr := c.Param("app_id")
+		emailIDStr := c.Param("email_id")
+
+		appID, err := uuid.Parse(appIDStr)
+		if err != nil {
+			return apperror.Validation("invalid application ID")
+		}
+
+		emailID, err := uuid.Parse(emailIDStr)
+		if err != nil {
+			return apperror.Validation("invalid email ID")
+		}
+
+		if err = CanAccessApplication(ctx, appID); err != nil {
+			return err
+		}
+
+		history, err := svc.GetEmailWebhookHistory(ctx, appID, emailID)
+		if err != nil {
+			return err
+		}
+
+		return c.JSON(http.StatusOK, history)
 	}
 }
 

@@ -25,4 +25,3 @@ type APIKeyResponse struct {
 	ExpiresAt     time.Time `json:"expiresAt"`
 	LastUsedAt    time.Time `json:"lastUsedAt"`
 }
-

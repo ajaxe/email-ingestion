@@ -42,20 +42,26 @@ func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 
 	configureAppAPI(e, cfg, o, apiKeyService, storageService)
 
-	configureM2MAPI(e, o, storageService, apiKeyService)
+	configureM2MAPI(e, cfg, o, storageService, apiKeyService)
 
 	return e
 }
 
-func configureM2MAPI(e *echo.Echo, o *ApiInitOptions, storageService *storage.S3StorageService, apiKeyService *service.ApiKeyService) {
+func configureM2MAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, storageService *storage.S3StorageService, apiKeyService *service.ApiKeyService) {
 	authz := service.NewAuthorizationService(o.Queries, o.RedisManager.Cache, apiKeyService)
 	// M2M API routes
 	m2mGroup := e.Group("/api/v1")
 	m2mGroup.Use(middleware.M2MAuth(authz))
 
-	emailService := service.NewEmailService(o.Queries, storageService)
+	var publisher service.EventPublisher
+	if o.RedisManager != nil {
+		publisher = o.RedisManager.Stream
+	}
+	jobsStreamName := util.JobsStreamName(cfg.Environment)
+	emailService := service.NewEmailService(o.Queries, storageService, publisher, jobsStreamName)
 
 	m2mGroup.GET("/emails/:email_id", handler.HandleAPIEmailByID(emailService))
+	m2mGroup.DELETE("/emails/:email_id", handler.HandleAPIDeleteEmail(emailService))
 	m2mGroup.GET("/emails/:email_id/attachments/:attachment_id", handler.HandleAPIGetAttachmentURL(emailService))
 }
 
@@ -64,6 +70,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	// TODO: When Phase 6.1 is implemented, this should move to a JWT-protected /api/v1 group.
 	// For now, mapping it here for testing Phase 5.1
 	webhookStreamName := util.WebhookStreamName(cfg.Environment)
+	jobsStreamName := util.JobsStreamName(cfg.Environment)
 	var publisher service.EventPublisher
 	if o.RedisManager != nil {
 		publisher = o.RedisManager.Stream
@@ -85,7 +92,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.Use(middleware.AppAuth(authService))
 
 	appService := service.NewApplicationService(service.NewPgxApplicationRepository(o.DBPool))
-	emailService := service.NewEmailService(o.Queries, storageService)
+	emailService := service.NewEmailService(o.Queries, storageService, publisher, jobsStreamName)
 	appGroup.GET("/applications", handler.HandleGetApplications(appService))
 	appGroup.POST("/applications", handler.HandleCreateApplication(appService))
 	appGroup.GET("/applications/:app_id", handler.HandleGetApplicationByID(appService))
@@ -97,7 +104,10 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	appGroup.PATCH("/applications/:app_id/addresses/:address_id", handler.HandleToggleAddressStatus(appService))
 
 	appGroup.GET("/applications/:app_id/emails", handler.HandleListEmails(appService))
+	appGroup.POST("/applications/:app_id/emails/bulk-delete", handler.HandleBulkDeleteEmails(emailService))
 	appGroup.GET("/applications/:app_id/emails/:email_id", handler.HandleGetEmailByID(emailService))
+	appGroup.DELETE("/applications/:app_id/emails/:email_id", handler.HandleDeleteEmail(emailService))
+	appGroup.GET("/applications/:app_id/emails/:email_id/webhooks", handler.HandleGetEmailWebhookHistory(emailService))
 	appGroup.GET("/applications/:app_id/emails/:email_id/attachments/:attachment_id", handler.HandleGetAttachmentURL(emailService))
 
 	appGroup.GET("/applications/:app_id/api-keys", handler.HandleListAPIKeys(apiKeyService))

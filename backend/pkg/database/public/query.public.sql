@@ -79,8 +79,38 @@ FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.id = $1 and i.application_id = $2 LIMIT 1;
 
+-- name: SoftDeleteIngestedEmail :one
+UPDATE ingested_emails
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND application_id = $2 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: SoftDeleteIngestedEmailsBulk :many
+UPDATE ingested_emails
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = ANY($1::uuid[]) AND application_id = $2 AND deleted_at IS NULL
+RETURNING *;
+
 -- name: GetWebhookJobByIDs :one
 SELECT * FROM webhook_delivery_jobs WHERE application_id = $1 AND ingested_email_id = $2 ORDER BY created_at DESC LIMIT 1;
+
+-- name: GetWebhookJobsByEmailID :many
+SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
+       COALESCE(wl.http_status_code, 0)::int AS last_http_status_code,
+       COALESCE(wl.duration_ms, 0)::int AS last_duration_ms,
+       COALESCE(wl.attempt_number, 0)::int AS last_attempt_number,
+       COALESCE(wl.request_payload, '')::text AS last_request_payload,
+       COALESCE(wl.response_body, '')::text AS last_response_body
+FROM webhook_delivery_jobs wj
+LEFT JOIN LATERAL (
+  SELECT http_status_code, duration_ms, attempt_number, request_payload, response_body
+  FROM webhook_logs
+  WHERE webhook_delivery_job_id = wj.id
+  ORDER BY attempt_number DESC
+  LIMIT 1
+) wl ON TRUE
+WHERE wj.application_id = $1 AND wj.ingested_email_id = $2
+ORDER BY wj.created_at DESC;
 
 -- name: CancelWebhookJob :exec
 UPDATE webhook_delivery_jobs
@@ -99,10 +129,12 @@ SET status = 'PENDING',
     next_delivery_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND application_id = $2
 RETURNING *;
+
 -- name: ListIngestedEmailsByApplication :many
 SELECT i.*, a.local_part FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.application_id = $1
+  AND (sqlc.arg('include_deleted')::boolean = TRUE OR i.deleted_at IS NULL)
   AND (sqlc.narg('local_part')::text IS NULL OR sqlc.narg('local_part')::text = '' OR a.local_part = sqlc.narg('local_part')::text)
   AND (sqlc.narg('search')::text IS NULL OR sqlc.narg('search')::text = '' OR (
     i.from_address ILIKE '%' || sqlc.narg('search')::text || '%' OR
@@ -114,6 +146,7 @@ ORDER BY i.received_at DESC LIMIT $2 OFFSET $3;
 SELECT count(*) FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.application_id = $1
+  AND (sqlc.arg('include_deleted')::boolean = TRUE OR i.deleted_at IS NULL)
   AND (sqlc.narg('local_part')::text IS NULL OR sqlc.narg('local_part')::text = '' OR a.local_part = sqlc.narg('local_part')::text)
   AND (sqlc.narg('search')::text IS NULL OR sqlc.narg('search')::text = '' OR (
     i.from_address ILIKE '%' || sqlc.narg('search')::text || '%' OR

@@ -13,6 +13,7 @@ import (
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type S3StorageService struct {
@@ -85,6 +86,55 @@ func (s *S3StorageService) DeleteObject(ctx context.Context, key string) error {
 	})
 
 	return err
+}
+
+func (s *S3StorageService) DeletePrefix(ctx context.Context, prefix string) error {
+	_, s3client, err := s.transferManager(ctx)
+	if err != nil {
+		return err
+	}
+
+	if prefix == "" {
+		return fmt.Errorf("empty prefix for bulk delete")
+	}
+
+	paginator := s3.NewListObjectsV2Paginator(s3client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.config.S3Bucket),
+		Prefix: aws.String(prefix),
+	})
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to list objects for prefix %s: %w", prefix, err)
+		}
+
+		if len(page.Contents) == 0 {
+			continue
+		}
+
+		var objectsToDelete []types.ObjectIdentifier
+		for _, obj := range page.Contents {
+			if obj.Key != nil {
+				objectsToDelete = append(objectsToDelete, types.ObjectIdentifier{Key: obj.Key})
+			}
+		}
+
+		if len(objectsToDelete) > 0 {
+			_, err = s3client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+				Bucket: aws.String(s.config.S3Bucket),
+				Delete: &types.Delete{
+					Objects: objectsToDelete,
+					Quiet:   aws.Bool(true),
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to delete objects for prefix %s: %w", prefix, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *S3StorageService) PresignTTL() time.Duration {

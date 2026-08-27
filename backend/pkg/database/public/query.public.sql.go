@@ -52,21 +52,28 @@ const countIngestedEmailsByApplication = `-- name: CountIngestedEmailsByApplicat
 SELECT count(*) FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.application_id = $1
-  AND ($2::text IS NULL OR $2::text = '' OR a.local_part = $2::text)
-  AND ($3::text IS NULL OR $3::text = '' OR (
-    i.from_address ILIKE '%' || $3::text || '%' OR
-    i.subject ILIKE '%' || $3::text || '%'
+  AND ($2::boolean = TRUE OR i.deleted_at IS NULL)
+  AND ($3::text IS NULL OR $3::text = '' OR a.local_part = $3::text)
+  AND ($4::text IS NULL OR $4::text = '' OR (
+    i.from_address ILIKE '%' || $4::text || '%' OR
+    i.subject ILIKE '%' || $4::text || '%'
   ))
 `
 
 type CountIngestedEmailsByApplicationParams struct {
-	ApplicationID uuid.UUID   `json:"applicationId"`
-	LocalPart     pgtype.Text `json:"localPart"`
-	Search        pgtype.Text `json:"search"`
+	ApplicationID  uuid.UUID   `json:"applicationId"`
+	IncludeDeleted bool        `json:"includeDeleted"`
+	LocalPart      pgtype.Text `json:"localPart"`
+	Search         pgtype.Text `json:"search"`
 }
 
 func (q *Queries) CountIngestedEmailsByApplication(ctx context.Context, arg CountIngestedEmailsByApplicationParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countIngestedEmailsByApplication, arg.ApplicationID, arg.LocalPart, arg.Search)
+	row := q.db.QueryRow(ctx, countIngestedEmailsByApplication,
+		arg.ApplicationID,
+		arg.IncludeDeleted,
+		arg.LocalPart,
+		arg.Search,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -185,7 +192,7 @@ func (q *Queries) CreateInboundSpooledEmail(ctx context.Context, arg CreateInbou
 const createIngestedEmail = `-- name: CreateIngestedEmail :one
 INSERT INTO ingested_emails (application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix)  
 VALUES ($1, $2, $3, $4, $5, $6, $7)  
-RETURNING id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at
+RETURNING id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at, deleted_at
 `
 
 type CreateIngestedEmailParams struct {
@@ -219,6 +226,7 @@ func (q *Queries) CreateIngestedEmail(ctx context.Context, arg CreateIngestedEma
 		&i.MessageID,
 		&i.S3KeyPrefix,
 		&i.ReceivedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -537,7 +545,7 @@ func (q *Queries) GetAssignedEmailByLocalPart(ctx context.Context, localPart str
 }
 
 const getIngestedEmailByID = `-- name: GetIngestedEmailByID :one
-SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, a.local_part
+SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, i.deleted_at, a.local_part
 FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.id = $1 and i.application_id = $2 LIMIT 1
@@ -549,16 +557,17 @@ type GetIngestedEmailByIDParams struct {
 }
 
 type GetIngestedEmailByIDRow struct {
-	ID              uuid.UUID `json:"id"`
-	ApplicationID   uuid.UUID `json:"applicationId"`
-	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
-	ReferenceToken  string    `json:"referenceToken"`
-	FromAddress     string    `json:"fromAddress"`
-	Subject         string    `json:"subject"`
-	MessageID       string    `json:"messageId"`
-	S3KeyPrefix     string    `json:"s3KeyPrefix"`
-	ReceivedAt      time.Time `json:"receivedAt"`
-	LocalPart       string    `json:"localPart"`
+	ID              uuid.UUID  `json:"id"`
+	ApplicationID   uuid.UUID  `json:"applicationId"`
+	AssignedEmailID uuid.UUID  `json:"assignedEmailId"`
+	ReferenceToken  string     `json:"referenceToken"`
+	FromAddress     string     `json:"fromAddress"`
+	Subject         string     `json:"subject"`
+	MessageID       string     `json:"messageId"`
+	S3KeyPrefix     string     `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time  `json:"receivedAt"`
+	DeletedAt       *time.Time `json:"deletedAt"`
+	LocalPart       string     `json:"localPart"`
 }
 
 func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmailByIDParams) (GetIngestedEmailByIDRow, error) {
@@ -574,6 +583,7 @@ func (q *Queries) GetIngestedEmailByID(ctx context.Context, arg GetIngestedEmail
 		&i.MessageID,
 		&i.S3KeyPrefix,
 		&i.ReceivedAt,
+		&i.DeletedAt,
 		&i.LocalPart,
 	)
 	return i, err
@@ -767,6 +777,78 @@ func (q *Queries) GetWebhookJobByIDs(ctx context.Context, arg GetWebhookJobByIDs
 	return i, err
 }
 
+const getWebhookJobsByEmailID = `-- name: GetWebhookJobsByEmailID :many
+SELECT wj.id, wj.application_id, wj.ingested_email_id, wj.status, wj.retry_count, wj.next_delivery_at, wj.created_at,
+       COALESCE(wl.http_status_code, 0)::int AS last_http_status_code,
+       COALESCE(wl.duration_ms, 0)::int AS last_duration_ms,
+       COALESCE(wl.attempt_number, 0)::int AS last_attempt_number,
+       COALESCE(wl.request_payload, '')::text AS last_request_payload,
+       COALESCE(wl.response_body, '')::text AS last_response_body
+FROM webhook_delivery_jobs wj
+LEFT JOIN LATERAL (
+  SELECT http_status_code, duration_ms, attempt_number, request_payload, response_body
+  FROM webhook_logs
+  WHERE webhook_delivery_job_id = wj.id
+  ORDER BY attempt_number DESC
+  LIMIT 1
+) wl ON TRUE
+WHERE wj.application_id = $1 AND wj.ingested_email_id = $2
+ORDER BY wj.created_at DESC
+`
+
+type GetWebhookJobsByEmailIDParams struct {
+	ApplicationID   uuid.UUID `json:"applicationId"`
+	IngestedEmailID uuid.UUID `json:"ingestedEmailId"`
+}
+
+type GetWebhookJobsByEmailIDRow struct {
+	ID                 uuid.UUID     `json:"id"`
+	ApplicationID      uuid.UUID     `json:"applicationId"`
+	IngestedEmailID    uuid.UUID     `json:"ingestedEmailId"`
+	Status             WebhookStatus `json:"status"`
+	RetryCount         int32         `json:"retryCount"`
+	NextDeliveryAt     time.Time     `json:"nextDeliveryAt"`
+	CreatedAt          time.Time     `json:"createdAt"`
+	LastHttpStatusCode int32         `json:"lastHttpStatusCode"`
+	LastDurationMs     int32         `json:"lastDurationMs"`
+	LastAttemptNumber  int32         `json:"lastAttemptNumber"`
+	LastRequestPayload string        `json:"lastRequestPayload"`
+	LastResponseBody   string        `json:"lastResponseBody"`
+}
+
+func (q *Queries) GetWebhookJobsByEmailID(ctx context.Context, arg GetWebhookJobsByEmailIDParams) ([]GetWebhookJobsByEmailIDRow, error) {
+	rows, err := q.db.Query(ctx, getWebhookJobsByEmailID, arg.ApplicationID, arg.IngestedEmailID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWebhookJobsByEmailIDRow
+	for rows.Next() {
+		var i GetWebhookJobsByEmailIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.IngestedEmailID,
+			&i.Status,
+			&i.RetryCount,
+			&i.NextDeliveryAt,
+			&i.CreatedAt,
+			&i.LastHttpStatusCode,
+			&i.LastDurationMs,
+			&i.LastAttemptNumber,
+			&i.LastRequestPayload,
+			&i.LastResponseBody,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getWebhookLogsByJobID = `-- name: GetWebhookLogsByJobID :many
 SELECT id, webhook_delivery_job_id, attempt_number, http_status_code, response_body, is_retry, duration_ms, executed_at, request_payload FROM webhook_logs
 WHERE webhook_delivery_job_id = $1
@@ -926,36 +1008,39 @@ func (q *Queries) ListAssignedEmailsByApplication(ctx context.Context, applicati
 }
 
 const listIngestedEmailsByApplication = `-- name: ListIngestedEmailsByApplication :many
-SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, a.local_part FROM ingested_emails i
+SELECT i.id, i.application_id, i.assigned_email_id, i.reference_token, i.from_address, i.subject, i.message_id, i.s3_key_prefix, i.received_at, i.deleted_at, a.local_part FROM ingested_emails i
 JOIN assigned_emails a ON a.id = i.assigned_email_id
 WHERE i.application_id = $1
-  AND ($4::text IS NULL OR $4::text = '' OR a.local_part = $4::text)
-  AND ($5::text IS NULL OR $5::text = '' OR (
-    i.from_address ILIKE '%' || $5::text || '%' OR
-    i.subject ILIKE '%' || $5::text || '%'
+  AND ($4::boolean = TRUE OR i.deleted_at IS NULL)
+  AND ($5::text IS NULL OR $5::text = '' OR a.local_part = $5::text)
+  AND ($6::text IS NULL OR $6::text = '' OR (
+    i.from_address ILIKE '%' || $6::text || '%' OR
+    i.subject ILIKE '%' || $6::text || '%'
   ))
 ORDER BY i.received_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListIngestedEmailsByApplicationParams struct {
-	ApplicationID uuid.UUID   `json:"applicationId"`
-	Limit         int32       `json:"limit"`
-	Offset        int32       `json:"offset"`
-	LocalPart     pgtype.Text `json:"localPart"`
-	Search        pgtype.Text `json:"search"`
+	ApplicationID  uuid.UUID   `json:"applicationId"`
+	Limit          int32       `json:"limit"`
+	Offset         int32       `json:"offset"`
+	IncludeDeleted bool        `json:"includeDeleted"`
+	LocalPart      pgtype.Text `json:"localPart"`
+	Search         pgtype.Text `json:"search"`
 }
 
 type ListIngestedEmailsByApplicationRow struct {
-	ID              uuid.UUID `json:"id"`
-	ApplicationID   uuid.UUID `json:"applicationId"`
-	AssignedEmailID uuid.UUID `json:"assignedEmailId"`
-	ReferenceToken  string    `json:"referenceToken"`
-	FromAddress     string    `json:"fromAddress"`
-	Subject         string    `json:"subject"`
-	MessageID       string    `json:"messageId"`
-	S3KeyPrefix     string    `json:"s3KeyPrefix"`
-	ReceivedAt      time.Time `json:"receivedAt"`
-	LocalPart       string    `json:"localPart"`
+	ID              uuid.UUID  `json:"id"`
+	ApplicationID   uuid.UUID  `json:"applicationId"`
+	AssignedEmailID uuid.UUID  `json:"assignedEmailId"`
+	ReferenceToken  string     `json:"referenceToken"`
+	FromAddress     string     `json:"fromAddress"`
+	Subject         string     `json:"subject"`
+	MessageID       string     `json:"messageId"`
+	S3KeyPrefix     string     `json:"s3KeyPrefix"`
+	ReceivedAt      time.Time  `json:"receivedAt"`
+	DeletedAt       *time.Time `json:"deletedAt"`
+	LocalPart       string     `json:"localPart"`
 }
 
 func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListIngestedEmailsByApplicationParams) ([]ListIngestedEmailsByApplicationRow, error) {
@@ -963,6 +1048,7 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 		arg.ApplicationID,
 		arg.Limit,
 		arg.Offset,
+		arg.IncludeDeleted,
 		arg.LocalPart,
 		arg.Search,
 	)
@@ -983,6 +1069,7 @@ func (q *Queries) ListIngestedEmailsByApplication(ctx context.Context, arg ListI
 			&i.MessageID,
 			&i.S3KeyPrefix,
 			&i.ReceivedAt,
+			&i.DeletedAt,
 			&i.LocalPart,
 		); err != nil {
 			return nil, err
@@ -1128,6 +1215,79 @@ func (q *Queries) ResetWebhookJobForRedelivery(ctx context.Context, arg ResetWeb
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const softDeleteIngestedEmail = `-- name: SoftDeleteIngestedEmail :one
+UPDATE ingested_emails
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND application_id = $2 AND deleted_at IS NULL
+RETURNING id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at, deleted_at
+`
+
+type SoftDeleteIngestedEmailParams struct {
+	ID            uuid.UUID `json:"id"`
+	ApplicationID uuid.UUID `json:"applicationId"`
+}
+
+func (q *Queries) SoftDeleteIngestedEmail(ctx context.Context, arg SoftDeleteIngestedEmailParams) (IngestedEmail, error) {
+	row := q.db.QueryRow(ctx, softDeleteIngestedEmail, arg.ID, arg.ApplicationID)
+	var i IngestedEmail
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicationID,
+		&i.AssignedEmailID,
+		&i.ReferenceToken,
+		&i.FromAddress,
+		&i.Subject,
+		&i.MessageID,
+		&i.S3KeyPrefix,
+		&i.ReceivedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const softDeleteIngestedEmailsBulk = `-- name: SoftDeleteIngestedEmailsBulk :many
+UPDATE ingested_emails
+SET deleted_at = CURRENT_TIMESTAMP
+WHERE id = ANY($1::uuid[]) AND application_id = $2 AND deleted_at IS NULL
+RETURNING id, application_id, assigned_email_id, reference_token, from_address, subject, message_id, s3_key_prefix, received_at, deleted_at
+`
+
+type SoftDeleteIngestedEmailsBulkParams struct {
+	Column1       []uuid.UUID `json:"column1"`
+	ApplicationID uuid.UUID   `json:"applicationId"`
+}
+
+func (q *Queries) SoftDeleteIngestedEmailsBulk(ctx context.Context, arg SoftDeleteIngestedEmailsBulkParams) ([]IngestedEmail, error) {
+	rows, err := q.db.Query(ctx, softDeleteIngestedEmailsBulk, arg.Column1, arg.ApplicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []IngestedEmail
+	for rows.Next() {
+		var i IngestedEmail
+		if err := rows.Scan(
+			&i.ID,
+			&i.ApplicationID,
+			&i.AssignedEmailID,
+			&i.ReferenceToken,
+			&i.FromAddress,
+			&i.Subject,
+			&i.MessageID,
+			&i.S3KeyPrefix,
+			&i.ReceivedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateApplicationWebhook = `-- name: UpdateApplicationWebhook :exec

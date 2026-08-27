@@ -51,3 +51,11 @@ type PaginatedWebhookJobsResponse struct {
 	Jobs       []public.ListWebhookJobsByApplicationRow `json:"jobs"`
 	Pagination PaginationMeta                           `json:"pagination"`
 }
+
+type BulkDeleteEmailsRequest struct {
+	EmailIDs []uuid.UUID `json:"emailIds"`
+}
+
+type BulkDeleteEmailsResponse struct {
+	DeletedCount int64 `json:"deletedCount"`
+}

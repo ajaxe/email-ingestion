@@ -3,6 +3,9 @@ import {
   getEmailList,
   getAttachmentUrl,
   getEmailById,
+  deleteEmail,
+  bulkDeleteEmails,
+  getEmailWebhookHistory,
 } from "@/services/apiService";
 import { useAddressStore } from "./addresses";
 
@@ -15,6 +18,7 @@ export const useEmailStore = defineStore("emails", {
     error: null,
     selectedLocalPart: "ALL",
     searchQuery: "",
+    hideDeleted: true,
   }),
   getters: {
     localPartOptions: () => {
@@ -39,7 +43,7 @@ export const useEmailStore = defineStore("emails", {
       localPart = localPart?.trim() ? localPart : this.selectedLocalPart;
       search = search?.trim() ? search : this.searchQuery;
 
-      const params = { limit, page };
+      const params = { limit, page, includeDeleted: !this.hideDeleted };
       if (localPart && localPart !== "ALL") {
         params.localPart = localPart;
       }
@@ -71,6 +75,42 @@ export const useEmailStore = defineStore("emails", {
         throw err;
       } finally {
         this.loading = false;
+      }
+    },
+
+    async deleteEmail(appId, emailId) {
+      this.loading = true;
+      try {
+        const res = await deleteEmail(appId, emailId);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async bulkDeleteEmails(appId, emailIds) {
+      this.loading = true;
+      try {
+        const res = await bulkDeleteEmails(appId, emailIds);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchEmailWebhookHistory(appId, emailId) {
+      try {
+        const res = await getEmailWebhookHistory(appId, emailId);
+        return res.data || res;
+      } catch (err) {
+        this.error = err;
+        throw err;
       }
     },
 
