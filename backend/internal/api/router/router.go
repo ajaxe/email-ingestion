@@ -13,9 +13,9 @@ import (
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
-	slogecho "github.com/samber/slog-echo"
+	"github.com/labstack/echo/v5"
+	echomiddleware "github.com/labstack/echo/v5/middleware"
+	slogecho "github.com/samber/slog-echo/v2"
 )
 
 type ApiInitOptions struct {
@@ -27,8 +27,6 @@ type ApiInitOptions struct {
 
 func New(cfg *config.AppConfig, o *ApiInitOptions) *echo.Echo {
 	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
 	e.HTTPErrorHandler = apperror.NewEchoHTTPErrorHandler()
 
 	// Generic middleware

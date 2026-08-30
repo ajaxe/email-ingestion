@@ -67,6 +67,7 @@ Every ADR must carry exactly one of the following statuses. The status reflects 
 | [0005](./0005-jit-user-provisioning.md) | Just-in-Time User Provisioning via Email Correlation | Accepted | 2026-08-03 |
 | [0006](./0006-organization-grouping-concept.md) | Organization as a Thin Grouping Concept for Future Multi-User Expansion | Accepted | 2026-08-03 |
 | [0007](./0007-api-key-m2m-authentication.md) | Gateway-Managed API Keys for M2M Authentication | Accepted | 2026-08-04 |
+| [0008](./0008-migrate-echo-v4-to-v5.md) | Framework Upgrade — Migrating REST API Service to Echo v5 | Accepted | 2026-08-29 |
 
 ---
 

@@ -7,11 +7,11 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func HandleListAPIKeys(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		a := c.Param("app_id")
 		appID, err := uuid.Parse(a)
 		if err != nil {
@@ -28,7 +28,7 @@ func HandleListAPIKeys(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
 }
 
 func HandleCreateAPIKey(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		a := c.Param("app_id")
 		appID, err := uuid.Parse(a)
 		if err != nil {
@@ -52,7 +52,7 @@ func HandleCreateAPIKey(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
 }
 
 func HandleRevokeAPIKey(apiKeyService *service.ApiKeyService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		a := c.Param("app_id")
 		appID, err := uuid.Parse(a)
 		if err != nil {

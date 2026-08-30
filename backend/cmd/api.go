@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/api/router"
@@ -15,6 +13,7 @@ import (
 	"github.com/ajaxe/email-ingestion/pkg/config"
 	"github.com/ajaxe/email-ingestion/pkg/database"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
+	"github.com/labstack/echo/v5"
 	"github.com/spf13/cobra"
 )
 
@@ -48,27 +47,18 @@ SMTP proxy, S3 presigned URL generation, recipient validation, and webhook deliv
 			DBPool:       dbPool,
 		})
 
-		go func() {
-			portStr := fmt.Sprintf(":%d", cfg.Server.Port)
-			slog.Info("starting server", "port", cfg.Server.Port)
-			if err := e.Start(portStr); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("server startup failed", "error", err)
-				os.Exit(1)
-			}
-		}()
-
-		<-ctx.Done()
-		slog.Info("received termination signal, shutting down server")
-
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := e.Shutdown(shutdownCtx); err != nil {
-			slog.Error("server forced to shutdown", "error", err)
-		} else {
-			slog.Info("server exited properly")
+		sc := echo.StartConfig{
+			Address:         fmt.Sprintf(":%d", cfg.Server.Port),
+			GracefulTimeout: 10 * time.Second,
 		}
 
+		slog.Info("starting server", "port", cfg.Server.Port)
+		if err := sc.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server startup failed", "error", err)
+			return err
+		}
+
+		slog.Info("server exited properly")
 		return nil
 	},
 }

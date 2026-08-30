@@ -39,6 +39,7 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 * **API & JSON Naming Conventions:** All API query parameters, JSON fields in request and response payloads, and Go struct `json:` tags MUST be in `camelCase` exclusively.
 * **API Responses & Error Handling:** The REST API expects JSON request payloads and returns **unified JSON error responses**. Authentication is managed via `Authorization: Bearer <JWT_Token>`.
 * **Frontend Component Modularity:** Decompose pages into single-responsibility Vue components. Logical UI/UX elements (e.g., config forms, data tables, modal dialogs) must be extracted into dedicated components in `src/components/` rather than monolithic page files.
+* **Go Unit Testing & Refactoring:** Whenever a new Go function/method is added or an existing one is updated, corresponding unit test coverage (`*_test.go`) MUST be added or updated to verify the logic. If a function or method is difficult to test due to tight coupling, direct side-effects, or hardcoded dependencies, proactively suggest and apply code refactoring (e.g., interface extraction, dependency injection) to make the code cleanly testable.
 
 ## 6. Hard Constraints & Anti-Patterns
 * **DO NOT** use `snake_case`, `PascalCase`, or non-camelCase strings for API query parameters, JSON request/response payload fields, or Go struct `json:` tags. Use `camelCase` strictly.
@@ -51,6 +52,7 @@ The **Email Ingestion Gateway** is a production-grade microservices suite design
 * **DO NOT** allow webhook deliveries to private, loopback, or RFC 1918 IP addresses. Maintain the strict SSRF DNS guard.
 * **DO NOT** output or expose secret passwords, connection string credentials, API keys, or `.env` file contents in chat responses, transcripts, or artifact logs.
 * **DO NOT** read or inspect local configuration files containing secret credentials (e.g., `backend/config.yaml`, `.env*`) unless explicitly requested by the user.
+* **DO NOT** add or modify Go methods without accompanying unit tests in `*_test.go`, nor leave hard-to-test code un-refactored when dependency injection or interface extraction would enable clean testing.
 
 ## 7. Operational Commands
 * **Start Local Environment (PostgreSQL, LocalStack, App):**

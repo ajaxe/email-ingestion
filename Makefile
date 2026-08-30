@@ -1,8 +1,10 @@
 SHELL := C:/Program Files/Git/bin/bash.exe
 
-.PHONY: docker-build docker-spa smtp-edge smtp-edge-upload smtp-edge-deploy apply-migration
+.PHONY: docker-backend docker-spa docker-build smtp-edge smtp-edge-upload smtp-edge-deploy apply-migration
 
-docker-build:
+docker-build: docker-backend docker-spa
+
+docker-backend:
 	docker build --progress=plain -f infrastructure/Dockerfile -t apogee-dev/email-ingestion:local backend
 
 docker-spa:

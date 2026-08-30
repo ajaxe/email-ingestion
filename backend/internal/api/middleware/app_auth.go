@@ -8,7 +8,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/api/dto"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type UserAccessVerifier interface {
@@ -18,7 +18,7 @@ type UserAccessVerifier interface {
 
 func AppAuth(verifier UserAccessVerifier) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			ctx := c.Request().Context()
 			authHeader := c.Request().Header.Get("Authorization")
 			p := strings.Split(strings.TrimSpace(authHeader), " ")

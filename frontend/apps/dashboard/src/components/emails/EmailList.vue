@@ -53,21 +53,21 @@
           variant="tonal"
           class="font-mono font-weight-medium"
         >
-          {{ item.localPart || item.local_part }}
+          {{ item.localPart }}
         </v-chip>
       </template>
 
       <template #item.from_address="{ item }">
-        <span class="text-body-2 font-weight-medium text-truncate max-w-180">
-          {{ item.fromAddress || item.from_address }}
+        <span class="text-body-2 font-weight-medium text-truncate max-w-180" :title="item.fromAddress">
+          {{ item.fromAddress  }}
         </span>
       </template>
 
       <template #item.subject="{ item }">
-        <div class="d-flex align-center gap-2 max-w-250">
-          <span class="text-body-2 text-truncate font-weight-medium">
+        <div class="d-flex align-center gap-2">
+          <div class="text-body-2 text-truncate font-weight-medium max-w-250" :title="item.subject">
             {{ item.subject || "(No Subject)" }}
-          </span>
+          </div>
           <v-chip
             v-if="item.deletedAt || item.deleted_at"
             size="x-small"

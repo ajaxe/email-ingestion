@@ -8,11 +8,11 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -46,7 +46,7 @@ func HandleRegisterWebhook(svc *service.WebhookService) echo.HandlerFunc {
 }
 
 func HandlePutUpdateWebhook(svc *service.WebhookService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -86,7 +86,7 @@ func HandlePutUpdateWebhook(svc *service.WebhookService) echo.HandlerFunc {
 }
 
 func HandleListWebhookJobs(svc *service.WebhookService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -140,7 +140,7 @@ func HandleListWebhookJobs(svc *service.WebhookService) echo.HandlerFunc {
 }
 
 func HandleRedeliverWebhookJob(svc *service.WebhookService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {

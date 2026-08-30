@@ -13,7 +13,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/database/public"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 type mockAppRepo struct {
@@ -75,8 +75,7 @@ func TestHandleListEmails_Pagination(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/applications/"+appID.String()+"/emails?limit=10&page=2", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.SetParamNames("app_id")
-	c.SetParamValues(appID.String())
+	c.SetPathValues(echo.PathValues{echo.PathValue{Name: "app_id", Value: appID.String()}})
 
 	userAccess := &dto.UserAccessResult{
 		Applications: []public.Application{
@@ -134,11 +133,10 @@ func TestHandleListEmails_SearchFilter(t *testing.T) {
 	appSvc := service.NewApplicationService(mockRepo)
 	h := handler.HandleListEmails(appSvc)
 
-	req := httptest.NewRequest(http.MethodGet, "/applications/"+appID.String()+"/emails?search=invoice&local_part=sales", nil)
+	req := httptest.NewRequest(http.MethodGet, "/applications/"+appID.String()+"/emails?search=invoice&localPart=sales", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.SetParamNames("app_id")
-	c.SetParamValues(appID.String())
+	c.SetPathValues(echo.PathValues{echo.PathValue{Name: "app_id", Value: appID.String()}})
 
 	userAccess := &dto.UserAccessResult{
 		Applications: []public.Application{

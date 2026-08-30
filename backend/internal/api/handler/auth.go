@@ -11,7 +11,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/ajaxe/email-ingestion/pkg/config"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 const authConfigTemplate = `window.APP_CONFIG = {
@@ -29,7 +29,7 @@ type templateData struct {
 }
 
 func HandleGetAuthConfig(authCfg *config.AuthConfig, ingestDomain string) echo.HandlerFunc {
-	return func(e echo.Context) error {
+	return func(e *echo.Context) error {
 		d := templateData{
 			AuthConfig:   authCfg,
 			IngestDomain: ingestDomain,
@@ -42,7 +42,7 @@ func HandleGetAuthConfig(authCfg *config.AuthConfig, ingestDomain string) echo.H
 }
 
 func HandlePostLogin(authService *service.PasswordAuthService) echo.HandlerFunc {
-	return func(e echo.Context) error {
+	return func(e *echo.Context) error {
 		req := &dto.LoginAuthRequest{}
 		if err := json.NewDecoder(e.Request().Body).Decode(req); err != nil {
 			return apperror.Validation("Invalid login request", err)
@@ -58,7 +58,7 @@ func HandlePostLogin(authService *service.PasswordAuthService) echo.HandlerFunc 
 }
 
 func HandleGetAuthSession() echo.HandlerFunc {
-	return func(e echo.Context) error {
+	return func(e *echo.Context) error {
 		u, ok := middleware.UserAccessFromContext(e.Request().Context())
 		if !ok {
 			slog.Warn("no user in the current session context")

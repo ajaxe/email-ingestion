@@ -7,7 +7,7 @@ import (
 
 	"github.com/ajaxe/email-ingestion/internal/api/middleware"
 	"github.com/ajaxe/email-ingestion/internal/ingest"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +15,7 @@ func TestEdgeAuth(t *testing.T) {
 	e := echo.New()
 	secret := "my-secret-edge-token-12345"
 
-	handler := middleware.EdgeAuth(secret)(func(c echo.Context) error {
+	handler := middleware.EdgeAuth(secret)(func(c *echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 

@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/ajaxe/email-ingestion/internal/service"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // HandleIngest processes the streaming MIME payload from the edge proxy.
 func HandleIngest(emailService *service.EmailIngestionService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		err := emailService.Process(ctx, c.Request().Body)
 
@@ -30,7 +30,7 @@ func HandleIngest(emailService *service.EmailIngestionService) echo.HandlerFunc 
 }
 
 func HandleIngestEmailLookup(paramName string, emailService *service.EmailIngestionService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		email := c.Param(paramName)
 

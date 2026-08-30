@@ -12,7 +12,7 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 func CanAccessApplication(ctx context.Context, appID uuid.UUID) error {
@@ -29,7 +29,7 @@ func CanAccessApplication(ctx context.Context, appID uuid.UUID) error {
 }
 
 func HandleCreateApplication(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 
 		req := dto.AppCreateRequest{}
@@ -64,7 +64,7 @@ func HandleCreateApplication(svc *service.ApplicationService) echo.HandlerFunc {
 }
 
 func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -93,7 +93,7 @@ func HandleGetApplicationByID(svc *service.ApplicationService) echo.HandlerFunc 
 }
 
 func HandleGetApplicationStats(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
 		if err != nil {
@@ -116,7 +116,7 @@ func HandleGetApplicationStats(svc *service.ApplicationService) echo.HandlerFunc
 }
 
 func HandleGetApplications(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		ua, ok := middleware.UserAccessFromContext(ctx)
 		if !ok {
@@ -142,7 +142,7 @@ func HandleGetApplications(svc *service.ApplicationService) echo.HandlerFunc {
 }
 
 func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
@@ -169,7 +169,7 @@ func HandleCreateAddress(svc *service.ApplicationService) echo.HandlerFunc {
 }
 
 func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
@@ -233,7 +233,7 @@ func HandleListEmails(svc *service.ApplicationService) echo.HandlerFunc {
 }
 
 func HandleGetEmailByID(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		emailIDStr := c.Param("email_id")
@@ -262,7 +262,7 @@ func HandleGetEmailByID(svc *service.EmailService) echo.HandlerFunc {
 }
 
 func HandleDeleteEmail(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		emailIDStr := c.Param("email_id")
@@ -290,7 +290,7 @@ func HandleDeleteEmail(svc *service.EmailService) echo.HandlerFunc {
 }
 
 func HandleBulkDeleteEmails(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 
@@ -320,7 +320,7 @@ func HandleBulkDeleteEmails(svc *service.EmailService) echo.HandlerFunc {
 }
 
 func HandleGetEmailWebhookHistory(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		emailIDStr := c.Param("email_id")
@@ -349,7 +349,7 @@ func HandleGetEmailWebhookHistory(svc *service.EmailService) echo.HandlerFunc {
 }
 
 func HandleListAddresses(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
@@ -371,7 +371,7 @@ func HandleListAddresses(svc *service.ApplicationService) echo.HandlerFunc {
 }
 
 func HandleToggleAddressStatus(svc *service.ApplicationService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)
@@ -405,7 +405,7 @@ func HandleToggleAddressStatus(svc *service.ApplicationService) echo.HandlerFunc
 }
 
 func HandleGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		appIDStr := c.Param("app_id")
 		appID, err := uuid.Parse(appIDStr)

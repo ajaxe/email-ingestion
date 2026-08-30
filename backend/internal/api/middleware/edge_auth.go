@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/ajaxe/email-ingestion/internal/ingest"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // EdgeAuth ensures the request has the correct edge token
 func EdgeAuth(expectedToken string) echo.MiddlewareFunc {
 	expected := strings.TrimSpace(expectedToken)
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			token := strings.TrimSpace(c.Request().Header.Get(ingest.HeaderEdgeToken))
 			if token == "" {
 				return echo.NewHTTPError(http.StatusUnauthorized, "empty edge auth token")

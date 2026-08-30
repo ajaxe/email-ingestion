@@ -6,14 +6,14 @@ import (
 
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // M2MAuth middleware checks for a valid machine-to-machine (M2M) authentication token in the request headers.
 // checks authorization hear token against the api_keys table in the database.
 func M2MAuth(authz *service.AuthorizationService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			// M2M auth check from api_keys table using Authorization header bearer token.
 			// The token is expected to be in the format "Bearer <token>"
 			ctx := c.Request().Context()

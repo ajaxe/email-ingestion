@@ -7,13 +7,13 @@ import (
 	"github.com/ajaxe/email-ingestion/internal/service"
 	"github.com/ajaxe/email-ingestion/pkg/apperror"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // HandleAPIEmailByID handles the GET request to retrieve an ingested email by its ID for a specific application.
 // Returns the contents of the ingested email wihtout any attachments.
 func HandleAPIEmailByID(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		e := c.Param("email_id")
 		emailID, err := uuid.Parse(e)
@@ -36,7 +36,7 @@ func HandleAPIEmailByID(svc *service.EmailService) echo.HandlerFunc {
 
 // HandleAPIGetAttachmentURL handles the GET request to retrieve a presigned download URL for an email attachment.
 func HandleAPIGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		e := c.Param("email_id")
 		emailID, err := uuid.Parse(e)
@@ -64,7 +64,7 @@ func HandleAPIGetAttachmentURL(svc *service.EmailService) echo.HandlerFunc {
 
 // HandleAPIDeleteEmail handles the DELETE request to soft-delete an ingested email for a specific application.
 func HandleAPIDeleteEmail(svc *service.EmailService) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		ctx := c.Request().Context()
 		e := c.Param("email_id")
 		emailID, err := uuid.Parse(e)

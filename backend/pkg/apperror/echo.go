@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // HTTPErrorBody is the standard JSON error envelope returned to API clients.
@@ -30,8 +30,8 @@ var codeToStatus = map[Code]int{
 //
 // Register with: e.HTTPErrorHandler = apperrors.NewEchoHTTPErrorHandler()
 func NewEchoHTTPErrorHandler() echo.HTTPErrorHandler {
-	return func(err error, c echo.Context) {
-		if c.Response().Committed {
+	return func(c *echo.Context, err error) {
+		if resp, err := echo.UnwrapResponse(c.Response()); err == nil && resp.Committed {
 			return
 		}
 
@@ -63,9 +63,9 @@ func NewEchoHTTPErrorHandler() echo.HTTPErrorHandler {
 		// 2. Handle echo.HTTPError from Echo middleware (authz, bind, etc.)
 		var he *echo.HTTPError
 		if errors.As(err, &he) {
-			msg := http.StatusText(he.Code)
-			if m, ok := he.Message.(string); ok {
-				msg = m
+			msg := he.Message
+			if msg == "" {
+				msg = http.StatusText(he.Code)
 			}
 			_ = c.JSON(he.Code, HTTPErrorBody{
 				Code:    CodeInternal,
