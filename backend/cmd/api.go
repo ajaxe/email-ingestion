@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ajaxe/email-ingestion/internal/api/router"
@@ -49,8 +52,13 @@ SMTP proxy, S3 presigned URL generation, recipient validation, and webhook deliv
 
 		sc := echo.StartConfig{
 			Address:         fmt.Sprintf(":%d", cfg.Server.Port),
+			HideBanner:      true,
+			HidePort:        true,
 			GracefulTimeout: 10 * time.Second,
 		}
+
+		ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+		defer stop()
 
 		slog.Info("starting server", "port", cfg.Server.Port)
 		if err := sc.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
