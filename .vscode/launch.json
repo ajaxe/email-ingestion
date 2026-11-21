@@ -84,6 +84,12 @@
       "name": "Dev: Dashboard",
       "configurations": ["Launch API", "Frontend: Vite Dev Server", "Launch Jobs Worker"],
       "stopAll": true
+    },
+    {
+      "name": "Dev: Dashboard (with BFF)",
+      "configurations": ["Launch API", "Frontend: Vite Dev Server", "Launch Jobs Worker"],
+      "preLaunchTask": "bff-proxy-up",
+      "stopAll": true
     }
   ]
 }

@@ -1,0 +1,21 @@
+services:
+  proxy:
+    image: apogee-dev/bff-yarp-proxy:local
+    container_name: proxy-bff
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    env_file:
+      - ./.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:5000;https://+:5001"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/cert.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/key.pem
+      BFF_ConnectionStrings__Redis: "${REDIS}"
+    volumes:
+      - ./appsettings.Development.json:/home/app/appsettings.Development.json:ro
+      - ${DEV_CERT_FILE}:/certs/cert.pem:ro
+      - ${DEV_KEY_FILE}:/certs/key.pem:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

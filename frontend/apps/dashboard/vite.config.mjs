@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  console.log(`mode: ${mode}, env.VITE_DEV_KEY_FILE: ${env.VITE_DEV_KEY_FILE}`)
+  console.log(`mode: ${mode}, env.VITE_DEV_KEY_FILE: ${env.VITE_DEV_KEY_FILE}`);
 
   return {
     plugins: [
@@ -51,13 +51,19 @@ export default defineConfig(({ mode }) => {
       extensions: [".js", ".json", ".jsx", ".mjs", ".ts", ".tsx", ".vue"],
     },
     server: {
+      host: true,
       port: 3000,
-      https: env.VITE_DEV_KEY_FILE
+      allowedHosts: ["localhost", "host.docker.internal"],
+      hmr: {
+        clientPort: 5001,
+        protocol: "wss",
+      },
+      /*https: env.VITE_DEV_KEY_FILE
         ? {
             key: fs.readFileSync(env.VITE_DEV_KEY_FILE),
             cert: fs.readFileSync(env.VITE_DEV_CERT_FILE),
           }
-        : null,
+        : null,*/
       proxy: {
         "/app": {
           target: "http://localhost:8080",
