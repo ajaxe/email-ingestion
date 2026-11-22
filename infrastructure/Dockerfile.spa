@@ -15,11 +15,6 @@ RUN pnpm install --filter dashboard
 
 RUN pnpm --filter dashboard build
 
-FROM nginx:stable-alpine
+FROM apogee-dev/bff-yarp-proxy:local
 
-COPY --from=builder /build/apps/dashboard/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-
+COPY --from=builder /build/apps/dashboard/dist /home/app/wwwroot
