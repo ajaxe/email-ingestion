@@ -123,7 +123,7 @@ func configureAppAPI(e *echo.Echo, cfg *config.AppConfig, o *ApiInitOptions, api
 	e.GET(prefix+"/auth/config", handler.HandleGetAuthConfig(&cfg.Auth, cfg.Smtp.EmailDomain))
 
 	// TODO: login endpoint is strictly for internal usage, there are no protections on this open endpoint.
-	e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))
+	// e.POST(prefix+"/auth/login", handler.HandlePostLogin(pwdAuthService))
 
 }
 

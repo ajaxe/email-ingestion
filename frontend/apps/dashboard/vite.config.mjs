@@ -5,7 +5,6 @@ import Vue from "@vitejs/plugin-vue";
 import Fonts from "unplugin-fonts/vite";
 import { defineConfig, loadEnv } from "vite";
 import Vuetify, { transformAssetUrls } from "vite-plugin-vuetify";
-import * as fs from "node:fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {

@@ -3,7 +3,12 @@
     <div class="d-flex align-center justify-space-between flex-wrap gap-3">
       <!-- User Avatar & Identity Details -->
       <div class="d-flex align-center gap-3">
-        <v-avatar size="52" :color="avatarColor" variant="tonal" class="font-weight-bold text-subtitle-1">
+        <v-avatar
+          size="52"
+          :color="avatarColor"
+          variant="tonal"
+          class="font-weight-bold text-subtitle-1"
+        >
           <v-img v-if="profileImage" :src="profileImage" :alt="username" />
           <span v-else>{{ userInitials }}</span>
         </v-avatar>
@@ -13,13 +18,21 @@
             <h3 class="text-subtitle-1 font-weight-bold line-height-tight mb-0">
               {{ username }}
             </h3>
-            <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-medium">
+            <v-chip
+              size="x-small"
+              color="primary"
+              variant="tonal"
+              class="font-weight-medium"
+            >
               <v-icon start icon="mdi-shield-account-outline" size="12" />
               {{ providerLabel }}
             </v-chip>
           </div>
 
-          <div class="text-caption text-medium-emphasis d-flex align-center gap-1 mt-1" v-if="email">
+          <div
+            class="text-caption text-medium-emphasis d-flex align-center gap-1 mt-1"
+            v-if="email"
+          >
             <v-icon icon="mdi-email-outline" size="14" />
             <span>{{ email }}</span>
           </div>
@@ -28,17 +41,20 @@
 
       <!-- Action Controls (Sign Out, Theme Toggle) -->
       <div v-if="showActions" class="d-flex align-center gap-2">
-
-        <v-btn
-          variant="outlined"
-          color="error"
-          size="small"
-          prepend-icon="mdi-logout"
-          class="font-weight-medium"
-          @click="handleLogout"
-        >
-          Sign Out
-        </v-btn>
+        <LogoutHandler v-slot="{ submit, submitting, disabled }">
+          <v-btn
+            variant="outlined"
+            color="error"
+            size="small"
+            prepend-icon="mdi-logout"
+            class="font-weight-medium"
+            :title="submitting ? 'Signing out...' : 'Sign Out'"
+            :disabled="disabled"
+            @click="submit"
+          >
+            Sign Out
+          </v-btn>
+        </LogoutHandler>
       </div>
 
       <!-- Optional Custom Slot for Extra Actions -->
@@ -48,9 +64,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { useTheme } from 'vuetify';
-import { useAuthStore } from '@/stores/auth';
+import { computed } from "vue";
+import { useTheme } from "vuetify";
+import { useAuthStore } from "@/stores/auth";
+import LogoutHandler from "@/components/auth/LogoutHandler.vue";
 
 const props = defineProps({
   user: {
@@ -71,22 +88,22 @@ const theme = useTheme();
 const authStore = useAuthStore();
 
 const activeUser = computed(() => props.user || authStore.user || {});
-const username = computed(() => activeUser.value.name || 'Authenticated User');
-const email = computed(() => activeUser.value.email || '');
-const profileImage = computed(() => activeUser.value.profileImage || '');
+const username = computed(() => activeUser.value.name || "Authenticated User");
+const email = computed(() => activeUser.value.email || "");
+const profileImage = computed(() => activeUser.value.profileImage || "");
 
 const providerLabel = computed(() => {
-  return authStore.provider === 'oidc' ? 'OIDC SSO' : 'Password Auth';
+  return authStore.provider === "oidc" ? "OIDC SSO" : "Password Auth";
 });
 
 const avatarColor = computed(() => {
-  if (profileImage.value) return 'transparent';
-  return 'primary';
+  if (profileImage.value) return "transparent";
+  return "primary";
 });
 
 const userInitials = computed(() => {
-  if (username.value && username.value !== 'Authenticated User') {
-    const parts = username.value.trim().split(' ');
+  if (username.value && username.value !== "Authenticated User") {
+    const parts = username.value.trim().split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
@@ -95,16 +112,8 @@ const userInitials = computed(() => {
   if (email.value) {
     return email.value.slice(0, 2).toUpperCase();
   }
-  return 'US';
+  return "US";
 });
-
-function toggleTheme() {
-  theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark';
-}
-
-function handleLogout() {
-  authStore.logout();
-}
 </script>
 
 <style scoped>

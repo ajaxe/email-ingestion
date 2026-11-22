@@ -1,5 +1,7 @@
 <template>
-  <div class="min-vh-100 bg-background d-flex flex-column justify-space-between pa-4 pa-sm-8">
+  <div
+    class="min-vh-100 bg-background d-flex flex-column justify-space-between pa-4 pa-sm-8"
+  >
     <!-- Top Branding & Navigation Bar -->
     <v-container max-width="840" class="pa-0 mb-6">
       <div class="d-flex align-center justify-space-between px-2">
@@ -14,7 +16,8 @@
           >
             <v-icon icon="mdi-theme-light-dark" />
             <v-tooltip activator="parent" location="bottom">
-              Switch to {{ theme.global.current.value.dark ? 'Light' : 'Dark' }} Mode
+              Switch to
+              {{ theme.global.current.value.dark ? "Light" : "Dark" }} Mode
             </v-tooltip>
           </v-btn>
         </div>
@@ -22,10 +25,15 @@
     </v-container>
 
     <!-- Main Workspace Section -->
-    <v-container max-width="840" class="pa-0 flex-grow-1 d-flex flex-column justify-center">
+    <v-container
+      max-width="840"
+      class="pa-0 flex-grow-1 d-flex flex-column justify-center"
+    >
       <!-- 1. Logged In User Profile Header Card -->
       <div class="mb-6">
-        <div class="text-caption text-uppercase text-medium-emphasis font-weight-bold tracking-wider mb-2 px-1">
+        <div
+          class="text-caption text-uppercase text-medium-emphasis font-weight-bold tracking-wider mb-2 px-1"
+        >
           Authenticated Identity
         </div>
         <UserProfileCard :show-actions="true" elevation="2" />
@@ -52,21 +60,33 @@ meta:
 </route>
 
 <script setup>
-import { useTheme } from 'vuetify';
-import UserProfileCard from '@/components/auth/UserProfileCard.vue';
-import NeedInvitationCard from '@/components/auth/NeedInvitationCard.vue';
-import AppName from '@/components/AppName.vue';
+import { onMounted } from "vue";
+import { useTheme } from "vuetify";
+import { useAuthStore } from "@/stores/auth.js";
+import { useRouter } from "vue-router";
+import UserProfileCard from "@/components/auth/UserProfileCard.vue";
+import NeedInvitationCard from "@/components/auth/NeedInvitationCard.vue";
+import AppName from "@/components/AppName.vue";
 
 definePage({
-  path: '/need-invitation',
-  name: 'need-invitation',
+  path: "/need-invitation",
+  name: "need-invitation",
 });
 
+const store = useAuthStore();
+const router = useRouter();
 const theme = useTheme();
 
 function toggleTheme() {
-  theme.global.name.value = theme.global.current.value.dark ? 'light' : 'dark';
+  theme.global.name.value = theme.global.current.value.dark ? "light" : "dark";
 }
+
+onMounted(async () => {
+  const result = await store.loadUser();
+  if (!result.isAuthenticated) {
+    router.push({ path: "/login" });
+  }
+});
 </script>
 
 <style scoped>

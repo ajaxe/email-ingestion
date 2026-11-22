@@ -224,9 +224,6 @@ importers:
       jwt-decode:
         specifier: ^4.0.0
         version: 4.0.0
-      oidc-client-ts:
-        specifier: ^3.5.0
-        version: 3.5.0
       pinia:
         specifier: ^4.1.0
         version: 4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.45(typescript@6.0.3))
@@ -2225,10 +2222,6 @@ packages:
 
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
-
-  oidc-client-ts@3.5.0:
-    resolution: {integrity: sha512-l2q8l9CTCTOlbX+AnK4p3M+4CEpKpyQhle6blQkdFhm0IsBqsxm15bYaSa11G7pWdsYr6epdsRZxJpCyCRbT8A==}
-    engines: {node: '>=18'}
 
   on-finished@2.4.1:
     resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
@@ -4925,10 +4918,6 @@ snapshots:
       ufo: 1.6.4
 
   ohash@2.0.11: {}
-
-  oidc-client-ts@3.5.0:
-    dependencies:
-      jwt-decode: 4.0.0
 
   on-finished@2.4.1:
     dependencies:

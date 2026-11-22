@@ -13,6 +13,9 @@ services:
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/cert.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/key.pem
       BFF_ConnectionStrings__Redis: "${REDIS}"
+      BFF_Oidc__Authority: "${AUTHORITY}"
+      BFF_Oidc__ClientId: "${CLIENT_ID}"
+      BFF_Oidc__ClientSecret: "${CLIENT_SECRET}"
     volumes:
       - ./appsettings.Development.json:/home/app/appsettings.Development.json:ro
       - ${DEV_CERT_FILE}:/certs/cert.pem:ro

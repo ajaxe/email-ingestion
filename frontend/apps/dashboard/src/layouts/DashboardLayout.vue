@@ -108,17 +108,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import NavigationLinks from "@/components/navigation/NavigationLinks.vue";
 import NavigationAddOns from "@/components/navigation/NavigationAddOns.vue";
 import CustomAppBar from "@/components/CustomAppBar.vue";
+import { useRoute, useRouter } from 'vue-router';
 import { useNotificationStore } from "@/stores/notification";
 import { useAppStore } from "@/stores/application";
 import { isNavigating } from "@/router";
+import { apiEvents, API_EVENT_TYPES } from "@/services/apiEvents";
 
 const drawer = ref(true);
 const notificationStore = useNotificationStore();
 const appStore = useAppStore();
+const router = useRouter();
+const route = useRoute();
 
 const rail = ref(true);
 const hasApps = computed(() => appStore.applications.length > 0);
@@ -139,6 +143,46 @@ function getSnackbarIcon(color) {
 function collapseToggle(open) {
   rail.value = open;
 }
+
+let isLoggingOut = false;
+
+async function handleTokenInvalid() {
+  if (isLoggingOut) return;
+  isLoggingOut = true;
+  try {
+    router.push("/login");
+  } finally {
+    isLoggingOut = false;
+  }
+}
+
+function handleForbiddenUser() {
+  if (route.name !== "need-invitation") {
+    router.push({ name: "need-invitation" });
+  }
+}
+
+onMounted(() => {
+  apiEvents.addEventListener(
+    API_EVENT_TYPES.FORBIDDEN_TOKEN_INVALID,
+    handleTokenInvalid,
+  );
+  apiEvents.addEventListener(
+    API_EVENT_TYPES.FORBIDDEN_USER,
+    handleForbiddenUser,
+  );
+});
+
+onUnmounted(() => {
+  apiEvents.removeEventListener(
+    API_EVENT_TYPES.FORBIDDEN_TOKEN_INVALID,
+    handleTokenInvalid,
+  );
+  apiEvents.removeEventListener(
+    API_EVENT_TYPES.FORBIDDEN_USER,
+    handleForbiddenUser,
+  );
+});
 </script>
 
 <style scoped>

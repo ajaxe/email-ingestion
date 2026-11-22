@@ -1,15 +1,5 @@
 import { defineStore } from "pinia";
-import {
-  passwordLogin,
-  passwordLogout,
-  getUser,
-  getAuthSession,
-  signinRedirect,
-  signoutRedirect,
-  signoutRedirectCallback,
-  signinRedirectCallback,
-  emptyUser,
-} from "@/services/authService";
+import { getUser, getAuthSession, emptyUser } from "@/services/authService";
 
 import { useAppStore } from "@/stores/application";
 
@@ -19,33 +9,16 @@ export const useAuthStore = defineStore("auth", {
   state: () => ({
     provider: window.APP_CONFIG.AUTH_PROVIDER,
     user: emptyUser,
+    csrfToken: "",
+    csrfFormFieldName: "",
+    logoutPath: "/app/logout",
   }),
   getters: {
-    isPasswordProvider: (state) => state.provider === "password",
     isAuthenticated: (state) => {
       return state.user.name !== "";
     },
   },
   actions: {
-    async login(username, password) {
-      if (this.isPasswordProvider) {
-        if (!username || !password)
-          throw new Error("Username and password are required");
-        const success = await passwordLogin(username, password);
-        return success;
-      } else {
-        await signinRedirect();
-      }
-    },
-    async logout() {
-      if (this.isPasswordProvider) {
-        passwordLogout();
-        router.push("/login");
-      } else {
-        await signoutRedirect();
-      }
-    },
-
     async loadUser() {
       const [u, userAccess] = await Promise.allSettled([
         getUser(),
@@ -53,8 +26,10 @@ export const useAuthStore = defineStore("auth", {
       ]);
       if (u.status === "fulfilled" && u.value) {
         this.user = u.value;
+        this.csrfToken = u.value.csrfToken;
+        this.csrfFormFieldName = u.value.csrfFormFieldName;
       }
-      
+
       let isForbiddenUser = false;
       let isTokenInvalid = false;
       let apps = [];
@@ -66,7 +41,6 @@ export const useAuthStore = defineStore("auth", {
         if (msg === "forbidden_token_invalid" || err?.status === 401) {
           isTokenInvalid = true;
           this.user = emptyUser;
-          passwordLogout();
         } else if (msg === "forbidden_user" || err?.status === 403) {
           isForbiddenUser = true;
         }
@@ -79,41 +53,12 @@ export const useAuthStore = defineStore("auth", {
           appStore.activeAppId = apps[0].id;
         }
       }
+
       return {
         isAuthenticated: this.isAuthenticated && !isTokenInvalid,
         forbidden: isForbiddenUser,
         applications: apps,
       };
-    },
-
-    async handleLoginCallback() {
-      if (this.isPasswordProvider) return;
-
-      try {
-        // Complete the login, exchange code for tokens
-        const u = await signinRedirectCallback();
-        this.user = u;
-        // Redirect to the home page
-        router.push("/");
-      } catch (error) {
-        console.error("Error handling login callback:", error);
-        router.push("/login-failed"); // Or some error page
-      }
-    },
-
-    async handleLogoutCallback() {
-      if (this.isPasswordProvider) return;
-
-      try {
-        // Complete the login, exchange code for tokens
-        await signoutRedirectCallback();
-        this.user = emptyUser;
-        // Redirect to the home page
-        router.push("/login");
-      } catch (error) {
-        console.error("Error handling login callback:", error);
-        router.push("/login-failed"); // Or some error page
-      }
     },
 
     async checkSession() {

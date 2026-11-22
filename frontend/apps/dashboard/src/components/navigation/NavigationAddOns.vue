@@ -56,12 +56,15 @@
               title="Toggle Theme"
               @click="toggleTheme"
             />
-            <v-list-item
-              prepend-icon="mdi-logout"
-              title="Sign Out"
-              color="error"
-              @click="handleLogout"
-            />
+            <LogoutHandler v-slot="{ submit, submitting, disabled }">
+              <v-list-item
+                prepend-icon="mdi-logout"
+                :title="submitting ? 'Signing out...' : 'Sign Out'"
+                color="error"
+                :disabled="disabled"
+                @click="submit"
+              />
+            </LogoutHandler>
           </v-list>
         </v-card>
       </v-menu>
@@ -73,6 +76,7 @@
 import { computed } from "vue";
 import { useTheme } from "vuetify";
 import { useAuthStore } from "@/stores/auth";
+import LogoutHandler from "@/components/auth/LogoutHandler.vue";
 
 const { isCollapsed } = defineProps({
   isCollapsed: {
@@ -92,10 +96,6 @@ const email = computed(() => authStore.user.email);
 
 function toggleTheme() {
   theme.global.name.value = theme.global.current.value.dark ? "light" : "dark";
-}
-
-function handleLogout() {
-  authStore.logout();
 }
 </script>
 
